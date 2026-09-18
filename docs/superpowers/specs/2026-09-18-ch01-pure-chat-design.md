@@ -92,9 +92,9 @@ data: [DONE]
 
 ## 结构化输出与 DeepSeek 兼容
 
-`with_structured_output(AfterSalesTicket)`,默认 `method="function_calling"`(DeepSeek 支持 tool calling)。
+`with_structured_output(AfterSalesTicket, method="function_calling")`,显式指定 method,并关闭思考模式(`extra_body={"thinking": {"type": "disabled"}}`)。
 
-**降级预案(已获用户同意)**:若实测 DeepSeek 的 tool calling 对枚举字段返回不稳(返回枚举名 `REFUND` 而非中文值「退款」、或订单号占位符乱填),降级到 `method="json_mode"`(仍是 `with_structured_output`,不属于换方案)。
+**实测发现(验收阶段,已回写)**:langchain-openai 的 `with_structured_output` 默认 method 实为 `json_schema`(发 `response_format`),DeepSeek 报 `This response_format type is unavailable now`;直接 `function_calling` 被 `deepseek-v4-pro` 的思考模式挡(`Thinking mode does not support this tool_choice`);`json_mode` 能返回 JSON 但漏 `expected_solution` 字段。最终 **`function_calling` + 关 thinking** 三字段齐全、枚举正确,5/5 标注样例通过。
 
 `order_id` 加 `field_validator(mode="before")`,把 `""`/`"null"`/`"none"`/`"n/a"`/`"无"` 等占位文本归一为 `None`——这是课程 1.3 源码走读里点名的真实模型行为,两道防线(prompt 劝 + validator 兜)都要。
 
@@ -133,6 +133,7 @@ data: [DONE]
 | 验收模型 | DeepSeek 官方 deepseek-chat | 用户确认;应用侧 OpenAI 协议,换模型只改 .env |
 | 会话管理 | 服务端 session_id 内存 dict | 客户端全量 history 对 curl 验收不友好 |
 | 提取形态 | 独立 /extract 接口 | 融合进对话需意图判断,超出本章"纯对话"范围 |
-| 结构化输出方法 | function_calling 默认,json_mode 降级 | DeepSeek 两种都支持;降级已获用户同意 |
+| 结构化输出方法 | function_calling + 关 thinking(显式 method) | 实测 json_schema 默认不可用、function_calling 被思考模式挡、json_mode 漏字段;用户确认 function_calling+关 thinking |
+| 推理模型适配 | extract 关 thinking,chat 保持默认 | deepseek-v4-pro 思考模式下不支持 tool_choice;对话流式不受影响 |
 | 依赖管理 | uv + Python 3.12 | uv 已装,课程约定 |
 | 前端 | 本章不做 | 验收标准全 curl;用户确认范围最小优先 |
