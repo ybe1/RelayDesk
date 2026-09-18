@@ -8,3 +8,10 @@ def test_factory_points_to_chat_upstream():
 
 def test_factory_streaming_flag():
     assert get_chat_model(streaming=True).streaming is True
+
+def test_disable_thinking_sets_extra_body():
+    m = get_chat_model(disable_thinking=True)
+    assert m.extra_body == {"thinking": {"type": "disabled"}}
+
+def test_default_has_no_extra_body():
+    assert get_chat_model().extra_body is None

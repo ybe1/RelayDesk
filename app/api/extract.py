@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 def get_extractor() -> Runnable:
-    model = get_chat_model()
-    return EXTRACT_PROMPT | model.with_structured_output(AfterSalesTicket)
+    model = get_chat_model(disable_thinking=True)
+    return EXTRACT_PROMPT | model.with_structured_output(AfterSalesTicket, method="function_calling")
 
 @router.post("/api/extract", response_model=AfterSalesTicket)
 async def extract(
