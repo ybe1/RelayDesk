@@ -12,6 +12,13 @@ def test_customer_service_prompt_renders_with_history():
     for keyword in ("客服", "不", "订单"):
         assert keyword in msgs[0].content
 
+
+def test_customer_service_prompt_requires_faq_lookup_for_policy_questions():
+    system = CUSTOMER_SERVICE_PROMPT.format_messages(history=[])[0].content
+    assert "query_faq" in system
+    assert "邮费" in system
+    assert "演示数据" in system
+
 def test_extract_prompt_renders_text():
     msgs = EXTRACT_PROMPT.format_messages(text="订单 MH1 坏了要退款")
     assert msgs[0].type == "system"

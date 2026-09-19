@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-mewhelp_root_local}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mewhelp}
+      MYSQL_USER: ${MYSQL_USER:-mewhelp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mewhelp_local}
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - mysql_ch02_utf8:/var/lib/mysql
+      - ./db/ch02.sql:/docker-entrypoint-initdb.d/01-ch02.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  mysql_ch02_utf8:

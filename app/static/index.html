@@ -80,6 +80,16 @@
     border: 1px solid var(--border);
     border-top-left-radius: 4px;
   }
+  .tool-trace {
+    display: none; width: fit-content; margin-bottom: 7px;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--accent-soft); color: #9a3412;
+    font-size: 12px; line-height: 1.5; white-space: normal;
+  }
+  .tool-trace.visible { display: block; }
+  .tool-trace.running::before { content: '⏳ '; }
+  .tool-trace.success::before { content: '✓ '; }
+  .tool-trace.failed::before { content: '⚠ '; }
   .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
   .typing span {
     width: 7px; height: 7px; border-radius: 50%;
@@ -134,11 +144,12 @@
   const inputEl = document.getElementById('input');
   const sendBtn = document.getElementById('send');
 
-  // 会话 ID:同一浏览器标签页内复用,保证多轮上下文接得上
-  let sessionId = localStorage.getItem('mewhelp_session');
-  if (!sessionId) {
-    sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
-    localStorage.setItem('mewhelp_session', sessionId);
+  // 服务端分配数字会话 ID；匿名用户标识由浏览器保存。
+  let conversationId = Number(localStorage.getItem('mewhelp_conversation_id')) || null;
+  let userId = localStorage.getItem('mewhelp_user_id');
+  if (!userId) {
+    userId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    localStorage.setItem('mewhelp_user_id', userId);
   }
 
   function scrollToBottom() {
@@ -153,19 +164,25 @@
     avatar.textContent = role === 'assistant' ? '🐱' : '🙂';
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    bubble.textContent = text;
+    const trace = document.createElement('div');
+    trace.className = 'tool-trace';
+    const body = document.createElement('span');
+    body.className = 'bubble-body';
+    body.textContent = text;
+    bubble.appendChild(trace);
+    bubble.appendChild(body);
     msg.appendChild(avatar);
     msg.appendChild(bubble);
     messagesEl.appendChild(msg);
     scrollToBottom();
-    return bubble;
+    return { bubble, body, trace };
   }
 
-  function showTyping(bubble) {
+  function showTyping(body) {
     const t = document.createElement('span');
     t.className = 'typing';
     t.innerHTML = '<span></span><span></span><span></span>';
-    bubble.appendChild(t);
+    body.appendChild(t);
     scrollToBottom();
     return t;
   }
@@ -179,19 +196,21 @@
   // 解析一个 SSE 帧(形如 "data: {...}" 或 "event: error\ndata: {...}")
   function parseFrame(frame) {
     let eventType = null;
+    let payload = '';
     for (const line of frame.split('\n')) {
       if (line.startsWith('event:')) {
         eventType = line.slice(6).trim();
       } else if (line.startsWith('data:')) {
-        const payload = line.slice(5).trim();
-        if (eventType === 'error') {
-          return { type: 'error', message: (JSON.parse(payload).message || '出错了') };
-        }
-        if (payload === '[DONE]') return { type: 'done' };
-        const data = JSON.parse(payload);
-        if (data.delta) return { type: 'delta', delta: data.delta };
+        payload += line.slice(5).trim();
       }
     }
+    if (!payload) return { type: 'ignore' };
+    if (payload === '[DONE]') return { type: 'done' };
+    const data = JSON.parse(payload);
+    if (eventType === 'error') return { type: 'error', message: data.message || '出错了' };
+    if (eventType === 'conversation') return { type: 'conversation', conversationId: data.conversation_id };
+    if (eventType === 'tool_status') return { type: 'tool_status', ...data };
+    if (data.delta) return { type: 'delta', delta: data.delta };
     return { type: 'ignore' };
   }
 
@@ -202,8 +221,8 @@
     inputEl.style.height = 'auto';
 
     addBubble('user', text);
-    const bubble = addBubble('assistant', '');
-    const typing = showTyping(bubble);
+    const { body, trace } = addBubble('assistant', '');
+    const typing = showTyping(body);
     setSending(true);
 
     let content = '';
@@ -212,7 +231,7 @@
       const resp = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, message: text }),
+        body: JSON.stringify({ user_id: userId, conversation_id: conversationId, message: text }),
       });
       if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
 
@@ -230,7 +249,21 @@
           const res = parseFrame(frame);
           if (res.type === 'delta') {
             content += res.delta;
-            bubble.textContent = content; // 首帧会顺带覆盖 typing 指示
+            body.textContent = content;
+            scrollToBottom();
+          } else if (res.type === 'conversation') {
+            const id = Number(res.conversationId);
+            if (Number.isSafeInteger(id) && id > 0) {
+              conversationId = id;
+              localStorage.setItem('mewhelp_conversation_id', String(id));
+            }
+          } else if (res.type === 'tool_status') {
+            const name = res.tool_name || res.name || '工具';
+            const phase = res.phase || res.status || '执行中';
+            trace.className = 'tool-trace visible ' +
+              (phase === '成功' || phase === 'success' ? 'success' :
+               phase === '失败' || phase === 'failed' || phase === 'error' ? 'failed' : 'running');
+            trace.textContent = name + ' · ' + (res.message || phase);
             scrollToBottom();
           } else if (res.type === 'error') {
             throw new Error(res.message);
@@ -242,10 +275,10 @@
       }
     } catch (err) {
       failed = true;
-      bubble.textContent = '（小喵走神了：' + err.message + '）';
+      body.textContent = '（小喵走神了：' + err.message + '）';
     } finally {
       if (typing.parentNode) typing.remove();
-      if (!content && !failed) bubble.textContent = '（未收到回复）';
+      if (!content && !failed) body.textContent = '（未收到回复）';
       setSending(false);
       scrollToBottom();
     }

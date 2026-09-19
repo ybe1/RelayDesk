@@ -2,11 +2,18 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.chat import ChatRequest
+
+
+def test_chat_request_accepts_anonymous_user_and_optional_numeric_conversation():
+    first = ChatRequest(user_id="anon-1", message="你好")
+    assert first.conversation_id is None
+    later = ChatRequest(user_id="anon-1", conversation_id=12, message="继续")
+    assert later.conversation_id == 12
 from app.schemas.extract import AfterSalesTicket, ExtractRequest, RequestType
 
 def test_chat_request_rejects_empty_message():
     with pytest.raises(ValidationError):
-        ChatRequest(session_id="s1", message="")
+        ChatRequest(user_id="anon-1", message="")
 
 def test_extract_request_rejects_empty_text():
     with pytest.raises(ValidationError):
