@@ -1,0 +1,1 @@
+"""Shared knowledge ingestion primitives."""
