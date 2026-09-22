@@ -9,5 +9,11 @@ class Settings(BaseSettings):
     chat_api_key: str
     token_budget: int = 2000
     database_url: str = "mysql+pymysql://mewhelp:mewhelp_local@127.0.0.1:3307/mewhelp?charset=utf8mb4"
+    embed_base_url: str = "https://api.siliconflow.cn/v1"
+    embed_model: str = "BAAI/bge-m3"
+    embed_api_key: str = ""
+    milvus_uri: str = "http://127.0.0.1:19530"
+    rag_top_k: int = 5
+    rag_min_score: float = 0.55
 
 settings = Settings()
