@@ -39,3 +39,46 @@ def test_parse_markdown_keeps_all_chunks_from_one_section_with_sentence_overlap(
     assert "第0句内容完整。" in drafts[0].answer
     assert "第299句内容完整。" in drafts[-1].answer
     assert "第" in drafts[0].answer and "第" in drafts[1].answer
+
+
+def test_oversize_sentence_is_kept_once_and_never_becomes_overlap():
+    oversize = "超长句" * 450 + "。"
+    tail = " ".join(f"后续第{i}句。" for i in range(200))
+    drafts = parse_markdown(f"# 手册\n## 说明\n{oversize}\n{tail}", "after_sales.md", "manual")
+
+    assert oversize in drafts[0].answer
+    assert all(oversize not in draft.answer for draft in drafts[1:])
+    assert all(len(draft.answer) <= 950 or draft.answer == oversize for draft in drafts)
+
+
+def test_faq_uses_question_lines_and_question_headings_without_making_them_categories():
+    text = """# 商品 FAQ
+## 商品咨询
+运费怎么算？
+演示规则：该问法来自 FAQ 正文。
+
+### 能开发票吗？
+订单完成后可在订单页申请发票。
+"""
+    drafts = parse_markdown(text, "products.md", "faq")
+
+    assert drafts[0].category == "商品 FAQ / 商品咨询"
+    assert drafts[0].questions == "运费怎么算？"
+    assert "运费怎么算？" not in drafts[0].answer
+    assert drafts[1].category == "商品 FAQ / 商品咨询"
+    assert drafts[1].questions == "能开发票吗？"
+
+
+def test_important_only_marks_the_callout_chunk():
+    drafts = parse_markdown("""# 政策
+## 时限
+> [!IMPORTANT]
+> 关键条款：七日内申请。
+
+普通说明：包装应当完整。
+""", "returns.md", "policy")
+
+    marked = [draft for draft in drafts if "关键条款" in draft.answer]
+    ordinary = [draft for draft in drafts if "普通说明" in draft.answer]
+    assert marked and all(draft.is_key_clause for draft in marked)
+    assert ordinary and all(not draft.is_key_clause for draft in ordinary)

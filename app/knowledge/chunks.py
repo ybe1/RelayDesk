@@ -3,11 +3,20 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+
 
 MAX_CHUNK_CHARS = 800
 OVERLAP_CHARS = 100
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _SENTENCES = re.compile(r".+?(?:[。！？!?]|(?<=\.)|$)", re.DOTALL)
+_HEADERS = [("#", "h1"), ("##", "h2"), ("###", "h3"), ("####", "h4"), ("#####", "h5"), ("######", "h6")]
+_HEADER_SPLITTER = MarkdownHeaderTextSplitter(headers_to_split_on=_HEADERS, strip_headers=True)
+_RECURSIVE_SPLITTER = RecursiveCharacterTextSplitter(
+    chunk_size=MAX_CHUNK_CHARS,
+    chunk_overlap=0,
+    separators=["\n\n", "\n", " ", ""],
+)
 
 
 @dataclass(frozen=True)
@@ -36,6 +45,8 @@ def _overlap(sentences: list[str]) -> list[str]:
     selected: list[str] = []
     length = 0
     for sentence in reversed(sentences):
+        if len(sentence) > OVERLAP_CHARS:
+            continue
         if selected and length + len(sentence) > OVERLAP_CHARS:
             break
         selected.insert(0, sentence)
@@ -47,7 +58,15 @@ def _text_chunks(text: str) -> list[str]:
     chunks: list[str] = []
     current: list[str] = []
     current_size = 0
-    for sentence in _sentences(text):
+    raw_sentences = _sentences(text)
+    # Recursive splitting finds the normal paragraph/line boundaries for ordinary
+    # prose. When it would need its character fallback, retain the original
+    # sentence instead: an oversized sentence is a valid indivisible chunk.
+    if all(len(sentence) <= MAX_CHUNK_CHARS for sentence in raw_sentences):
+        sentences = _sentences("\n".join(_RECURSIVE_SPLITTER.split_text(text)))
+    else:
+        sentences = raw_sentences
+    for sentence in sentences:
         if current and current_size + len(sentence) > MAX_CHUNK_CHARS:
             chunks.append("\n".join(current))
             current = _overlap(current)
@@ -85,8 +104,10 @@ def _section_drafts(
     if not headings or not any(line.strip() for line in text_lines):
         return []
     section_path = " / ".join([source, *headings])
-    category = " / ".join(headings[:-1]) or headings[-1]
-    key_clause = any("[!IMPORTANT]" in line for line in text_lines)
+    heading_question = content_type == "faq" and headings[-1].rstrip().endswith(("?", "？"))
+    category_headings = headings[:-1] if heading_question else headings
+    category = " / ".join(category_headings) or headings[-1]
+    heading_question_text = headings[-1] if heading_question else None
     drafts: list[ChunkDraft] = []
     index = 0
     while index < len(text_lines):
@@ -99,14 +120,28 @@ def _section_drafts(
                 table.append(text_lines[index].strip())
                 index += 1
             for answer in _table_chunks(table):
-                drafts.append(ChunkDraft(category, headings[-1], answer, section_path, content_type, key_clause, True))
+                drafts.append(ChunkDraft(category, heading_question_text or headings[-1], answer, section_path, content_type, False, True))
+            continue
+        if text_lines[index].lstrip().startswith(">"):
+            callout: list[str] = []
+            while index < len(text_lines) and text_lines[index].lstrip().startswith(">"):
+                callout.append(text_lines[index].strip())
+                index += 1
+            key_clause = any("[!IMPORTANT]" in line for line in callout)
+            for answer in _text_chunks("\n".join(callout)):
+                drafts.append(ChunkDraft(category, heading_question_text or headings[-1], answer, section_path, content_type, key_clause, False))
             continue
         prose: list[str] = []
-        while index < len(text_lines) and text_lines[index].strip() and not text_lines[index].lstrip().startswith("|"):
+        while (index < len(text_lines) and text_lines[index].strip()
+               and not text_lines[index].lstrip().startswith(("|", ">"))):
             prose.append(text_lines[index].strip())
             index += 1
+        question = heading_question_text or headings[-1]
+        if content_type == "faq" and prose and prose[0].rstrip().endswith(("?", "？")):
+            question = prose.pop(0)
+        key_clause = any("[!IMPORTANT]" in line for line in prose)
         for answer in _text_chunks("\n".join(prose)):
-            drafts.append(ChunkDraft(category, headings[-1], answer, section_path, content_type, key_clause, False))
+            drafts.append(ChunkDraft(category, question, answer, section_path, content_type, key_clause, False))
     return drafts
 
 
@@ -115,17 +150,7 @@ def parse_markdown(text: str, source: str, content_type: str) -> list[ChunkDraft
     if not text.strip():
         return []
     drafts: list[ChunkDraft] = []
-    headings: list[str] = []
-    content: list[str] = []
-    for line in text.splitlines():
-        match = _HEADING.match(line)
-        if not match:
-            content.append(line)
-            continue
-        drafts.extend(_section_drafts(content, source, headings, content_type))
-        content = []
-        level = len(match.group(1))
-        headings = headings[: level - 1]
-        headings.append(match.group(2))
-    drafts.extend(_section_drafts(content, source, headings, content_type))
+    for document in _HEADER_SPLITTER.split_text(text):
+        headings = [document.metadata[name] for _, name in _HEADERS if name in document.metadata]
+        drafts.extend(_section_drafts(document.page_content.splitlines(), source, headings, content_type))
     return drafts
