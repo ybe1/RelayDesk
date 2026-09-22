@@ -18,7 +18,7 @@ class FakeIndexParams:
 
 
 class FakeMilvus:
-    def __init__(self, *, exists=False, description=None):
+    def __init__(self, *, exists=False, description=None, indexes=None, index_descriptions=None):
         self.exists = exists
         self.description = description
         self.schema = None
@@ -26,6 +26,10 @@ class FakeMilvus:
         self.upserted = []
         self.search_args = None
         self.loaded = []
+        self.indexes = indexes if indexes is not None else ["vector_index"]
+        self.index_descriptions = index_descriptions or {
+            "vector_index": {"field_name": "vector", "metric_type": "COSINE"}
+        }
 
     def has_collection(self, collection_name):
         assert collection_name == "knowledge"
@@ -49,6 +53,15 @@ class FakeMilvus:
 
     def load_collection(self, collection_name):
         self.loaded.append(collection_name)
+
+    def list_indexes(self, collection_name, field_name=""):
+        assert collection_name == "knowledge"
+        assert field_name == "vector"
+        return self.indexes
+
+    def describe_index(self, collection_name, index_name):
+        assert collection_name == "knowledge"
+        return self.index_descriptions[index_name]
 
     def upsert(self, **kwargs):
         self.upserted.append(kwargs)
@@ -107,6 +120,18 @@ def test_ensure_collection_rejects_incompatible_existing_schema():
 
     client = FakeMilvus(exists=True, description=_description(dim=768))
     with pytest.raises(RuntimeError, match="incompatible"):
+        MilvusStore(client=client).ensure_collection()
+
+
+@pytest.mark.parametrize("indexes, descriptions", [
+    ([], {}),
+    (["vector_index"], {"vector_index": {"field_name": "vector", "metric_type": "L2"}}),
+])
+def test_ensure_collection_rejects_existing_missing_or_non_cosine_vector_index(indexes, descriptions):
+    from app.knowledge.vector_store import MilvusStore
+
+    client = FakeMilvus(exists=True, description=_description(), indexes=indexes, index_descriptions=descriptions)
+    with pytest.raises(RuntimeError, match="index"):
         MilvusStore(client=client).ensure_collection()
 
 

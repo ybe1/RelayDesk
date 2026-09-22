@@ -69,17 +69,12 @@ class EmbeddingClient:
 
         with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
             for attempt in range(self.max_retries + 1):
-                try:
-                    response = client.post(f"{self.base_url}/embeddings", headers=headers, json=payload)
-                    if response.status_code in _RETRYABLE_STATUS_CODES and attempt < self.max_retries:
-                        self.sleep(0.25 * (2**attempt))
-                        continue
-                    response.raise_for_status()
-                    return self._ordered_vectors(response.json(), len(texts))
-                except httpx.TransportError:
-                    if attempt >= self.max_retries:
-                        raise
+                response = client.post(f"{self.base_url}/embeddings", headers=headers, json=payload)
+                if response.status_code in _RETRYABLE_STATUS_CODES and attempt < self.max_retries:
                     self.sleep(0.25 * (2**attempt))
+                    continue
+                response.raise_for_status()
+                return self._ordered_vectors(response.json(), len(texts))
 
         raise AssertionError("unreachable")
 

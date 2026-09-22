@@ -34,6 +34,7 @@ class MilvusStore:
     def ensure_collection(self) -> None:
         if self.client.has_collection(COLLECTION_NAME):
             self._verify_schema(self.client.describe_collection(COLLECTION_NAME))
+            self._verify_vector_index()
             self.client.load_collection(COLLECTION_NAME)
             return
 
@@ -133,6 +134,20 @@ class MilvusStore:
         identifier = fields["id"]
         if not identifier.get("is_primary") or identifier.get("auto_id") is not False:
             raise RuntimeError("incompatible existing knowledge collection schema: id primary key")
+
+    def _verify_vector_index(self) -> None:
+        index_names = self.client.list_indexes(COLLECTION_NAME, field_name="vector")
+        if not index_names:
+            raise RuntimeError("incompatible existing knowledge collection index: vector COSINE index is missing")
+        for index_name in index_names:
+            description = self.client.describe_index(COLLECTION_NAME, index_name)
+            if (
+                isinstance(description, dict)
+                and description.get("field_name") == "vector"
+                and str(description.get("metric_type", "")).upper() == "COSINE"
+            ):
+                return
+        raise RuntimeError("incompatible existing knowledge collection index: vector must use COSINE")
 
     @staticmethod
     def _normal_type(value: object) -> str:

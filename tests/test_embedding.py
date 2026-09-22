@@ -116,3 +116,23 @@ def test_embed_does_not_retry_non_transient_http_statuses():
     with pytest.raises(httpx.HTTPStatusError):
         client.embed(["hello"])
     assert attempts == 1
+
+
+def test_embed_does_not_retry_a_transport_error():
+    from app.knowledge.embedding import EmbeddingClient
+
+    attempts = 0
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        raise httpx.ConnectError("connection failed")
+
+    client = EmbeddingClient(
+        base_url="https://example.test", api_key="key", transport=httpx.MockTransport(handler),
+        max_retries=2,
+    )
+
+    with pytest.raises(httpx.ConnectError):
+        client.embed(["hello"])
+    assert attempts == 1
