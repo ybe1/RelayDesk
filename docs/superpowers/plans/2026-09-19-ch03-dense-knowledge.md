@@ -1,50 +1,47 @@
 # Ch03 Dense Knowledge Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (user-selected) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace `query_faq` SQL LIKE with BGE-M3/Milvus dense retrieval, backed by a resumable MySQL knowledge pipeline and scheduled conversation QA mining.
+**Goal:** 建成可在浏览器操作的 dense 知识库，替换 query_faq 内部检索，支持文本去重、手动挖知识及故障重跑。
 
-**Architecture:** MySQL holds authoritative chunks and staging rows. Offline jobs parse Markdown or extract conversation QA, deduplicate, commit pending chunks, then upsert vectors into Milvus using the MySQL chunk ID. The unchanged `query_faq(keyword)` tool embeds the query, searches Milvus, and reads ranked answers from MySQL.
+**Architecture:** 保留同步 SQLAlchemy/MySQL 架构。离线任务先写原文 pending，再按相同 ID upsert Milvus 服务读模型并回填 done。在线仅查询 Milvus；API、CLI 和页面共享服务函数。
 
-**Tech Stack:** Python 3.12, FastAPI, SQLAlchemy 2.x, MySQL 8.4, Docker Compose, Milvus standalone, PyMilvus, LangChain, langchain-text-splitters, SiliconFlow `BAAI/bge-m3` embeddings, APScheduler, uv, pytest.
+**Tech Stack:** Python 3.12、FastAPI、SQLAlchemy 2.x、MySQL 8.4、Docker Milvus standalone、PyMilvus、LangChain、langchain-text-splitters、硅基流动 BAAI/bge-m3、uv、pytest、原生静态 HTML/JS。
 
 **Spec:** `docs/superpowers/specs/2026-09-19-ch03-dense-knowledge-design.md`
 
 ## Global Constraints
 
-- Preserve `query_faq(keyword: str)` and JSON `{"keyword": string, "matches": [{"question": string, "answer": string, "category": string}]}`.
-- Copy both user DDL tables exactly; add no MySQL knowledge columns or substitute databases. Keep Ch02 tables and chat flow.
-- Embed only `category + "\n" + questions + "\n" + answer`; `section_path`, `content_type`, `is_key_clause`, `prev_chunk_id`, `next_chunk_id`, `vector_id`, and status remain metadata in MySQL.
-- Use `BAAI/bge-m3` via SiliconFlow, 1024-dimensional dense vectors, and Milvus `knowledge` collection with COSINE. No keyword fallback, hybrid search, or online rerank.
-- Stage conversation QA in batches, then globally merge only synonymous questions with factually consistent answers.
-- Keep `dev-notes/ch03.md` current after brainstorm, plan approval, **each task**, review, and finish; each entry contains user words, output, corrections, and rework.
-- Refresh Context7 for each version-sensitive library API before implementation. If the fixed stack fails on this machine, stop and ask rather than substitute a model or vector database.
-- Do not commit `.env` or log API keys. Real cloud acceptance requires the user to set `EMBED_API_KEY` in `.env`.
+- 固定 Docker Milvus standalone（非 Lite）与 BAAI/bge-m3 1024 维 dense/COSINE；在线不回 MySQL，不加关键词 fallback/混合检索/重排。
+- 保持 query_faq(keyword: str) 与实际 JSON `{"keyword": string, "matches": [{"question": string, "answer": string, "category": string}]}`；Milvus 必须保存 category。
+- 用户两表 DDL 见末尾附录，原样复制；Ch02 四表和数据不改不清。同步 SessionLocal 保留。
+- 每条新知识只嵌入 category + "\n" + questions + "\n" + answer，元数据不进入向量。
+- 统一规范化 QA 指纹，保留同标题不同正文与相同问题不同答案；不做语义判重、不装 APScheduler。
+- 后端 TDD；Prompt/语料走标注 eval；前端 Vibe Coding 与浏览器操作验证。
+- 每任务开始前核对涉及的 Context7 版本接口；不得凭记忆照搬课程旧代码。更新 uv.lock。
+- 每阶段即时写 dev-notes/ch03.md 四项。密钥只在 .env，日志不输出凭据/完整私有对话。
+- 用户已授权修改后执行，并沿用 ch01 已确认的直接 main 与 Subagent-Driven 偏好，无需再问执行模式或创建 worktree；阶段依赖无法满足时完成独立工作并精确报告门槛。每个经过验证的任务单独提交，不推送远端。
 
----
+## 文件职责与共用接口
 
-## File map and interfaces
-
-| File | Responsibility |
+| 文件 | 单一职责 |
 |---|---|
-| `db/ch03.sql`, `compose.milvus.yaml` | Exact two-table DDL and official Milvus standalone services |
-| `app/db/models.py` | `KnowledgeChunk`, `QAExtractionStaging` matching DDL |
-| `app/knowledge/chunks.py` | `ChunkDraft` and structure-aware Markdown parser |
-| `app/knowledge/importer.py` | Atomic, repeatable document/legacy FAQ import |
-| `app/knowledge/embedding.py` | SiliconFlow BGE-M3 batch client and vector validation |
-| `app/knowledge/vector_store.py` | Milvus collection, upsert and scored-ID search |
-| `app/knowledge/indexer.py` | Pending-row two-write state machine |
-| `app/knowledge/extraction.py` | Conversation batch selection, QA extraction and staging |
-| `app/knowledge/dedup.py` | Global semantic QA merge and knowledge insertion |
-| `app/knowledge/retrieval.py` | Query embed, Milvus IDs, ranked MySQL answers |
-| `app/jobs/qa_scheduler.py` | Independent daily 02:00 scheduler and one-shot command |
-| `knowledge/{policy,faq,manual}/*.md` | Clearly labeled demonstration corpus |
-| `scripts/build_knowledge.py`, `scripts/eval_ch03.py` | One-shot build/recovery and labeled evaluation |
-| `app/tools/business.py`, `app/core/prompts.py`, `app/config.py`, `.env.example` | Existing tool integration, language and configuration |
+| db/ch03.sql、compose.milvus.yaml、app/db/models.py | 两表精确映射和独立 standalone 基础设施 |
+| app/knowledge/chunks.py、sources.py、dedup.py | ChunkDraft、统一切块、材料白名单、规范化 QA 指纹 |
+| app/knowledge/importer.py、locks.py | 原子去重导入、连接级单写者锁 |
+| app/knowledge/embedding.py、vector_store.py | 云端嵌入和 Milvus 读模型适配 |
+| app/knowledge/indexer.py、extraction.py、extraction_prompts.py | 双写恢复、分批抽取、Prompt |
+| app/knowledge/retrieval.py、app/tools/business.py | 在线纯 Milvus 检索及现有工具适配 |
+| app/knowledge/queries.py、app/api/kb.py、admin.py | 管理只读账本、KB/聚合 API |
+| app/core/jobs.py、app/api/jobs.py | 固定参数作业注册、状态、日志尾和停止 |
+| app/static/kb.html、kb.js、admin.html、admin.js、admin.css | 六区录入页、聚合首页、共享导航 |
+| scripts/kb.py、scripts/eval_ch03.py | 跨平台唯一 CLI、真实检索/抽取评估 |
+| data/kb/*.md、tests/data/ch03_*.json | 演示材料、标注集 |
 
-The interfaces introduced in order are:
+公共类型放 app/knowledge/chunks.py：
 
 ```python
+from dataclasses import dataclass
 @dataclass(frozen=True)
 class ChunkDraft:
     category: str
@@ -53,120 +50,268 @@ class ChunkDraft:
     section_path: str
     content_type: str
     is_key_clause: bool = False
+    is_table: bool = False  # 只用于预览，不增加 DDL 字段
 
-def parse_markdown(path: Path, root: Path, max_chars: int = 800, overlap: int = 100) -> list[ChunkDraft]: ...
-def import_source(session: Session, source_key: str, drafts: list[ChunkDraft]) -> list[KnowledgeChunk]: ...
-
-class EmbeddingClient:
-    def embed(self, texts: list[str]) -> list[list[float]]: ...
-
-class MilvusStore:
-    def ensure_collection(self) -> None: ...
-    def upsert(self, ids: list[int], vectors: list[list[float]]) -> None: ...
-    def search(self, vector: list[float], limit: int) -> list[tuple[int, float]]: ...
-
-def index_pending(session_factory, embedder: EmbeddingClient, vector_store: MilvusStore,
-                  batch_size: int = 16, after_upsert: Callable | None = None) -> int: ...
-def retrieve_faq(keyword: str, session_factory, embedder, vector_store,
-                 top_k: int = 5, min_score: float = 0.55) -> dict: ...
+@dataclass(frozen=True)
+class ImportResult:
+    inserted: int
+    skipped: int
+    ids: tuple[int, ...]
 ```
 
-Task 5 introduces `extract_conversation_batch(session_factory, model, conversation_ids: list[int], batch_no: str) -> int`. Task 6 introduces `deduplicate_staging(session_factory, embedder, judge_model) -> int`. Both are synchronous offline entry points. Their model-specific internals are isolated and tested with labeled examples.
+统一函数签名（同步，session_factory 使用既有 SessionLocal）：
 
-## Task 1: Exact SQLAlchemy mapping and Milvus boot
+```python
+parse_markdown(text: str, source: str, content_type: str) -> list[ChunkDraft]
+qa_fingerprint(question: str, answer: str) -> str
+import_chunks(session_factory, drafts: list[ChunkDraft]) -> ImportResult
+extract_batches(session_factory, model, batch_size: int = 30) -> dict[str, int]
+deduplicate_staging(session_factory) -> dict[str, int]
+index_pending(session_factory, embedder, store, batch_size: int = 16,
+              after_upsert=None) -> dict[str, int]
+# 各写函数内部不抢锁；CLI/API 边界在 writer_lock(engine) 上下文中调用。
+# RetrievalHit 定义于 retrieval.py：id:int, score:float, question/answer/category:str。
+search_knowledge(query: str, embedder, store, top_k: int = 5,
+                 min_score: float = 0.55) -> list[dict]
+```
 
-**Files:** Create `db/ch03.sql`, `compose.milvus.yaml`, `tests/test_ch03_schema.py`; modify `app/db/models.py`, `pyproject.toml`, `uv.lock`.
+## Task 1：保留现有架构，接入两表与 standalone
 
-**Interfaces:** Produces `KnowledgeChunk`, `QAExtractionStaging`, and the running MySQL/Milvus services for later tasks.
+**Files:** 新建 db/ch03.sql、compose.milvus.yaml、tests/test_ch03_schema.py；修改 app/db/models.py、app/config.py、.env.example、pyproject.toml、uv.lock、.gitignore。读取 compose.yaml，不改 MySQL 卷。
 
-- [ ] **Step 1 — refresh docs and record versions.** Recheck Context7 for MySQL dialect `BIGINT(unsigned=True)`, self-FK `ondelete="SET NULL"`, and PyMilvus `MilvusClient.create_collection`. Pin compatible PyMilvus and official Milvus standalone image/config versions in the plan execution notes. Use the official Windows Docker Compose example; keep the existing MySQL service and data volume.
-- [ ] **Step 2 — write a failing schema test.** `tests/test_ch03_schema.py` must assert the two new table names, every column's type/nullability/default, indexes, FK names and `ON DELETE SET NULL`, plus exact `status` ENUM members. Run `uv run pytest tests/test_ch03_schema.py -q`; expected red because the models/tables do not exist.
-- [ ] **Step 3 — implement the schema.** Save the exact user SQL from the Appendix below as `db/ch03.sql`, run it against the existing `mewhelp` database with UTF-8 client input, and add SQLAlchemy models. The self references must use `ForeignKey("knowledge_chunks.id", name="fk_chunks_prev", ondelete="SET NULL")` and the corresponding next pointer. Use `mysql.BIGINT(unsigned=True)`, dialect ENUM, and `server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")` where applicable.
-- [ ] **Step 4 — boot Milvus.** Add the official standalone Docker Compose services (etcd, MinIO, standalone) without changing the existing MySQL volume; expose `19530`. Run `docker compose -f compose.yaml -f compose.milvus.yaml up -d`; confirm health and connect using PyMilvus. If this fixed stack fails for resources, stop and ask the user before any substitute.
-- [ ] **Step 5 — verify and commit.** Run the schema test green, `SHOW CREATE TABLE` for both tables, `docker compose ps`, and `git diff --check`. Append the Task 1 four-field entry to `dev-notes/ch03.md`, then commit this task.
+**Interfaces:** 输出 KnowledgeChunk、QAExtractionStaging，以及 embed_base_url/embed_model/embed_api_key/milvus_uri/rag_top_k/rag_min_score。embed_api_key 允许为空以免阻断旧聊天启动，实际调用时再报缺失。
 
-## Task 2: Markdown chunker, demonstration corpus and repeatable import
+- [ ] 核对 Context7 和已安装依赖。记录 Docker/MySQL 状态、密钥是否存在，不输出值。下载/启动服务失败单列门槛。
+- [ ] 写 schema 红测试，检查完整附录字段集、ENUM、nullability、默认值、索引、FK ondelete；以下是必须断言的关键项：
 
-**Files:** Create `app/knowledge/__init__.py`, `app/knowledge/chunks.py`, `app/knowledge/importer.py`, `knowledge/policy/shipping.md`, `knowledge/policy/returns.md`, `knowledge/faq/products.md`, `knowledge/manual/after_sales.md`, `tests/test_knowledge_chunks.py`, `tests/test_knowledge_importer.py`; modify no chat code.
+```python
+def test_schema_preserves_user_ddl():
+    from app.db.models import KnowledgeChunk, QAExtractionStaging
+    chunk = KnowledgeChunk.__table__
+    assert chunk.c.id.type.unsigned
+    assert chunk.c.vectorize_status.type.enums == ['pending', 'done']
+    assert next(iter(chunk.c.prev_chunk_id.foreign_keys)).ondelete == 'SET NULL'
+    assert QAExtractionStaging.__table__.c.status.type.enums == ['extracted', 'kept', 'discarded']
+    assert {'category', 'questions', 'answer', 'section_path', 'vector_id'} <= set(chunk.c.keys())
+```
 
-**Interfaces:** Consumes `KnowledgeChunk`; produces `parse_markdown` and `import_source` exactly as in File map.
+- [ ] 运行 `uv run pytest tests/test_ch03_schema.py -q` 确认红。DDL 原样复制，ORM 按现有 mapped_column/mysql.BIGINT(unsigned=True) 模式映射。写入示例：
 
-- [ ] **Step 1 — write failing chunk tests.** Use a small Markdown fixture with nested headings, a long paragraph, a `> [!IMPORTANT]` marker, and a table header plus enough rows to span two chunks. Assert `category` is parent path, `questions` is the current heading for policy/manual or natural question for FAQ, sentence-end overlap, whole rows, and repeated table header. Run `uv run pytest tests/test_knowledge_chunks.py -q`; expected red due missing parser.
-- [ ] **Step 2 — implement structure-aware split.** Use `MarkdownHeaderTextSplitter` for heading metadata and `RecursiveCharacterTextSplitter` for oversized prose, then a sentence-boundary pass so each final chunk ends at `。！？.!?` or a complete table row. Oversized indivisible sentences/rows stay whole and log a warning. Exclude metadata from `ChunkDraft.answer` except duplicated table headers needed for comprehension.
-- [ ] **Step 3 — write importer red test.** Given two drafts from the same source, first import must insert two `pending` rows with reciprocal prev/next links; identical second import must insert zero; changed ordered sequence must raise `SourceChangedError` without writing. Use a rollback test that raises before commit and confirms no partial source. Run `uv run pytest tests/test_knowledge_importer.py -q` red.
-- [ ] **Step 4 — implement importer and legacy FAQ migration.** `section_path` starts with a stable source key such as `knowledge/policy/shipping.md > ...`; compare the full ordered row sequence for repeat imports under a single-writer lock. Import Ch02 `faq` rows with source keys `legacy-faq/{id}`. Commit one source per transaction and fill pointers after row IDs are flushed.
-- [ ] **Step 5 — write and evaluate non-code data.** Add clearly labeled demo content with a shipping section explaining when postage is shown and how to confirm it; add returns, product and after-sales examples. Run a labeled data check confirming “邮费是多少” has no literal phrase match in the shipping heading but the shipping answer is appropriate; assert all document types and key-clause/table examples parse. This replaces TDD for corpus copy.
-- [ ] **Step 6 — verify and commit.** Run focused tests, record exact chunk counts and stage notes, then commit.
+```python
+prev_chunk_id = mapped_column(mysql.BIGINT(unsigned=True),
+    ForeignKey('knowledge_chunks.id', name='fk_chunks_prev', ondelete='SET NULL'), nullable=True)
+vectorize_status = mapped_column(mysql.ENUM('pending', 'done'),
+    nullable=False, server_default=text("'pending'"))
+```
 
-## Task 3: SiliconFlow embeddings and Milvus ID-only adapter
+- [ ] 按官方固定版本 Compose 建 etcd/MinIO/standalone，端口 19530，只添加新命名卷；`docker compose -f compose.yaml -f compose.milvus.yaml up -d`。执行两表 SQL 前检查存在性：不存在才建，存在先 SHOW CREATE TABLE 比对；不能重复执行 CREATE 或 drop 原数据。
+- [ ] 重跑 schema 测试，真实 SHOW CREATE TABLE 核对。记录版本、健康结果及未通过门槛到 dev-notes。
 
-**Files:** Create `app/knowledge/embedding.py`, `app/knowledge/vector_store.py`, `tests/test_embedding.py`, `tests/test_vector_store.py`; modify `app/config.py`, `.env.example`, `pyproject.toml`, `uv.lock`.
+## Task 2：统一切块、QA 指纹与原子导入
 
-**Interfaces:** Produces `EmbeddingClient.embed`, `MilvusStore.ensure_collection/upsert/search` from File map. Input vector length is exactly 1024.
+**Files:** 新建 app/knowledge/__init__.py、chunks.py、sources.py、dedup.py、locks.py、importer.py，data/kb/returns.md、shipping.md、products.md、after_sales.md；tests/test_knowledge_chunks.py、test_knowledge_importer.py、test_qa_dedup.py。
 
-- [ ] **Step 1 — write embedding client red tests.** Use an HTTP fake transport to assert POST to `${EMBED_BASE_URL}/embeddings` with `model="BAAI/bge-m3"`, Bearer key, array input, and `encoding_format="float"`; verify returned `data[index].embedding` order, 1024 dimensions, 429/503 retry, and clear errors for missing key or wrong dimension. Run `uv run pytest tests/test_embedding.py -q` red.
-- [ ] **Step 2 — implement embedding client.** Default `EMBED_BASE_URL=https://api.siliconflow.cn/v1`, `EMBED_MODEL=BAAI/bge-m3`; API key has no default. Batch inputs up to 16; bound HTTP timeout and retry only 429/503/504 with short backoff. Never log request auth headers or raw customer conversation text.
-- [ ] **Step 3 — write Milvus adapter red tests.** Fake `MilvusClient` should see collection `knowledge`, INT64 explicit ID, FLOAT_VECTOR dimension 1024, COSINE, `auto_id=False`; upsert payload has only `id` and `vector`; search returns ordered `(id, distance)` pairs. Run `uv run pytest tests/test_vector_store.py -q` red.
-- [ ] **Step 4 — implement adapter.** Use `MilvusClient.create_collection(..., dimension=1024, primary_field_name="id", id_type="int", vector_field_name="vector", metric_type="COSINE", auto_id=False)` when missing; verify existing schema before reuse. Use `upsert(collection_name="knowledge", data=[{"id": id, "vector": vector}, ...])` and `search(..., data=[vector], limit=limit)`.
-- [ ] **Step 5 — verify and commit.** Run focused tests. If `EMBED_API_KEY` is present, make a one-text smoke request and verify 1024 numbers; otherwise record the missing credential as a later acceptance gate, not a reason to change provider. Record Task 3 in dev-notes and commit.
+**Interfaces:** 输出文件表中的 ChunkDraft/ImportResult/parse_markdown/qa_fingerprint/import_chunks；sources.py 的 SOURCE_TYPES 是唯一文件白名单。writer_lock(engine) 持有专用连接 GET_LOCK('mewhelp_ch03_writer',0)，失败抛 WriterBusy，finally RELEASE_LOCK。
 
-## Task 4: Pending-vector two-write state machine and interruption recovery
+- [ ] 写红测试，含两节、大表格、IMPORTANT、超长完整句，断言路径映射、表头复用、句界完整、前后块指针、事务回滚和同节多块保留。确定性去重断言：
 
-**Files:** Create `app/knowledge/indexer.py`, `scripts/build_knowledge.py`, `tests/test_knowledge_indexer.py`; modify `README.md`.
+```python
+def test_fingerprint_uses_answer_and_normalization():
+    from app.knowledge.dedup import qa_fingerprint
+    assert qa_fingerprint('运费？', ' 满 99 包邮。') == qa_fingerprint('运费', '满99包邮')
+    assert qa_fingerprint('运费', '满99包邮') != qa_fingerprint('运费', '满199包邮')
+    assert qa_fingerprint('邮费多少', '满99包邮') != qa_fingerprint('运费', '满99包邮')
+```
 
-**Interfaces:** Consumes `EmbeddingClient`, `MilvusStore`, `KnowledgeChunk`; produces `index_pending` exactly as in File map.
+- [ ] 运行三个测试文件确认红。实现规范化与指纹：
 
-- [ ] **Step 1 — write red recovery tests.** Insert two `pending` chunks. Fake embedder returns distinct 1024-vectors; fake store records upserts. Inject `after_upsert` failure after first batch: rows must still be pending. Rerun without failure: both become `done`, `vector_id == str(id)`, and store has exactly two IDs. Also assert embed/upsert failures leave rows pending. Run `uv run pytest tests/test_knowledge_indexer.py -q` red.
-- [ ] **Step 2 — implement state transitions.** Read a bounded ordered batch of `pending` IDs, close the DB session, embed and upsert, then open a new transaction to mark those exact IDs `done`. An `after_upsert` hook is test-only fault injection at the required crash boundary. Do not hold a MySQL transaction while waiting on the embedding API or Milvus.
-- [ ] **Step 3 — one-shot build entry point.** `uv run python -m scripts.build_knowledge` calls the importer for demo files and legacy FAQ, ensures the Milvus collection, and drains pending chunks. `--resume-only` skips import and processes existing pending rows. Report counts: imported, pending, indexed, failed. Guard against concurrent runs with a MySQL advisory lock and release it in `finally`.
-- [ ] **Step 4 — verify real recovery.** With services running, trigger the fault hook after Milvus upsert, query MySQL pending and Milvus ID, then run `--resume-only` and verify MySQL `done`/`vector_id` with exactly one Milvus entity per ID. Record the exact commands and IDs without logging secrets.
-- [ ] **Step 5 — focused tests, notes, commit.** Run focused tests and append Task 4 outcome to dev-notes.
+```python
+import hashlib, json, unicodedata
+def normalize(text):
+    text = unicodedata.normalize('NFKC', text).lower()
+    return ''.join(c for c in text if not c.isspace() and not unicodedata.category(c).startswith('P'))
+def qa_fingerprint(question, answer):
+    payload = json.dumps([normalize(question), normalize(answer)], ensure_ascii=False, separators=(',', ':'))
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+```
 
-## Task 5: Batch conversation extraction into staging
+- [ ] 按标题 parser + 递归切分 + 完整句重叠实现 parse_markdown；表格先识别为整行单元，每组复制两行表头。实现 import_chunks：同事务读取已有指纹，逐块判重、flush ID、连接本来源本次新增块，commit；异常 rollback。重复文档 inserted=0；同标题两段不同正文 inserted=2。legacy FAQ 用 source=legacy-faq/{id} 只读复制。
+- [ ] 加四份演示文档；运费示例“演示规则：满 99 元包邮；不足 99 元运费 8 元”，标注仅示例。所有字段超 DDL 长度报错不截断。
+- [ ] 跑三个测试文件至绿，记录实际块数、表格分割与重录结果；写阶段笔记。
 
-**Files:** Create `app/knowledge/extraction.py`, `app/knowledge/extraction_prompts.py`, `tests/test_qa_extraction.py`, `tests/data/ch03_extraction_samples.json`.
+## Task 3：嵌入与 Milvus 全字段读模型
 
-**Interfaces:** Produces `extract_conversation_batch(session_factory, model, conversation_ids: list[int], batch_no: str) -> int`; stores `QAExtractionStaging` rows with `status="extracted"`.
+**Files:** 新建 embedding.py、vector_store.py、tests/test_embedding.py、test_vector_store.py。
 
-- [ ] **Step 1 — write red code tests.** A conversation with user, tool request, tool result and final assistant must send only reusable user/final-answer text to the extraction model; an order-specific/mock answer must not be staged. Re-running the same batch/source/question/answer must add zero rows. Batch size is at most 30 conversation IDs. Run `uv run pytest tests/test_qa_extraction.py -q` red.
-- [ ] **Step 2 — implement selection and structured output.** Define Pydantic `ExtractedQA(question: str, answer: str)` and `QASet(items: list[ExtractedQA])`. Use existing `get_chat_model(disable_thinking=True).with_structured_output(QASet, method="function_calling")`; strip obvious order IDs, tool JSON and private facts before model input. Persist each candidate with `batch_no`, `source_ref="conversation/{id}"`, `status="extracted"`.
-- [ ] **Step 3 — evaluate the extraction Prompt.** Use at least five labeled sample conversations: a general return rule, same rule in another phrasing, conflict, private order state, and no reusable QA. Run sample evaluation against the configured chat model; record accepted/rejected candidates and revise Prompt only if evidence warrants it. This is the user's evaluation-set replacement for pure Prompt TDD.
-- [ ] **Step 4 — verify and commit.** Run focused code tests, record sample outcomes and Task 5 dev-notes, then commit.
+**Interfaces:** EmbeddingClient.embed(texts:list[str])->list[list[float]]；MilvusStore.ensure_collection()、upsert(rows:list[dict])、search(vector:list[float],top_k:int)->list[dict]、count()->int。search 返回 id/score/question/answer/category。
 
-## Task 6: Global semantic dedup and daily scheduler
+- [ ] 红测试覆盖 index 乱序还原、错误数量/维度/NaN、缺 key、429/503/504 有限重试、Milvus 字段、检索 output_fields；不得连接真实服务。
 
-**Files:** Create `app/knowledge/dedup.py`, `app/jobs/__init__.py`, `app/jobs/qa_scheduler.py`, `tests/test_qa_dedup.py`, `tests/test_qa_scheduler.py`; modify `pyproject.toml`, `uv.lock`, `.env.example`.
+```python
+def test_vectors_reject_wrong_dimensions():
+    import pytest
+    from app.knowledge.embedding import validate_vectors
+    with pytest.raises(ValueError):
+        validate_vectors([[0.0] * 1023], expected_count=1)
+```
 
-**Interfaces:** Produces `deduplicate_staging(session_factory, embedder, judge_model) -> int`; command `uv run python -m app.jobs.qa_scheduler --once` or `--schedule`.
+- [ ] 跑 `uv run pytest tests/test_embedding.py tests/test_vector_store.py -q` 红。实现 OpenAI 兼容 `/embeddings` 同步客户端，model=BAAI/bge-m3、encoding_format=float、batch<=16、超时和有限退避。定义 validate_vectors(vectors, expected_count) 验证数量/长度/finite。
+- [ ] 显式 Milvus schema 创建 INT64 id、FLOAT_VECTOR vector(1024)、VARCHAR question/answer/category，UTF-8 字节上限预检。参考 payload：
 
-- [ ] **Step 1 — write red dedup tests.** Across two different `batch_no` values, normalized duplicates and “邮费怎么算/运费是多少” with equivalent answers become one kept knowledge chunk whose `questions` has both lines; conflicting answers remain separate; failed LLM judgement leaves rows `extracted`. Re-running does not add chunks. Run `uv run pytest tests/test_qa_dedup.py -q` red.
-- [ ] **Step 2 — implement global dedup.** Normalize whitespace/punctuation for exact grouping, compute BGE-M3 vectors of remaining questions, shortlist pairs by COSINE >= 0.85, then ask a structured-output LLM judge for `same_intent` and `same_facts`. Only two `True` values merge. Mark representative staging row `kept`, merged rows `discarded`; insert `content_type="extracted_qa"` chunk with newline-separated distinct true questions. Reconcile against existing chunks before insert.
-- [ ] **Step 3 — write scheduler red tests.** Freeze time around 02:00 Asia/Shanghai; assert one run invokes extraction, then dedup, then `index_pending`, while an overlapping invocation cannot acquire the advisory lock. `--once` must use the same pipeline. Run `uv run pytest tests/test_qa_scheduler.py -q` red.
-- [ ] **Step 4 — implement scheduler.** Before editing this module, query Context7 for the installed APScheduler release and pin that release in `pyproject.toml` and `uv.lock`; use its documented blocking scheduler and Cron trigger APIs. Register one daily trigger at `02:00` in `Asia/Shanghai`, with a single independent worker process. Use a MySQL advisory lock to avoid overlap between scheduled and manual jobs. Make `--once` terminate with nonzero status on errors; `--schedule` stays running. Record the chosen version, import path, and trigger constructor in the Task 6 dev-note.
-- [ ] **Step 5 — evaluate non-code dedup Prompt.** Run labeled synonymous, contradictory and unrelated pairs through the configured chat model; do not promote conflicting rows. Log counts only, not raw private conversation text. Run focused tests, append Task 6 notes, commit.
+```python
+row = {'id': chunk.id, 'vector': vector, 'question': chunk.questions,
+       'answer': chunk.answer, 'category': chunk.category}
+client.upsert(collection_name='knowledge', data=[row])
+hits = client.search(collection_name='knowledge', data=[vector], limit=top_k,
+                     output_fields=['question', 'answer', 'category'])
+```
 
-## Task 7: Dense retriever behind the existing `query_faq` contract
+- [ ] 核对真实返回结构和索引 API 后封装，已有字段不兼容则报错。跑测试绿；依赖可用时一次真实 1024 维嵌入和 standalone 连接冒烟，记录门槛结果。
 
-**Files:** Create `app/knowledge/retrieval.py`, `tests/test_knowledge_retrieval.py`; modify `app/tools/business.py`, `app/core/prompts.py`, `tests/test_tools.py`, `tests/test_prompts.py`, `app/config.py`, `.env.example`.
+## Task 4：可恢复双写与跨平台 CLI
 
-**Interfaces:** Produces `retrieve_faq` from File map. `build_tools(session_factory, conversation_id, retriever=None)` adds only an optional injection point; model-visible `query_faq(keyword: str)` and JSON shape stay exactly as in Global Constraints.
+**Files:** 新建 indexer.py、scripts/kb.py、tests/test_knowledge_indexer.py、tests/test_kb_cli.py；修改 Makefile、README.md。
 
-- [ ] **Step 1 — write red retriever tests.** Fake embedder/query store returns scored IDs `(12, .83), (9, .72), (15, .40)` and MySQL rows 12/9 as `done`; assert only 12/9 returned in that order, fields map `questions→question`, and metadata/vector ID never appear. Also assert empty hits, missing MySQL row, missing key, and Milvus exception do not trigger SQL LIKE. Run `uv run pytest tests/test_knowledge_retrieval.py -q` red.
-- [ ] **Step 2 — implement retriever.** Embed `keyword`, search `knowledge` with `RAG_TOP_K=5`, discard scores below `RAG_MIN_SCORE=0.55`, fetch IDs in one SQL query, filter `vectorize_status="done"`, restore hit order and produce exact JSON. Existing `faq` table is no longer an online data source.
-- [ ] **Step 3 — switch tool internals.** Preserve `FaqArgs.keyword`, `query_faq` name, and output shape. Inject a retriever for tests; production constructs BGE/Milvus dependencies lazily. Update tool description and system Prompt to say “知识库语义检索” instead of “字面关键词”. Keep the Ch02 SSE, ticket, order and logistics paths unchanged.
-- [ ] **Step 4 — run old/new regressions and commit.** Update the Ch02 test that intentionally expected “邮费” to miss so the new evaluation expects shipping recall. Run `uv run pytest tests/test_tools.py tests/test_chat_api.py tests/test_knowledge_retrieval.py -q`, append Task 7 notes, commit.
+**Interfaces:** index_pending 签名如前；`uv run python -m scripts.kb preview|build|vectorize|mine|seed-conv|reset`；build 只导入 pending，vectorize 独立补齐。mine 在 Task 5 接入。Makefile 的 kb-preview/kb-build/kb-vectorize/kb-mine 仅包装同一 CLI。
 
-## Task 8: Real acceptance, documentation and final review
+- [ ] 写 fake embed/store + 临时数据库故障测试：upsert 后 hook 抛异常，MySQL 保持 pending；重跑 done、vector_id=str(id)，store 只有同一组 ID；也覆盖云端/写向量失败。
 
-**Files:** Create `scripts/eval_ch03.py`, `tests/data/ch03_retrieval_samples.json`; modify `README.md`, `dev-notes/ch03.md`.
+```python
+def crash_after_upsert():
+    raise RuntimeError('injected-after-upsert')
+# 在测试已建立两条 pending 的夹具中：
+# pytest.raises(RuntimeError) 包裹 index_pending(..., after_upsert=crash_after_upsert)
+# 断言两条 pending；无 hook 重跑后断言 done 且 fake_store 的 ID 集合未增加。
+```
 
-**Interfaces:** Runs the entire pipeline and prints pass/fail with source chunk IDs, without exposing keys.
+- [ ] 跑 `uv run pytest tests/test_knowledge_indexer.py tests/test_kb_cli.py -q` 红。实现如下顺序，关闭读取 session 后才网络调用：
 
-- [ ] **Step 1 — prepare labeled retrieval set.** Include “邮费是多少”→shipping explanation, returns, product FAQ, unrelated query, and a paraphrase not appearing literally in headings. Validate policy facts against the demo Markdown source, not against invented model prose.
-- [ ] **Step 2 — require the embedding credential.** Confirm `EMBED_API_KEY` exists without printing it. If absent, finish all independent code/tests and request the user to add it to `.env`; do not change provider. When present, verify BGE-M3 returns 1024 values.
-- [ ] **Step 3 — run complete build and recovery.** Start MySQL + Milvus, apply exact DDL, import docs and legacy FAQ, run the three labeled extraction checks, inject an upsert/update crash, resume, and confirm Milvus IDs equal MySQL IDs. Run real `query_faq("邮费是多少")` and a browser chat request; assert shipping answer, same tool badge and streamed final answer.
-- [ ] **Step 4 — full verification and review.** Run `uv run pytest -q`, the labeled extraction evaluation, `uv run python -m scripts.eval_ch03`, `docker compose ps`, and `git diff --check`. Request backend code review; fix Important issues with red-green tests, repeat checks, and record review conclusion in dev-notes.
-- [ ] **Step 5 — finish.** Update README with exact PowerShell/CMD demo commands and explain demo data, API key and scheduler. Append finish entry to `dev-notes/ch03.md` immediately after verification, commit, and report commands, test counts, known resource limits and note path.
+```python
+texts = [row.category + '\n' + row.questions + '\n' + row.answer for row in rows]
+vectors = embedder.embed(texts)
+store.upsert([{'id': r.id, 'vector': v, 'question': r.questions,
+               'answer': r.answer, 'category': r.category} for r, v in zip(rows, vectors)])
+if after_upsert is not None:
+    after_upsert()
+# 新 session.begin() 内按此批 ID 更新 done/vector_id；失败不提前标记。
+```
+
+- [ ] CLI 使用 writer_lock 包裹 build/vectorize/mine，preview 只读。失败非零退出；输出 imported/skipped/indexed/pending/failed 计数。添加仅 CLI 的 `vectorize --crash-after-upsert` 测试开关，hook 用 os._exit(86) 真退出，默认关闭且不向普通作业按钮暴露。
+- [ ] 跑测试至绿；外部服务可用时用新增演示块真实触发退出再运行 vectorize，按 ID 证明唯一及 done；不能靠改错密钥替代这个崩溃窗口。记录结果。
+
+## Task 5：手动历史对话挖掘与整体文本去重
+
+**Files:** 新建 extraction.py、extraction_prompts.py、tests/test_qa_extraction.py、tests/data/ch03_extraction_samples.json；修改 dedup.py、scripts/kb.py、tests/test_qa_dedup.py。
+
+**Interfaces:** extract_batches(session_factory,model,batch_size=30)、deduplicate_staging(session_factory)；mine 顺序为 extract→dedup，留 pending 供独立 vectorize。
+
+- [ ] 写红测试：工具申请/结果不进入输入、候选来源 ID 必须在本批次、重复 source/QA 不再次暂存、跨批重复只保留一条、冲突答案保留、失败 rollback 后可重跑。结构化结果：
+
+```python
+from pydantic import BaseModel, Field
+class ExtractedQA(BaseModel):
+    conversation_id: int
+    question: str = Field(min_length=1)
+    answer: str = Field(min_length=1)
+class QASet(BaseModel):
+    items: list[ExtractedQA]
+```
+
+- [ ] 跑 `uv run pytest tests/test_qa_extraction.py tests/test_qa_dedup.py -q` 红。按实际 get_chat_model 的接口使用 with_structured_output(QASet)，调用前核对 Context7。Prompt 明确只抽稳定通用规则，不把模拟订单/物流当事实。
+- [ ] 实现 source_ref=conversation/{id}、batch_no 和 extracted；重复判定用来源+QA 指纹。全部批后扫描 extracted 与已有知识指纹，首个新 QA 插入 pending/kept，重复 discarded，事务覆盖这两步。category='历史对话'、content_type='extracted_qa'、questions=真实问法。
+- [ ] 用至少五条标注样例实跑抽取：通用退货、文字重复、答案冲突、私有订单、无 QA。记录模型输出分类与预期差异；这是 Prompt 验收，不能用 mock 结果宣称质量通过。跑代码测试绿并写笔记。
+
+## Task 6：在线检索替换且保持真实工具契约
+
+**Files:** 新建 retrieval.py、tests/test_knowledge_retrieval.py；修改 app/tools/business.py、app/core/prompts.py、tests/test_tools.py、tests/test_prompts.py。
+
+**Interfaces:** search_knowledge 无 session_factory 参数；build_tools(session_factory,conversation_id,retriever=None) 保留前两参数，注入 retriever(keyword)->list[dict]。
+
+- [ ] 红测试使用返回分数 .83/.72/.40 的假 store，阈值 .55 保留前两条且按排名；空 hits、依赖异常、不同 category 均覆盖。工具不能打开 session：
+
+```python
+def test_faq_contract_has_no_database_read():
+    import json
+    from app.tools.business import build_tools
+    def forbidden_session():
+        raise AssertionError('online retrieval opened MySQL')
+    retriever = lambda query: [{'id': 12, 'score': .83, 'question': '运费怎么算',
+                               'answer': '满99元包邮', 'category': '配送'}]
+    tool = {t.name: t for t in build_tools(forbidden_session, 1, retriever=retriever)}['query_faq']
+    assert json.loads(tool.invoke({'keyword': '邮费是多少'})) == {
+        'keyword': '邮费是多少', 'matches': [{'question': '运费怎么算',
+        'answer': '满99元包邮', 'category': '配送'}]}
+```
+
+- [ ] 跑 retrieval/tools 测试红。实现 embed(query)→store.search→阈值过滤；工具只映射三个字段，懒加载生产依赖。修改“字面关键词”提示为“知识库语义检索”，模型签名 keyword 不变。
+- [ ] 跑 `uv run pytest tests/test_knowledge_retrieval.py tests/test_tools.py tests/test_prompts.py tests/test_chat_api.py -q` 绿；Ch02 邮费无命中旧断言按新语义检索替换，订单/工单/SSE 回归保留。记录阶段笔记。
+
+## Task 7：管理 API、只读账本与白名单作业
+
+**Files:** 新建 queries.py、app/api/kb.py、admin.py、jobs.py、app/core/jobs.py，tests/test_kb_api.py、test_jobs_api.py、test_admin_api.py；修改 app/main.py、.gitignore。
+
+**Interfaces:** 完整路由契约采用 spec 表；JobRunner.start(name)/status(name)/stop(name)/tail(name,limit=200)，返回 job_id/name/state/exit_code/log_tail；state=running/succeeded/failed/stopped。queries 只读统计，recent/staging 有分页上限。
+
+- [ ] 红测试 preview 前后行数不变，ingest 重录 inserted=0，同标题不同表格段都保留；非法类型/路径/空正文 400；向量化异常 502 但原文已提交、pending 可补；overview 任一依赖失败 consistent=null。
+- [ ] 作业红测试未知名 404、重入 409、无 shell、固定参数、停止子树、终态日志保留；为 Windows 和 POSIX 分别 fake 进程控制，不使用真实用户 PID。命令注册形态：
+
+```python
+import sys
+JOBS = {
+    'kb-preview': [sys.executable, '-m', 'scripts.kb', 'preview'],
+    'kb-build': [sys.executable, '-m', 'scripts.kb', 'build'],
+    'kb-mine': [sys.executable, '-m', 'scripts.kb', 'mine'],
+    'kb-vectorize': [sys.executable, '-m', 'scripts.kb', 'vectorize'],
+    'seed-conv': [sys.executable, '-m', 'scripts.kb', 'seed-conv'],
+    'kb-reset': [sys.executable, '-m', 'scripts.kb', 'reset', '--confirmed'],
+    'eval-retrieval': [sys.executable, '-m', 'scripts.eval_ch03', 'retrieval'],
+    'eval-mining': [sys.executable, '-m', 'scripts.eval_ch03', 'mining'],
+}
+# subprocess.Popen(JOBS[name], shell=False, cwd=PROJECT_ROOT, ...)
+# Windows 创建隐藏进程，停止仅对 runner 持有的子进程 PID 执行固定 taskkill /PID n /T /F。
+```
+
+- [ ] 运行三个测试文件确认红。实现 API 复用 parse/import/index/search；def 路由避免同步数据库阻塞事件循环。schema 同时限制正文长度、类型、top_k、分页；非法业务输入 400，依赖失败 502/503。
+- [ ] writer_lock 在 API/CLI 边界获取；POST vectorize 启动作业返回 202，不在响应前等待长任务。ingest 可同步可选向量化且返回阶段计数；部分失败异常 payload 保留 inserted/skipped/pending。作业日志限量读尾、脱敏、应用关闭清理，仅本地单 worker 模式。
+- [ ] 增加 seed-conv CLI 和 Make 别名：固定 synthetic user_id（如 ch03-demo-v1）及样例 ID 清单，查询存在后只补缺少的合成会话，不更新或删除旧对话。定义 reset_knowledge(session_factory,store) 只在 writer_lock 中清 Ch03 两表（先解除本表邻接指针）和 knowledge 集合；SQL 失败/向量删除失败返回部分状态，不谎报成功。API 的 kb-reset 必须校验请求 confirmation='RESET_CH03' 后才启动带 --confirmed 的固定参数；无确认拒绝，runner 不能被别的接口绕过。tests/test_jobs_api.py 增加确认/无确认、目标表白名单及 Ch02 数据不变用例；CLI reset 缺 --confirmed 非零退出。实现功能不等于授权实际清库，本次验收不执行 destructive reset。
+- [ ] 运行测试绿并核对路由清单，overview 增加 key_clause_count；写阶段笔记。
+
+## Task 8：六区 /kb 与 /admin 页面（Vibe Coding）
+
+**Files:** 新建 app/static/kb.html、kb.js、admin.html、admin.js、admin.css、tests/test_static.py；修改 app/static/index.html、app/main.py。
+
+**Interfaces:** `/kb`、`/admin` FileResponse；admin.js 导出 mountAdminNav(active)，IIFE 避免旧页全局名称冲突；旧聊天路径不变。
+
+- [ ] 按 spec 六区直接实现页面：手工编辑和预览/录入、材料清单/逐份预览/作业、暂存三态/逐条查看/seed-conv、pending/done/Milvus/关键条款数量 账本/补向量、dense 自测/Top-K/预设问句、最近入库。kb-reset 标 heavy 并弹明确确认：只清第三章知识，确认后发送 RESET_CH03。只加可达性测试，不为展示细节写镜像单测。
+- [ ] 预览逐块显示字段和三种切块触发特性；错误响应也读取 JSON，明确“已入库，向量待补”。计数未知用读数失败，不显示 0。一致性文案写“计数一致”。日志按 job 名缓存在页面状态，完成刷新时恢复日志尾。
+
+```javascript
+const logCache = new Map();
+function rememberJob(job) {
+  logCache.set(job.name, job.log_tail || logCache.get(job.name) || '');
+}
+// 每次重绘日志窗口从 logCache 取值；轮询终态停止，随后刷新库存。
+```
+
+- [ ] 加聚合卡、共享导航与聊天后台入口；不链接不存在的旧模块。增加 static 路由可达性断言后运行 `uv run pytest tests/test_static.py -q`。
+- [ ] 浏览器检验所有按钮、表格溢出、busy/error/loading、作业停止、终态日志保留、Milvus 离线单卡失败。截图记录在 dev-notes/generated-images/；如浏览器工具不可用明确留下该验收门槛，不能用静态测试冒充。
+
+## Task 9：真实恢复、标注评估与完整浏览器交付
+
+**Files:** 新建 scripts/eval_ch03.py、tests/data/ch03_retrieval_samples.json；修改 README.md、dev-notes/ch03.md、Makefile。复用 Task 5 抽取样例。
+
+**Interfaces:** `uv run python -m scripts.eval_ch03 retrieval|mining`，逐条 JSON 输出通过/失败、ID和分数，失败非零退出；Makefile eval-retrieval/eval-mining 包装同命令。retrieval 样例以目标来源/类别及预期答案事实标注，不依赖固定自增 ID。
+
+- [ ] 写至少五个检索标注：邮费换说法→运费、退货条件、商品 FAQ、售后流程、无关天文问题→空。预设 top_k/min_score 在真实模型上检验，调整须记录分数与理由；核心运费与无关样例必须过，总通过率至少 4/5，报告每项。
+- [ ] 实现评估入口调用 search_knowledge 或 Task 5 结构化抽取；expected_source 用 Milvus 返回 ID 在离线评估阶段查 MySQL 溯源（这不属于在线检索，不改变工具契约）。写 README 的 Windows 可直接运行 uv 命令，Make 只是便利包装。
+- [ ] 门槛检查：Docker、MySQL、standalone 健康，聊天与嵌入 key 存在且实调成功；只输出布尔及响应维度。缺失则继续所有独立测试，逐项报告真实验收未完成，不换选型。
+- [ ] 浏览器按 Task 8 六区跑材料预览→build→vectorize→自测邮费→聊天相同问句及工具徽章；手工含两节/表格/关键条款的 Markdown 预览→录入→重录零新增→检索新块；mine→暂存三态→补向量。使用与正式数据隔离的新增演示输入，不清 Ch02。
+- [ ] 对新增 pending 真执行 `uv run python -m scripts.kb vectorize --crash-after-upsert`，确认退出 86；查询此批 MySQL pending 与 Milvus IDs 后正常重跑，核对 ID 集合、向量数量、done/vector_id，无重复无遗漏。页面刷新日志与账本截图留证。
+- [ ] 执行 `uv run pytest -q`、两个真实 eval、`docker compose -f compose.yaml -f compose.milvus.yaml ps`、`git diff --check`。审阅事务/锁、UTF-8 限制、在线零 SQL、进程停止和 Ch02 数据保护；修复有证据的问题后仅重跑受影响检查。记录 code review 和 finish 四字段，交付演示命令、测试/评估结果、截图和 dev-notes 路径；不得把尚有门槛的工作标为全部完成。
+
+## 自审覆盖
+
+Task 1 基础设施/DDL；Task 2 切块/三格嵌入来源/去重；Task 3 向量读模型；Task 4 恢复与 CLI；Task 5 手动挖取/暂存整体去重；Task 6 现有契约和零回表；Task 7 完整 API/作业；Task 8 六区/后台/浏览器；Task 9 真实恢复与评估。作业以 Python argv 执行以适配 Windows，Makefile 保留同名别名，CLI/UI 同一实现。全文不采用课程 Lite、hits、异步 Session 或 POSIX 独占启动方式。末尾 DDL 保留修订前原文。
 
 ## Appendix: exact user-provided Ch03 DDL
 
@@ -209,3 +354,4 @@ CREATE TABLE qa_extraction_staging (
   KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='历史对话抽 QA 的离线中转暂存表:分批抽取、整体去重,保留项入 knowledge_chunks,建库完成可清空';
 ```
+
