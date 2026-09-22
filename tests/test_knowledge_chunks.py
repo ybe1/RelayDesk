@@ -51,6 +51,20 @@ def test_oversize_sentence_is_kept_once_and_never_becomes_overlap():
     assert all(len(draft.answer) <= 950 or draft.answer == oversize for draft in drafts)
 
 
+def test_oversize_sentence_is_standalone_after_a_short_sentence():
+    oversize = "超长句" * 450 + "。"
+    drafts = parse_markdown(
+        f"# 手册\n## 说明\n简短前句。\n{oversize}\n后续正常句。",
+        "after_sales.md",
+        "manual",
+    )
+
+    oversize_draft = next(draft for draft in drafts if oversize in draft.answer)
+    assert oversize_draft.answer == oversize
+    assert "简短前句。" in drafts[0].answer
+    assert "后续正常句。" in drafts[-1].answer
+
+
 def test_faq_uses_question_lines_and_question_headings_without_making_them_categories():
     text = """# 商品 FAQ
 ## 商品咨询
@@ -67,6 +81,26 @@ def test_faq_uses_question_lines_and_question_headings_without_making_them_categ
     assert "运费怎么算？" not in drafts[0].answer
     assert drafts[1].category == "商品 FAQ / 商品咨询"
     assert drafts[1].questions == "能开发票吗？"
+
+
+def test_faq_question_persists_across_blank_lines_and_table_blocks():
+    text = """# 商品 FAQ
+## 商品咨询
+运费怎么算？
+
+演示规则：满 99 元包邮。
+
+退货需要什么？
+| 材料 | 要求 |
+| --- | --- |
+| 订单号 | 必填 |
+"""
+    drafts = parse_markdown(text, "products.md", "faq")
+
+    shipping = [draft for draft in drafts if "满 99" in draft.answer]
+    returns = [draft for draft in drafts if draft.is_table]
+    assert shipping and all(draft.questions == "运费怎么算？" for draft in shipping)
+    assert returns and all(draft.questions == "退货需要什么？" for draft in returns)
 
 
 def test_important_only_marks_the_callout_chunk():

@@ -67,6 +67,13 @@ def _text_chunks(text: str) -> list[str]:
     else:
         sentences = raw_sentences
     for sentence in sentences:
+        if len(sentence) > MAX_CHUNK_CHARS:
+            if current:
+                chunks.append("\n".join(current))
+                current = []
+                current_size = 0
+            chunks.append(sentence)
+            continue
         if current and current_size + len(sentence) > MAX_CHUNK_CHARS:
             chunks.append("\n".join(current))
             current = _overlap(current)
@@ -108,6 +115,7 @@ def _section_drafts(
     category_headings = headings[:-1] if heading_question else headings
     category = " / ".join(category_headings) or headings[-1]
     heading_question_text = headings[-1] if heading_question else None
+    active_question = heading_question_text or headings[-1]
     drafts: list[ChunkDraft] = []
     index = 0
     while index < len(text_lines):
@@ -120,7 +128,7 @@ def _section_drafts(
                 table.append(text_lines[index].strip())
                 index += 1
             for answer in _table_chunks(table):
-                drafts.append(ChunkDraft(category, heading_question_text or headings[-1], answer, section_path, content_type, False, True))
+                drafts.append(ChunkDraft(category, active_question, answer, section_path, content_type, False, True))
             continue
         if text_lines[index].lstrip().startswith(">"):
             callout: list[str] = []
@@ -129,19 +137,29 @@ def _section_drafts(
                 index += 1
             key_clause = any("[!IMPORTANT]" in line for line in callout)
             for answer in _text_chunks("\n".join(callout)):
-                drafts.append(ChunkDraft(category, heading_question_text or headings[-1], answer, section_path, content_type, key_clause, False))
+                drafts.append(ChunkDraft(category, active_question, answer, section_path, content_type, key_clause, False))
             continue
         prose: list[str] = []
         while (index < len(text_lines) and text_lines[index].strip()
                and not text_lines[index].lstrip().startswith(("|", ">"))):
             prose.append(text_lines[index].strip())
             index += 1
-        question = heading_question_text or headings[-1]
-        if content_type == "faq" and prose and prose[0].rstrip().endswith(("?", "？")):
-            question = prose.pop(0)
-        key_clause = any("[!IMPORTANT]" in line for line in prose)
-        for answer in _text_chunks("\n".join(prose)):
-            drafts.append(ChunkDraft(category, question, answer, section_path, content_type, key_clause, False))
+        prose_groups: list[tuple[str, list[str]]] = []
+        current_prose: list[str] = []
+        for line in prose:
+            if content_type == "faq" and line.rstrip().endswith(("?", "？")):
+                if current_prose:
+                    prose_groups.append((active_question, current_prose))
+                    current_prose = []
+                active_question = line
+                continue
+            current_prose.append(line)
+        if current_prose:
+            prose_groups.append((active_question, current_prose))
+        for question, group in prose_groups:
+            key_clause = any("[!IMPORTANT]" in line for line in group)
+            for answer in _text_chunks("\n".join(group)):
+                drafts.append(ChunkDraft(category, question, answer, section_path, content_type, key_clause, False))
     return drafts
 
 
