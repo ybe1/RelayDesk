@@ -123,6 +123,18 @@ def test_ensure_collection_rejects_incompatible_existing_schema():
         MilvusStore(client=client).ensure_collection()
 
 
+def test_ensure_collection_accepts_pymilvus_schema_that_omits_false_auto_id():
+    from app.knowledge.vector_store import MilvusStore
+
+    description = _description()
+    description["fields"][0].pop("auto_id")
+    client = FakeMilvus(exists=True, description=description)
+
+    MilvusStore(client=client).ensure_collection()
+
+    assert client.loaded == ["knowledge"]
+
+
 @pytest.mark.parametrize("indexes, descriptions", [
     ([], {}),
     (["vector_index"], {"vector_index": {"field_name": "vector", "metric_type": "L2"}}),

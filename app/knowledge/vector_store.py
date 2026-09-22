@@ -132,7 +132,7 @@ class MilvusStore:
             if expected_limit is not None and int(field.get("params", {}).get("dim", field.get("params", {}).get("max_length", -1))) != expected_limit:
                 raise RuntimeError(f"incompatible existing knowledge collection schema: {name}")
         identifier = fields["id"]
-        if not identifier.get("is_primary") or identifier.get("auto_id") is not False:
+        if not identifier.get("is_primary") or identifier.get("auto_id", False) is not False:
             raise RuntimeError("incompatible existing knowledge collection schema: id primary key")
 
     def _verify_vector_index(self) -> None:
