@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import KnowledgeChunk
+from app.db.models import KnowledgeChunk, QAExtractionStaging
 
 
 def test_preview_is_read_only_and_reports_all_counters(monkeypatch, capsys):
