@@ -1,5 +1,11 @@
 from contextlib import contextmanager
+import json
 from types import SimpleNamespace
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.db.models import KnowledgeChunk
 
 
 def test_preview_is_read_only_and_reports_all_counters(monkeypatch, capsys):
@@ -52,3 +58,49 @@ def test_vectorize_holds_writer_lock_and_exposes_crash_hook_only_for_cli(monkeyp
     monkeypatch.setattr(kb.os, "_exit", lambda code: exit_codes.append(code))
     assert kb.main(["vectorize", "--crash-after-upsert"], lock=lock, database_engine=object(), session_factory=fake_session_factory) == 0
     assert exit_codes == [86]
+
+
+def test_vectorize_failure_reports_the_pending_rows_that_remain(monkeypatch, capsys):
+    from scripts import kb
+
+    database = create_engine("sqlite+pysqlite:///:memory:")
+    with database.begin() as connection:
+        connection.exec_driver_sql("""
+            CREATE TABLE knowledge_chunks (
+                id INTEGER PRIMARY KEY,
+                category VARCHAR(255) NOT NULL,
+                questions TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                section_path VARCHAR(512), content_type VARCHAR(32),
+                is_key_clause INTEGER NOT NULL DEFAULT 0,
+                prev_chunk_id INTEGER, next_chunk_id INTEGER, vector_id VARCHAR(64),
+                vectorize_status VARCHAR NOT NULL DEFAULT 'pending',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    session_factory = sessionmaker(bind=database, expire_on_commit=False)
+    with session_factory.begin() as session:
+        session.add_all([
+            KnowledgeChunk(category="配送", questions="运费？", answer="满 99 元包邮。"),
+            KnowledgeChunk(category="售后", questions="能退吗？", answer="七天内可退。"),
+        ])
+
+    class Store:
+        def ensure_collection(self):
+            pass
+
+    @contextmanager
+    def lock(_engine):
+        yield
+
+    monkeypatch.setattr(kb, "MilvusStore", lambda **_: Store())
+    monkeypatch.setattr(kb, "EmbeddingClient", lambda **_: object())
+    monkeypatch.setattr(kb, "settings", SimpleNamespace(
+        milvus_uri="http://milvus.test", embed_base_url="http://embed.test",
+        embed_api_key="test", embed_model="BAAI/bge-m3",
+    ))
+    monkeypatch.setattr(kb, "index_pending", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("embed unavailable")))
+
+    assert kb.main(["vectorize"], lock=lock, database_engine=object(), session_factory=session_factory) == 1
+    assert json.loads(capsys.readouterr().out)["pending"] == 2

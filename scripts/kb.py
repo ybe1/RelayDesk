@@ -143,7 +143,11 @@ def main(
         else:
             raise RuntimeError(f"kb {args.command} is not available until Task 5")
     except Exception as error:
-        print(json.dumps(_result(pending=0, failed=1), ensure_ascii=False))
+        try:
+            pending = _pending_count(_session_factory_or_default(session_factory))
+        except Exception:
+            pending = 0
+        print(json.dumps(_result(pending=pending, failed=1), ensure_ascii=False))
         print(f"kb {args.command} failed: {error}", file=os.sys.stderr)
         return 1
     print(json.dumps(outcome, ensure_ascii=False))
