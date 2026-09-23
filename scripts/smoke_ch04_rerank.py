@@ -18,11 +18,12 @@ def main(*, config: Settings = settings, transport: httpx.BaseTransport | None =
     if not config.rerank_api_key:
         raise RuntimeError("RERANK_API_KEY is required for the rerank smoke")
 
+    requested_top_n = len(DOCUMENTS)
     with httpx.Client(timeout=30.0, transport=transport) as client:
         response = client.post(
             config.rerank_base_url.rstrip("/") + "/rerank",
             headers={"Authorization": f"Bearer {config.rerank_api_key}"},
-            json={"model": config.rerank_model, "query": QUERY, "documents": DOCUMENTS, "top_n": 2},
+            json={"model": config.rerank_model, "query": QUERY, "documents": DOCUMENTS, "top_n": requested_top_n},
         )
         response.raise_for_status()
         payload = response.json()
@@ -30,7 +31,7 @@ def main(*, config: Settings = settings, transport: httpx.BaseTransport | None =
     if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
         raise ValueError("rerank response has no results list")
     results = payload["results"]
-    if not results or len(results) > 2:
+    if len(results) != requested_top_n:
         raise ValueError("rerank response has an invalid result count")
     seen: set[int] = set()
     for item in results:

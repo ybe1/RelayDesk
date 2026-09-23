@@ -1,6 +1,7 @@
 """Task 1 probes: configuration and rerank response contract."""
 
 import json
+from unittest.mock import Mock
 
 import httpx
 import pytest
@@ -64,6 +65,7 @@ def test_rerank_smoke_sends_documented_payload_and_returns_summary():
 
 
 @pytest.mark.parametrize("results", [
+    [{"index": 1, "relevance_score": 0.9}],
     [{"index": 1, "relevance_score": 0.9}, {"index": 1, "relevance_score": 0.8}],
     [{"index": 2, "relevance_score": 0.9}],
     [{"index": 1, "relevance_score": float("nan")}],
@@ -153,3 +155,31 @@ def test_bm25_smoke_uses_chinese_analyzer_hybrid_filter_and_disposes_collection(
     assert client.schema.functions
     assert any(kwargs.get("analyzer_params") == {"type": "chinese"} for _, kwargs in client.schema.fields)
     assert {kwargs.get("metric_type") for _, kwargs in client.indexes.indexes} == {"COSINE", "BM25"}
+
+
+def test_bm25_smoke_drops_created_collection_after_embedding_error():
+    from scripts.smoke_ch04_bm25 import main
+
+    client = Mock()
+    client.has_collection.return_value = False
+    embedder = Mock()
+    embedder.embed.side_effect = RuntimeError("embedding failed")
+
+    with pytest.raises(RuntimeError, match="embedding failed"):
+        main(config=_settings(), client=client, embedder=embedder)
+
+    client.create_collection.assert_called_once()
+    client.drop_collection.assert_called_once_with("smoke_ch04_bm25")
+
+
+def test_bm25_smoke_preserves_preexisting_collection():
+    from scripts.smoke_ch04_bm25 import main
+
+    client = Mock()
+    client.has_collection.return_value = True
+
+    with pytest.raises(RuntimeError, match="already exists"):
+        main(config=_settings(), client=client, embedder=Mock())
+
+    client.create_collection.assert_not_called()
+    client.drop_collection.assert_not_called()
