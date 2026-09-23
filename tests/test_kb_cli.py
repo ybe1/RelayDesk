@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import json
 from types import SimpleNamespace
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from app.db.models import KnowledgeChunk, QAExtractionStaging

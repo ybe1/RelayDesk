@@ -34,6 +34,10 @@ def jobs():
 
 @router.post("/api/jobs/{name}", status_code=202)
 def start_job(name: str, request: StartRequest | None = None):
+    # Validate before consulting the runner so a substituted runner cannot
+    # accidentally accept an arbitrary job name.
+    if name not in JOBS:
+        raise HTTPException(404, "unknown job")
     if name == "kb-reset" and (request is None or request.confirmation != "RESET_CH03"):
         raise HTTPException(400, "confirmation must be RESET_CH03")
     try:

@@ -62,7 +62,7 @@ def test_stop_only_reports_stopped_after_the_owned_process_exits(monkeypatch, tm
     runner = JobRunner(project_root=tmp_path, log_dir=tmp_path, popen=lambda *_args, **_kwargs: next(processes))
     runner.start("kb-preview")
     monkeypatch.setattr(jobs.os, "name", "posix")
-    monkeypatch.setattr(jobs.os, "killpg", lambda _pid, _signal: None)
+    monkeypatch.setattr(jobs.os, "killpg", lambda _pid, _signal: None, raising=False)
     assert runner.stop("kb-preview")["state"] == "running"
     with pytest.raises(JobAlreadyRunning):
         runner.start("kb-preview")
@@ -88,7 +88,7 @@ def test_stop_uses_owned_posix_process_tree_and_keeps_terminal_logs(monkeypatch,
     record["log_file"].flush()
     called = []
     monkeypatch.setattr(jobs.os, "name", "posix")
-    monkeypatch.setattr(jobs.os, "killpg", lambda pid, signal: (called.append((pid, signal)), setattr(process, "code", -15)))
+    monkeypatch.setattr(jobs.os, "killpg", lambda pid, signal: (called.append((pid, signal)), setattr(process, "code", -15)), raising=False)
     stopped = runner.stop("kb-preview")
     assert stopped["state"] == "stopped"
     assert "top-secret" not in stopped["log_tail"]

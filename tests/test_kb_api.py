@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.db.models import KnowledgeChunk, QAExtractionStaging
 from app.main import app
@@ -11,7 +12,11 @@ from app.main import app
 
 @pytest.fixture
 def session_factory():
-    engine = create_engine("sqlite+pysqlite:///:memory:")
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     @event.listens_for(engine, "connect")
     def foreign_keys(connection, _):
         connection.execute("PRAGMA foreign_keys=ON")
