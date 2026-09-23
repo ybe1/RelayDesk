@@ -45,3 +45,18 @@ uv run pytest -q
 
     uv run pytest -v              # 单测(不打真实模型)
     uv run python scripts/eval_extract.py   # 标注样例评估(需服务运行中)
+
+## Ch03：知识库离线命令
+
+知识原文先写入 MySQL 的 `knowledge_chunks`，再由独立向量化命令按同一 ID 写入 Milvus。这样，Milvus 写入后进程中断时，原文仍保持 `pending`；再次执行向量化会对相同 ID 做幂等 upsert，随后才回填 `done`。
+
+```powershell
+uv run python -m scripts.kb preview
+uv run python -m scripts.kb build
+uv run python -m scripts.kb vectorize
+uv run python -m scripts.kb mine
+```
+
+`build` 只导入白名单 Markdown，不会调用嵌入服务；`vectorize` 只补齐 `pending` 行。每个命令都会输出 `imported`、`skipped`、`indexed`、`pending`、`failed` 计数。写入命令会取得单写者锁，`preview` 是只读操作。`mine` 将在后续 Task 5 接入历史对话挖掘。
+
+在已启动 MySQL、Milvus 且设置 `EMBED_API_KEY` 的开发环境，可用 `uv run python -m scripts.kb vectorize --crash-after-upsert` 做恢复窗口演示：它会在首次 Milvus upsert 后以退出码 86 立即退出。随后普通 `vectorize` 应按相同 ID 完成回填。该开关只用于 CLI 演示，不属于普通作业入口。
