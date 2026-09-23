@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import PurePath
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -32,9 +33,26 @@ def get_database_engine():
 def get_store():
     from app.config import settings
     from app.knowledge.vector_store import MilvusStore
-    store = MilvusStore(uri=settings.milvus_uri)
+    return MilvusStore(uri=settings.milvus_uri)
+
+
+def get_writable_store():
+    store = get_store()
     store.ensure_collection()
     return store
+
+
+def safe_endpoint(uri: str) -> str:
+    """Expose only an endpoint address, never userinfo, path, or query data."""
+    parsed = urlsplit(uri)
+    if not parsed.scheme or not parsed.hostname:
+        return "configured"
+    try:
+        port = f":{parsed.port}" if parsed.port is not None else ""
+    except ValueError:
+        return "configured"
+    host = f"[{parsed.hostname}]" if ":" in parsed.hostname else parsed.hostname
+    return f"{parsed.scheme}://{host}{port}"
 
 
 def get_embedder():
@@ -124,7 +142,7 @@ def overview():
     try:
         from app.config import settings
         config = {"rag_top_k": settings.rag_top_k, "rag_min_score": settings.rag_min_score,
-                  "embed_model": settings.embed_model, "milvus_uri": settings.milvus_uri}
+                  "embed_model": settings.embed_model, "milvus_endpoint": safe_endpoint(settings.milvus_uri)}
     except Exception:
         config = {"rag_top_k": 5, "rag_min_score": 0.55}
     return {**counts, "staging": staging, "milvus_count": milvus_count, "dependencies": dependencies,
@@ -163,7 +181,7 @@ def ingest(request: IngestRequest):
             result = {"inserted": imported.inserted, "skipped": imported.skipped, "indexed": 0, "pending": pending}
             if request.vectorize:
                 try:
-                    indexed = index_pending(factory, get_embedder(), get_store())
+                    indexed = index_pending(factory, get_embedder(), get_writable_store())
                     result["indexed"] = indexed["indexed"]
                     result["pending"] = indexed["pending"]
                 except Exception as error:

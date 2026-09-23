@@ -33,6 +33,10 @@ class JobAlreadyRunning(RuntimeError):
     pass
 
 
+class JobUnavailable(RuntimeError):
+    pass
+
+
 class JobRunner:
     """Own only processes started by this runner; never accepts user argv."""
 
@@ -46,14 +50,28 @@ class JobRunner:
         if name not in JOBS:
             raise UnknownJob(name)
 
+    def _available(self, name: str) -> bool:
+        return not name.startswith("eval-") or (self.project_root / "scripts" / "eval_ch03.py").is_file()
+
     def _tail(self, path: Path, limit: int = 200) -> str:
         try:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except FileNotFoundError:
             return ""
-        # Environment variables and bearer-like values must never be replayed to the UI.
+        # Credentials must never be replayed to the UI, including common JSON,
+        # header, and standalone bearer-token forms.
         tail = "\n".join(lines[-max(1, min(limit, 200)):])
-        return re.sub(r"(?i)\b(api[_-]?key|token|authorization)\s*[:=]\s*\S+", r"\1=[redacted]", tail)
+        tail = re.sub(r'(?i)("(?:api[_-]?key|token|secret|password|authorization)"\s*:\s*")[^"]*(")', r"\1[redacted]\2", tail)
+        tail = re.sub(r"(?i)(\bauthorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;\"}]+", r"\1Bearer [redacted]", tail)
+        tail = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [redacted]", tail)
+        return re.sub(r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s,;\"}]+", r"\1=[redacted]", tail)
+
+    def tail(self, name: str, limit: int = 200) -> str:
+        self._check_name(name)
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        record = self._jobs.get(name)
+        return "" if record is None else self._tail(record["log_path"], limit)
 
     def _state(self, record: dict) -> tuple[str, int | None]:
         code = record["process"].poll()
@@ -70,7 +88,9 @@ class JobRunner:
 
     def start(self, name: str) -> dict:
         self._check_name(name)
-        if name in self._jobs and self._state(self._jobs[name])[0] == "running":
+        if not self._available(name):
+            raise JobUnavailable(f"{name} is unavailable until Task 9 installs scripts.eval_ch03")
+        if name in self._jobs and self._jobs[name]["process"].poll() is None:
             raise JobAlreadyRunning(name)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         path = self.log_dir / f"{name}-{int(time.time() * 1000)}.log"
@@ -108,13 +128,21 @@ class JobRunner:
         if record is None:
             return self.status(name)
         process = record["process"]
-        if process.poll() is None:
+        # A terminal process keeps its actual succeeded/failed state.  A
+        # failed or asynchronous termination still owns a live process, so a
+        # subsequent start remains blocked until poll() proves it exited.
+        if process.poll() is not None:
+            return self.status(name)
+        try:
             if os.name == "nt":
                 subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False, shell=False,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 os.killpg(process.pid, 15)
-        record["stopped"] = True
+        except OSError:
+            return self.status(name)
+        if process.poll() is not None:
+            record["stopped"] = True
         return self.status(name)
 
     def shutdown(self) -> None:

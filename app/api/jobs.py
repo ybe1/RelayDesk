@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.core.jobs import JOBS, JobAlreadyRunning, JobRunner, UnknownJob
+from app.core.jobs import JOBS, JobAlreadyRunning, JobRunner, JobUnavailable, UnknownJob
 
 router = APIRouter()
 _runner = JobRunner()
@@ -22,6 +22,8 @@ def _http_job_error(error: Exception):
         raise HTTPException(404, "unknown job") from error
     if isinstance(error, JobAlreadyRunning):
         raise HTTPException(409, "job already running") from error
+    if isinstance(error, JobUnavailable):
+        raise HTTPException(503, str(error)) from error
     raise error
 
 
@@ -36,7 +38,7 @@ def start_job(name: str, request: StartRequest | None = None):
         raise HTTPException(400, "confirmation must be RESET_CH03")
     try:
         return get_job_runner().start(name)
-    except (UnknownJob, JobAlreadyRunning) as error:
+    except (UnknownJob, JobAlreadyRunning, JobUnavailable) as error:
         _http_job_error(error)
 
 

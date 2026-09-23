@@ -93,6 +93,18 @@ def test_overview_returns_unknown_consistency_if_one_dependency_fails(monkeypatc
     assert response.json()["dependencies"]["milvus"] == "unavailable"
 
 
+def test_overview_uses_a_read_only_store_and_hides_uri_credentials(monkeypatch, session_factory):
+    from app.api import kb
+    class Store:
+        def ensure_collection(self):
+            raise AssertionError("GET overview must not create, load, or mutate collections")
+        def count(self): return 0
+    monkeypatch.setattr(kb, "get_store", lambda: Store())
+    response = _client(monkeypatch, session_factory).get("/api/kb/overview")
+    assert response.status_code == 200
+    assert kb.safe_endpoint("http://user:secret@milvus.internal:19530/path") == "http://milvus.internal:19530"
+
+
 def test_staging_and_recent_bound_pagination(monkeypatch, session_factory):
     with session_factory.begin() as session:
         session.add(QAExtractionStaging(batch_no="a", question="q", answer="a", status="extracted"))
