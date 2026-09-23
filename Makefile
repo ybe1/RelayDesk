@@ -1,4 +1,4 @@
-.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset
+.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining
 
 dev:
 	./scripts/dev.sh
@@ -26,3 +26,9 @@ seed-conv:
 
 kb-reset:
 	uv run python -m scripts.kb reset --confirmed
+
+eval-retrieval:
+	uv run python -m scripts.eval_ch03 retrieval
+
+eval-mining:
+	uv run python -m scripts.eval_ch03 mining

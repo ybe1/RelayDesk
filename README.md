@@ -60,3 +60,15 @@ uv run python -m scripts.kb mine
 `build` 只导入白名单 Markdown，不会调用嵌入服务；`vectorize` 只补齐 `pending` 行。每个命令都会输出 `imported`、`skipped`、`indexed`、`pending`、`failed` 计数。写入命令会取得单写者锁，`preview` 是只读操作。`mine` 将在后续 Task 5 接入历史对话挖掘。
 
 在已启动 MySQL、Milvus 且设置 `EMBED_API_KEY` 的开发环境，可用 `uv run python -m scripts.kb vectorize --crash-after-upsert` 做恢复窗口演示：它会在首次 Milvus upsert 后以退出码 86 立即退出。随后普通 `vectorize` 应按相同 ID 完成回填。该开关只用于 CLI 演示，不属于普通作业入口。
+
+## Ch03：标注评估与真实验收
+
+以下命令可直接在 Windows PowerShell 运行；Make 目标只提供相同的快捷包装。检索评测逐条输出 Milvus 命中 ID、相似度分数、类别和经 MySQL 溯源的来源文件，并检查 `query_faq` 的 `keyword/matches` 契约。挖掘评测会对 `tests/data/ch03_extraction_samples.json` 中的标注会话实际调用结构化模型。
+
+```powershell
+uv run python -m scripts.eval_ch03 retrieval
+uv run python -m scripts.eval_ch03 mining
+# 或：make eval-retrieval / make eval-mining
+```
+
+两个评测均先检查 Docker Compose、MySQL、Milvus 和所需密钥；门槛不满足时输出 JSON 报告并以退出码 2 结束，不会把离线测试当作真实验收。检索样本位于 `tests/data/ch03_retrieval_samples.json`，报告 schema 为 `ch03-eval/v1`：包含 `gates`、逐条 `results` 和 `summary`。检索要求至少 4/5 通过，并且“邮费是多少”和无关天文问题必须通过。

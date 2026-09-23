@@ -1,0 +1,35 @@
+[
+  {
+    "id": "shipping-paraphrase",
+    "question": "邮费是多少",
+    "expected_source": "shipping.md",
+    "expected_category": "配送费用",
+    "expected_facts": ["满 99 元包邮", "不足 99 元运费 8 元"]
+  },
+  {
+    "id": "return-conditions",
+    "question": "退货需要满足什么条件？",
+    "expected_source": "returns.md",
+    "expected_category": "申请时限",
+    "expected_facts": ["签收后七日内可申请退货"]
+  },
+  {
+    "id": "product-faq",
+    "question": "商品页面能查到哪些信息？",
+    "expected_source": "products.md",
+    "expected_category": "商品咨询",
+    "expected_facts": ["规格、库存和适用信息"]
+  },
+  {
+    "id": "after-sales-flow",
+    "question": "售后流程怎么走？",
+    "expected_source": "after_sales.md",
+    "expected_category": "处理流程",
+    "expected_facts": ["核验订单和问题描述"]
+  },
+  {
+    "id": "astronomy-no-hit",
+    "question": "太阳为什么会发光？",
+    "expect_no_hit": true
+  }
+]
