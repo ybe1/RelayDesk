@@ -29,11 +29,24 @@ _PRIVATE_CASE_FACT = re.compile(
     r"(?:订单\s*[A-Za-z0-9_-]{2,}|(?:物流|快递|运单)\s*单号|(?:订单号|运单号)\s*[:：]?|(?:物流|快递).*(?:已|到|显示|状态|揽收|签收|派送))",
     re.IGNORECASE,
 )
+_PHONE_NUMBER = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_ADDRESS = re.compile(r"(?:收货地址|地址)\s*[:：]?\s*[^，,。；;]+")
+_NAMED_PERSON = re.compile(r"(?:(?:姓名|联系人)\s*[:：]?\s*|^)[\u4e00-\u9fff]{2,4}(?=[，,])")
+
+
+def _redact_personal_data(content: str) -> str:
+    """Remove common direct identifiers while retaining a reusable question."""
+    content = _EMAIL.sub("[已隐去邮箱]", content)
+    content = _PHONE_NUMBER.sub("[已隐去手机号]", content)
+    content = _ADDRESS.sub("[已隐去地址]", content)
+    return _NAMED_PERSON.sub("[已隐去姓名]", content)
 
 
 def _safe_messages(rows: list[Message]) -> list[dict[str, str]]:
     """Keep customer text and final textual assistant answers only."""
-    messages: list[dict[str, str]] = []
+    user_messages: list[dict[str, str]] = []
+    eligible_assistant: dict[str, str] | None = None
     for row in rows:
         if row.role not in {"user", "assistant"} or not row.content:
             continue
@@ -41,8 +54,12 @@ def _safe_messages(rows: list[Message]) -> list[dict[str, str]]:
             continue
         if _PRIVATE_CASE_FACT.search(row.content):
             continue
-        messages.append({"role": row.role, "content": row.content})
-    return messages
+        message = {"role": row.role, "content": _redact_personal_data(row.content)}
+        if row.role == "user":
+            user_messages.append(message)
+        else:
+            eligible_assistant = message
+    return user_messages + ([eligible_assistant] if eligible_assistant is not None else [])
 
 
 def _load_batch(session_factory: Callable, conversation_ids: tuple[int, ...]) -> list[dict]:

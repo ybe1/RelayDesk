@@ -118,6 +118,47 @@ def test_extraction_excludes_case_specific_logistics_state_without_an_order_numb
     assert "模拟订单的物流显示已揽收。" not in transcript
 
 
+def test_extraction_redacts_phone_email_name_and_address_before_model_input(session_factory):
+    from app.knowledge.extraction import QASet, extract_batches
+
+    with session_factory.begin() as session:
+        session.add_all([
+            Conversation(id=3, user_id="three"),
+            Message(conversation_id=3, role="user", content="张三，手机号 13800138000，邮箱 zhang@example.com，地址北京市朝阳区望京路 1 号，怎么退货？"),
+            Message(conversation_id=3, role="assistant", content="请在订单页申请退货，客服会联系您。"),
+        ])
+    model = FakeStructuredModel([QASet(items=[])])
+
+    extract_batches(session_factory, model)
+
+    transcript = "\n".join(message.content for message in model.inputs[0])
+    assert "13800138000" not in transcript
+    assert "zhang@example.com" not in transcript
+    assert "张三" not in transcript
+    assert "北京市朝阳区望京路 1 号" not in transcript
+    assert "怎么退货？" in transcript
+
+
+def test_extraction_uses_only_the_final_eligible_assistant_answer_per_conversation(session_factory):
+    from app.knowledge.extraction import QASet, extract_batches
+
+    with session_factory.begin() as session:
+        session.add_all([
+            Conversation(id=3, user_id="three"),
+            Message(conversation_id=3, role="user", content="能退货吗？"),
+            Message(conversation_id=3, role="assistant", content="我先为您查询。"),
+            Message(conversation_id=3, role="assistant", content="支持七天无理由退货。"),
+        ])
+    model = FakeStructuredModel([QASet(items=[])])
+
+    extract_batches(session_factory, model)
+
+    transcript = "\n".join(message.content for message in model.inputs[0])
+    assert "能退货吗？" in transcript
+    assert "我先为您查询。" not in transcript
+    assert "支持七天无理由退货。" in transcript
+
+
 def test_extraction_rejects_candidate_for_conversation_outside_current_batch(session_factory):
     from app.knowledge.extraction import ExtractedQA, QASet, extract_batches
 
