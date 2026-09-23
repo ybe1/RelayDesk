@@ -8,9 +8,9 @@ import os
 from collections.abc import Callable
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 
-from app.db.models import KnowledgeChunk
+from app.db.models import Conversation, KnowledgeChunk, Message, QAExtractionStaging
 from app.knowledge.chunks import parse_markdown
 from app.knowledge.importer import import_chunks
 from app.knowledge.indexer import index_pending
@@ -25,6 +25,12 @@ settings = None
 get_chat_model = None
 extract_batches = None
 deduplicate_staging = None
+
+SYNTHETIC_USER_ID = "ch03-demo-v1"
+SYNTHETIC_CONVERSATIONS = (
+    ("演示退货期限是多久？", "演示规则：商品签收后七天内可申请退货。"),
+    ("演示运费怎么算？", "演示规则：满 99 元包邮；不足 99 元运费 8 元。"),
+)
 
 
 _COUNTERS = ("imported", "skipped", "indexed", "pending", "failed")
@@ -120,6 +126,49 @@ def mine(*, session_factory: Callable | None = None, model=None) -> dict[str, in
     )
 
 
+def seed_conv(*, session_factory: Callable | None = None) -> dict[str, int]:
+    """Append only missing synthetic conversations; existing Ch02 data is untouched."""
+    session_factory = _session_factory_or_default(session_factory)
+    added = 0
+    with session_factory.begin() as session:
+        existing = set(session.scalars(
+            select(Message.content).join(Conversation).where(Conversation.user_id == SYNTHETIC_USER_ID, Message.role == "user")
+        ).all())
+        for question, answer in SYNTHETIC_CONVERSATIONS:
+            if question in existing:
+                continue
+            conversation = Conversation(user_id=SYNTHETIC_USER_ID)
+            session.add(conversation)
+            session.flush()
+            session.add_all([
+                Message(conversation_id=conversation.id, role="user", content=question),
+                Message(conversation_id=conversation.id, role="assistant", content=answer),
+            ])
+            added += 1
+    return _result(imported=added)
+
+
+def reset_knowledge(session_factory: Callable, store) -> dict[str, int]:
+    """Clear only the two Ch03 SQL tables and the derived knowledge collection."""
+    sql_cleared = False
+    vector_cleared = False
+    try:
+        with session_factory.begin() as session:
+            session.execute(update(KnowledgeChunk).values(prev_chunk_id=None, next_chunk_id=None))
+            session.execute(delete(QAExtractionStaging))
+            session.execute(delete(KnowledgeChunk))
+        sql_cleared = True
+    except Exception:
+        return {"sql_cleared": False, "vector_cleared": False, "failed": 1}
+    try:
+        # The store owns its collection-specific deletion API; it must not target another collection.
+        store.clear_collection("knowledge")
+        vector_cleared = True
+    except Exception:
+        pass
+    return {"sql_cleared": sql_cleared, "vector_cleared": vector_cleared, "failed": int(not vector_cleared)}
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="MewHelp Ch03 knowledge commands")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -161,8 +210,26 @@ def main(
                 from app.db.session import engine as database_engine
             with lock(database_engine):
                 outcome = mine(session_factory=session_factory)
+        elif args.command == "seed-conv":
+            if database_engine is None:
+                from app.db.session import engine as database_engine
+            with lock(database_engine):
+                outcome = seed_conv(session_factory=session_factory)
+        elif args.command == "reset":
+            if not args.confirmed:
+                raise RuntimeError("reset requires --confirmed")
+            if database_engine is None:
+                from app.db.session import engine as database_engine
+            runtime_settings = settings
+            if runtime_settings is None:
+                from app.config import settings as runtime_settings
+            store_class = MilvusStore
+            if store_class is None:
+                from app.knowledge.vector_store import MilvusStore as store_class
+            with lock(database_engine):
+                outcome = reset_knowledge(session_factory or _session_factory_or_default(None), store_class(uri=runtime_settings.milvus_uri))
         else:
-            raise RuntimeError(f"kb {args.command} is not available until Task 5")
+            raise RuntimeError(f"unknown kb command: {args.command}")
     except Exception as error:
         try:
             pending = _pending_count(_session_factory_or_default(session_factory))

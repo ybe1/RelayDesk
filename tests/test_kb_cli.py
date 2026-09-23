@@ -131,3 +131,41 @@ def test_mine_holds_writer_lock_and_runs_extraction_before_global_deduplication(
     assert [event if isinstance(event, str) else event[0] for event in events] == [
         "locked", "model", "extract", "dedup", "released"
     ]
+
+
+def test_seed_conv_only_appends_missing_synthetic_conversations(monkeypatch):
+    from scripts import kb
+    database = create_engine("sqlite+pysqlite:///:memory:")
+    with database.begin() as connection:
+        connection.exec_driver_sql("CREATE TABLE conversations (id INTEGER PRIMARY KEY, user_id VARCHAR(64) NOT NULL, status VARCHAR NOT NULL DEFAULT '进行中', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+        connection.exec_driver_sql("CREATE TABLE messages (id INTEGER PRIMARY KEY, conversation_id INTEGER NOT NULL, role VARCHAR NOT NULL, content TEXT, tool_calls JSON, tool_call_id VARCHAR(64), created_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+    factory = sessionmaker(bind=database, expire_on_commit=False)
+    first = kb.seed_conv(session_factory=factory)
+    second = kb.seed_conv(session_factory=factory)
+    assert first["imported"] == len(kb.SYNTHETIC_CONVERSATIONS)
+    assert second["imported"] == 0
+
+
+def test_reset_requires_confirmation_and_never_touches_ch02_rows(monkeypatch):
+    from scripts import kb
+    database = create_engine("sqlite+pysqlite:///:memory:")
+    with database.begin() as connection:
+        connection.exec_driver_sql("CREATE TABLE knowledge_chunks (id INTEGER PRIMARY KEY, category VARCHAR NOT NULL, questions TEXT NOT NULL, answer TEXT NOT NULL, section_path VARCHAR, content_type VARCHAR, is_key_clause INTEGER NOT NULL DEFAULT 0, prev_chunk_id INTEGER, next_chunk_id INTEGER, vector_id VARCHAR, vectorize_status VARCHAR NOT NULL DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+        connection.exec_driver_sql("CREATE TABLE qa_extraction_staging (id INTEGER PRIMARY KEY, batch_no VARCHAR NOT NULL, source_ref VARCHAR, question TEXT NOT NULL, answer TEXT NOT NULL, status VARCHAR NOT NULL DEFAULT 'extracted', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+        connection.exec_driver_sql("CREATE TABLE faq (id INTEGER PRIMARY KEY, question VARCHAR NOT NULL, answer TEXT NOT NULL, category VARCHAR NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+    factory = sessionmaker(bind=database, expire_on_commit=False)
+    with factory.begin() as session:
+        session.add(KnowledgeChunk(category="x", questions="q", answer="a"))
+        session.add(QAExtractionStaging(batch_no="b", question="q", answer="a"))
+        from app.db.models import FAQ
+        session.add(FAQ(id=77, category="ch02", question="旧 FAQ", answer="必须保留"))
+    class Store:
+        def __init__(self, **_): self.cleared = None
+        def clear_collection(self, name): self.cleared = name
+    monkeypatch.setattr(kb, "MilvusStore", Store)
+    monkeypatch.setattr(kb, "settings", SimpleNamespace(milvus_uri="test"))
+    assert kb.main(["reset"], session_factory=factory, database_engine=object()) == 1
+    assert kb.main(["reset", "--confirmed"], session_factory=factory, database_engine=object(), lock=lambda _: __import__('contextlib').nullcontext()) == 0
+    with factory() as session:
+        assert session.scalars(select(KnowledgeChunk)).all() == []
+        assert session.get(FAQ, 77).answer == "必须保留"

@@ -76,6 +76,13 @@ class MilvusStore:
     def count(self) -> int:
         return int(self.client.get_collection_stats(COLLECTION_NAME).get("row_count", 0))
 
+    def clear_collection(self, collection_name: str) -> None:
+        """Delete rows only from the fixed Ch03 read model collection."""
+        if collection_name != COLLECTION_NAME:
+            raise ValueError("only the Ch03 knowledge collection may be cleared")
+        if self.client.has_collection(COLLECTION_NAME):
+            self.client.delete(collection_name=COLLECTION_NAME, filter="id >= 0")
+
     def _validate_row(self, row: dict) -> None:
         required = {"id", "vector", "question", "answer", "category"}
         missing = required.difference(row)
