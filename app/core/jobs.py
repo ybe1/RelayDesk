@@ -62,6 +62,7 @@ class JobRunner:
         # header, and standalone bearer-token forms.
         tail = "\n".join(lines[-max(1, min(limit, 200)):])
         tail = re.sub(r'(?i)("(?:api[_-]?key|token|secret|password|authorization)"\s*:\s*")[^"]*(")', r"\1[redacted]\2", tail)
+        tail = re.sub(r"(?i)(\b(?:api[_-]?key|token|secret|password)\s*[:=]\s*[\"'])[^\"']*([\"'])", r"\1[redacted]\2", tail)
         tail = re.sub(r"(?i)(\bauthorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;\"}]+", r"\1Bearer [redacted]", tail)
         tail = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [redacted]", tail)
         return re.sub(r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s,;\"}]+", r"\1=[redacted]", tail)
@@ -75,10 +76,10 @@ class JobRunner:
 
     def _state(self, record: dict) -> tuple[str, int | None]:
         code = record["process"].poll()
-        if record.get("stopped"):
-            return "stopped", code
         if code is None:
             return "running", None
+        if record.get("stop_requested"):
+            return "stopped", code
         return ("succeeded" if code == 0 else "failed"), code
 
     def _payload(self, record: dict, limit: int = 200) -> dict:
@@ -106,7 +107,7 @@ class JobRunner:
             log_file.close()
             raise
         self._jobs[name] = {"job_id": uuid.uuid4().hex, "name": name, "process": process,
-                            "log_path": path, "log_file": log_file, "stopped": False}
+                            "log_path": path, "log_file": log_file, "stop_requested": False}
         return self._payload(self._jobs[name])
 
     def status(self, name: str, limit: int = 200) -> dict:
@@ -141,8 +142,7 @@ class JobRunner:
                 os.killpg(process.pid, 15)
         except OSError:
             return self.status(name)
-        if process.poll() is not None:
-            record["stopped"] = True
+        record["stop_requested"] = True
         return self.status(name)
 
     def shutdown(self) -> None:

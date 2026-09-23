@@ -57,14 +57,18 @@ def test_stop_only_reports_stopped_after_the_owned_process_exits(monkeypatch, tm
         def poll(self): return self.code
 
     process = Process()
-    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path, popen=lambda *_args, **_kwargs: process)
+    replacement = Process()
+    processes = iter((process, replacement))
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path, popen=lambda *_args, **_kwargs: next(processes))
     runner.start("kb-preview")
+    monkeypatch.setattr(jobs.os, "name", "posix")
     monkeypatch.setattr(jobs.os, "killpg", lambda _pid, _signal: None)
     assert runner.stop("kb-preview")["state"] == "running"
     with pytest.raises(JobAlreadyRunning):
         runner.start("kb-preview")
     process.code = 0
-    assert runner.stop("kb-preview")["state"] == "succeeded"
+    assert runner.status("kb-preview")["state"] == "stopped"
+    assert runner.start("kb-preview")["state"] == "running"
 
 
 def test_stop_uses_owned_posix_process_tree_and_keeps_terminal_logs(monkeypatch, tmp_path):
@@ -80,7 +84,7 @@ def test_stop_uses_owned_posix_process_tree_and_keeps_terminal_logs(monkeypatch,
     runner = JobRunner(project_root=tmp_path, log_dir=tmp_path, popen=lambda *_args, **_kwargs: process)
     runner.start("kb-preview")
     record = runner._jobs["kb-preview"]
-    record["log_file"].write('Authorization: Bearer top-secret\n{"api_key":"json-secret","token":"json-token"}\n')
+    record["log_file"].write('token: "quoted-token"\npassword = "quoted-password"\nAuthorization: Bearer top-secret\n{"api_key":"json-secret","token":"json-token"}\n')
     record["log_file"].flush()
     called = []
     monkeypatch.setattr(jobs.os, "name", "posix")
@@ -89,6 +93,10 @@ def test_stop_uses_owned_posix_process_tree_and_keeps_terminal_logs(monkeypatch,
     assert stopped["state"] == "stopped"
     assert "top-secret" not in stopped["log_tail"]
     assert "json-secret" not in stopped["log_tail"]
+    assert "quoted-token" not in stopped["log_tail"]
+    assert "quoted-password" not in stopped["log_tail"]
+    assert 'token: "[redacted]"' in stopped["log_tail"]
+    assert 'password = "[redacted]"' in stopped["log_tail"]
     assert runner.tail("kb-preview", limit=1) == '{"api_key":"[redacted]","token":"[redacted]"}'
     assert called == [(654, 15)]
 
