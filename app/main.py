@@ -36,6 +36,16 @@ async def index() -> FileResponse:
     return FileResponse(_BASE_DIR / "static" / "index.html")
 
 
+@app.get("/kb", include_in_schema=False)
+async def knowledge_base_page() -> FileResponse:
+    return FileResponse(_BASE_DIR / "static" / "kb.html")
+
+
+@app.get("/admin", include_in_schema=False)
+async def admin_page() -> FileResponse:
+    return FileResponse(_BASE_DIR / "static" / "admin.html")
+
+
 @app.on_event("shutdown")
 def stop_owned_background_jobs() -> None:
     from app.api.jobs import get_job_runner

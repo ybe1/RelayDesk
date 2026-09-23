@@ -50,6 +50,9 @@
     content: ""; width: 8px; height: 8px; border-radius: 50%;
     background: #16a34a; display: inline-block;
   }
+  header .nav { margin-left: auto; display: flex; gap: 6px; }
+  header .nav a { color: var(--text-dim); text-decoration: none; font-size: 13px; padding: 7px 10px; border-radius: 8px; }
+  header .nav a:hover { color: #9a3412; background: var(--accent-soft); }
 
   #messages {
     flex: 1; overflow-y: auto;
@@ -129,6 +132,11 @@
       <div class="title">喵喵优选 · 智能客服「小喵」</div>
       <div class="subtitle">商品咨询 · 订单物流 · 售后</div>
     </div>
+    <nav class="nav" aria-label="主导航">
+      <a href="/" aria-current="page">客服聊天</a>
+      <a href="/kb">知识库</a>
+      <a href="/admin">后台管理</a>
+    </nav>
     <div class="status">在线</div>
   </header>
 
