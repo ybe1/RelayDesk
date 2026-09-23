@@ -136,39 +136,95 @@ def _load_samples(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-def _docker_healthy() -> bool:
+def _compose_services_healthy(run: Callable = subprocess.run) -> bool:
+    """Require every standalone dependency to be both running and healthy."""
     try:
-        completed = subprocess.run(
-            ["docker", "compose", "-f", "compose.yaml", "-f", "compose.milvus.yaml", "ps"],
-            cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        completed = run(
+            ["docker", "compose", "-f", "compose.yaml", "-f", "compose.milvus.yaml", "ps", "--format", "json"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
             check=False, timeout=15, shell=False,
         )
     except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
         return False
-    return completed.returncode == 0
+    if completed.returncode != 0:
+        return False
+    try:
+        parsed = json.loads(completed.stdout)
+        rows = parsed if isinstance(parsed, list) else [parsed]
+    except (TypeError, json.JSONDecodeError):
+        return False
+    health = {
+        row.get("Service"): (str(row.get("State", "")).lower(), str(row.get("Health", "")).lower())
+        for row in rows if isinstance(row, dict)
+    }
+    return all(health.get(name) == ("running", "healthy") for name in ("etcd", "minio", "standalone"))
 
 
-def _retrieval_gates() -> dict[str, bool]:
+def _mysql_probe() -> None:
+    with SessionLocal() as session:
+        session.execute(text("SELECT 1"))
+
+
+def _milvus_probe() -> None:
+    from app.knowledge.vector_store import MilvusStore
+    MilvusStore(uri=settings.milvus_uri).count()
+
+
+def _embedding_probe() -> None:
+    from app.knowledge.embedding import EmbeddingClient
+    EmbeddingClient(
+        base_url=settings.embed_base_url,
+        api_key=settings.embed_api_key,
+        model=settings.embed_model,
+    ).embed(["Ch03 evaluator connectivity probe"])
+
+
+def _retrieval_gates(
+    *,
+    compose_healthy: Callable[[], bool] = _compose_services_healthy,
+    mysql_probe: Callable[[], None] = _mysql_probe,
+    milvus_probe: Callable[[], None] = _milvus_probe,
+    embedding_probe: Callable[[], None] = _embedding_probe,
+) -> tuple[dict[str, bool], dict[str, str]]:
     gates = {
-        "docker_compose": _docker_healthy(),
+        "docker_compose": False,
         "embed_api_key": bool(settings.embed_api_key),
+        "embedding": False,
         "chat_api_key": bool(settings.chat_api_key),
         "mysql": False,
         "milvus": False,
     }
+    errors: dict[str, str] = {}
+    for name, probe in (("docker_compose", compose_healthy), ("mysql", mysql_probe), ("milvus", milvus_probe)):
+        try:
+            gates[name] = bool(probe()) if name == "docker_compose" else True
+        except Exception as error:
+            errors[name] = type(error).__name__
+    if gates["embed_api_key"]:
+        try:
+            embedding_probe()
+            gates["embedding"] = True
+        except Exception as error:
+            errors["embedding"] = type(error).__name__
+    return gates, errors
+
+
+def _mining_gates(model_factory: Callable[..., Any] | None = None) -> tuple[dict[str, bool], dict[str, str], Any | None]:
+    """Mining is independent of Docker, MySQL, Milvus, and embedding services."""
+    gates = {"chat_api_key": bool(settings.chat_api_key), "chat_model": False}
+    errors: dict[str, str] = {}
+    if not gates["chat_api_key"]:
+        return gates, errors, None
+    if model_factory is None:
+        from app.core.llm import get_chat_model
+        model_factory = get_chat_model
     try:
-        with SessionLocal() as session:
-            session.execute(text("SELECT 1"))
-        gates["mysql"] = True
-    except Exception:
-        pass
-    try:
-        from app.knowledge.vector_store import MilvusStore
-        MilvusStore(uri=settings.milvus_uri).count()
-        gates["milvus"] = True
-    except Exception:
-        pass
-    return gates
+        model = model_factory(disable_thinking=True)
+        gates["chat_model"] = True
+        return gates, errors, model
+    except Exception as error:
+        errors["chat_model"] = type(error).__name__
+        return gates, errors, None
 
 
 def _source_lookup() -> Callable[[int], str | None]:
@@ -179,32 +235,34 @@ def _source_lookup() -> Callable[[int], str | None]:
 
 
 def evaluate_retrieval() -> tuple[dict[str, Any], int]:
-    gates = _retrieval_gates()
-    required = ("docker_compose", "embed_api_key", "mysql", "milvus")
+    gates, errors = _retrieval_gates()
+    required = ("docker_compose", "embed_api_key", "embedding", "mysql", "milvus")
     if not all(gates[name] for name in required):
-        return build_report("retrieval", [], gates=gates), 2
+        report = build_report("retrieval", [], gates=gates)
+        report["errors"] = errors
+        return report, 2
 
     from app.knowledge.embedding import EmbeddingClient
     from app.knowledge.retrieval import search_knowledge
     from app.knowledge.vector_store import MilvusStore
 
-    embedder = EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key, model=settings.embed_model)
-    store = MilvusStore(uri=settings.milvus_uri)
-    source_lookup = _source_lookup()
-    results = [
-        assess_retrieval_sample(
-            sample,
-            search_knowledge(sample["question"], embedder, store, settings.rag_top_k, settings.rag_min_score),
-            source_lookup,
-        )
-        for sample in _load_samples(RETRIEVAL_SAMPLES)
-    ]
+    try:
+        embedder = EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key, model=settings.embed_model)
+        store = MilvusStore(uri=settings.milvus_uri)
+        source_lookup = _source_lookup()
+        results = [_run_retrieval_sample(sample, embedder, store, source_lookup) for sample in _load_samples(RETRIEVAL_SAMPLES)]
+    except Exception as error:
+        report = build_report("retrieval", [], gates=gates)
+        report["errors"] = {"evaluation": type(error).__name__}
+        return report, 2
     report = build_report("retrieval", results, gates=gates)
     return report, 0 if report["summary"]["passed"] >= 4 and results[0]["passed"] and results[-1]["passed"] else 1
 
 
 def _extract_one(model: Any, sample: dict[str, Any]) -> list[dict[str, Any]]:
     messages = safe_conversation_messages(sample)
+    if not messages:
+        return []
     structured = model.with_structured_output(QASet, method="function_calling")
     output = structured.invoke(EXTRACTION_PROMPT.format_messages(
         conversations=json.dumps([{"conversation_id": 1, "messages": messages}], ensure_ascii=False)
@@ -213,15 +271,32 @@ def _extract_one(model: Any, sample: dict[str, Any]) -> list[dict[str, Any]]:
     return [item.model_dump() for item in result.items]
 
 
-def evaluate_mining() -> tuple[dict[str, Any], int]:
-    gates = _retrieval_gates()
-    required = ("docker_compose", "chat_api_key", "mysql", "milvus")
-    if not all(gates[name] for name in required):
-        return build_report("mining", [], gates=gates), 2
+def _run_retrieval_sample(sample: dict[str, Any], embedder: Any = None, store: Any = None, source_lookup: Callable[[int], str | None] | None = None) -> dict[str, Any]:
+    """Run one retrieval sample; optional defaults make isolated error tests simple."""
+    if embedder is None or store is None or source_lookup is None:
+        raise RuntimeError("retrieval dependencies are required")
+    from app.knowledge.retrieval import search_knowledge
+    return assess_retrieval_sample(
+        sample,
+        search_knowledge(sample["question"], embedder, store, settings.rag_top_k, settings.rag_min_score),
+        source_lookup,
+    )
 
-    from app.core.llm import get_chat_model
-    model = get_chat_model(disable_thinking=True)
-    results = [assess_mining_sample(sample, _extract_one(model, sample)) for sample in _load_samples(MINING_SAMPLES)]
+
+def evaluate_mining() -> tuple[dict[str, Any], int]:
+    gates, errors, model = _mining_gates()
+    required = ("chat_api_key", "chat_model")
+    if not all(gates[name] for name in required):
+        report = build_report("mining", [], gates=gates)
+        report["errors"] = errors
+        return report, 2
+
+    try:
+        results = [assess_mining_sample(sample, _extract_one(model, sample)) for sample in _load_samples(MINING_SAMPLES)]
+    except Exception as error:
+        report = build_report("mining", [], gates=gates)
+        report["errors"] = {"evaluation": type(error).__name__}
+        return report, 2
     report = build_report("mining", results, gates=gates)
     return report, 0 if all(result["passed"] for result in results) else 1
 
