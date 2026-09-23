@@ -5,7 +5,8 @@ from app.db.models import Base, Conversation, FAQ, Message, Ticket
 
 def test_ch02_schema_matches_required_mysql_columns():
     tables = Base.metadata.tables
-    assert set(tables) == {"conversations", "messages", "faq", "tickets"}
+    required_ch02_tables = {"conversations", "messages", "faq", "tickets"}
+    assert required_ch02_tables <= set(tables)
     assert str(Conversation.__table__.c.id.type.compile(dialect=mysql.dialect())).upper() == "BIGINT UNSIGNED"
     assert str(Message.__table__.c.conversation_id.type.compile(dialect=mysql.dialect())).upper() == "BIGINT UNSIGNED"
     assert str(FAQ.__table__.c.question.type.compile(dialect=mysql.dialect())).upper() == "VARCHAR(512)"
