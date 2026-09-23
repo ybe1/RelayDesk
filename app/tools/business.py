@@ -2,6 +2,7 @@
 
 import json
 import random
+from collections.abc import Callable
 from typing import Literal
 
 from langchain.tools import tool
@@ -17,7 +18,7 @@ class ProductArgs(BaseModel):
 
 
 class FaqArgs(BaseModel):
-    keyword: str = Field(min_length=1, description="FAQ 问题中的字面关键词，例如退货政策")
+    keyword: str = Field(min_length=1, description="知识库语义检索问题，例如邮费是多少")
 
 
 class TicketArgs(BaseModel):
@@ -25,7 +26,33 @@ class TicketArgs(BaseModel):
     ticket_type: Literal["售后", "投诉", "咨询"] = Field(description="工单类型")
 
 
-def build_tools(session_factory, conversation_id: int):
+def _production_retriever(query: str) -> list[dict]:
+    """Create dense retrieval dependencies only when the FAQ tool is invoked."""
+    from app.config import settings
+    from app.knowledge.embedding import EmbeddingClient
+    from app.knowledge.retrieval import search_knowledge
+    from app.knowledge.vector_store import MilvusStore
+
+    embedder = EmbeddingClient(
+        base_url=settings.embed_base_url,
+        api_key=settings.embed_api_key,
+        model=settings.embed_model,
+    )
+    store = MilvusStore(uri=settings.milvus_uri)
+    return search_knowledge(
+        query,
+        embedder,
+        store,
+        top_k=settings.rag_top_k,
+        min_score=settings.rag_min_score,
+    )
+
+
+def build_tools(
+    session_factory,
+    conversation_id: int,
+    retriever: Callable[[str], list[dict]] | None = None,
+):
     """Bind persistence and trusted conversation identity to model-visible tools."""
 
     @tool(args_schema=OrderArgs)
@@ -52,14 +79,11 @@ def build_tools(session_factory, conversation_id: int):
 
     @tool(args_schema=FaqArgs)
     def query_faq(keyword: str) -> str:
-        """按问题文字中的字面关键词搜索平台 FAQ；无命中时返回空结果。"""
-        from app.repositories.faq import search_faq
-
-        with session_factory() as session:
-            rows = search_faq(session, keyword)
-            return json.dumps({"keyword": keyword, "matches": [
-                {"question": row.question, "answer": row.answer, "category": row.category}
-                for row in rows]}, ensure_ascii=False)
+        """按问题语义检索平台知识库；无命中时返回空结果。"""
+        rows = (retriever or _production_retriever)(keyword)
+        return json.dumps({"keyword": keyword, "matches": [
+            {"question": row["question"], "answer": row["answer"], "category": row["category"]}
+            for row in rows]}, ensure_ascii=False)
 
     @tool(args_schema=TicketArgs)
     def create_ticket(description: str, ticket_type: Literal["售后", "投诉", "咨询"]) -> str:
