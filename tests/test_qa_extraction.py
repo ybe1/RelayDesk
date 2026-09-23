@@ -124,7 +124,7 @@ def test_extraction_redacts_phone_email_name_and_address_before_model_input(sess
     with session_factory.begin() as session:
         session.add_all([
             Conversation(id=3, user_id="three"),
-            Message(conversation_id=3, role="user", content="张三，手机号 13800138000，邮箱 zhang@example.com，地址北京市朝阳区望京路 1 号，怎么退货？"),
+            Message(conversation_id=3, role="user", content="姓名：张三，手机号 13800138000，邮箱 zhang@example.com，地址北京市朝阳区望京路 1 号，怎么退货？"),
             Message(conversation_id=3, role="assistant", content="请在订单页申请退货，客服会联系您。"),
         ])
     model = FakeStructuredModel([QASet(items=[])])
@@ -137,6 +137,24 @@ def test_extraction_redacts_phone_email_name_and_address_before_model_input(sess
     assert "张三" not in transcript
     assert "北京市朝阳区望京路 1 号" not in transcript
     assert "怎么退货？" in transcript
+
+
+@pytest.mark.parametrize("topic", ["退货政策", "运费规则", "售后流程"])
+def test_extraction_preserves_unlabeled_topic_at_start_of_message(topic, session_factory):
+    from app.knowledge.extraction import QASet, extract_batches
+
+    with session_factory.begin() as session:
+        session.add_all([
+            Conversation(id=3, user_id="three"),
+            Message(conversation_id=3, role="user", content=f"{topic}，请说明一下。"),
+            Message(conversation_id=3, role="assistant", content="这是通用说明。"),
+        ])
+    model = FakeStructuredModel([QASet(items=[])])
+
+    extract_batches(session_factory, model)
+
+    transcript = "\n".join(message.content for message in model.inputs[0])
+    assert topic in transcript
 
 
 def test_extraction_uses_only_the_final_eligible_assistant_answer_per_conversation(session_factory):

@@ -32,7 +32,7 @@ _PRIVATE_CASE_FACT = re.compile(
 _PHONE_NUMBER = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _ADDRESS = re.compile(r"(?:收货地址|地址)\s*[:：]?\s*[^，,。；;]+")
-_NAMED_PERSON = re.compile(r"(?:(?:姓名|联系人)\s*[:：]?\s*|^)[\u4e00-\u9fff]{2,4}(?=[，,])")
+_NAMED_PERSON = re.compile(r"(?:姓名|联系人)\s*[:：]?\s*[\u4e00-\u9fff]{2,4}")
 
 
 def _redact_personal_data(content: str) -> str:
