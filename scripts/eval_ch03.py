@@ -170,13 +170,16 @@ def _milvus_probe() -> None:
     MilvusStore(uri=settings.milvus_uri).count()
 
 
-def _embedding_probe() -> None:
+def _embedding_probe() -> int:
     from app.knowledge.embedding import EmbeddingClient
-    EmbeddingClient(
+    vectors = EmbeddingClient(
         base_url=settings.embed_base_url,
         api_key=settings.embed_api_key,
         model=settings.embed_model,
     ).embed(["Ch03 evaluator connectivity probe"])
+    if len(vectors) != 1:
+        raise ValueError("embedding probe returned an unexpected vector count")
+    return len(vectors[0])
 
 
 def _retrieval_gates(
@@ -184,12 +187,13 @@ def _retrieval_gates(
     compose_healthy: Callable[[], bool] = _compose_services_healthy,
     mysql_probe: Callable[[], None] = _mysql_probe,
     milvus_probe: Callable[[], None] = _milvus_probe,
-    embedding_probe: Callable[[], None] = _embedding_probe,
-) -> tuple[dict[str, bool], dict[str, str]]:
+    embedding_probe: Callable[[], int] = _embedding_probe,
+) -> tuple[dict[str, Any], dict[str, str]]:
     gates = {
         "docker_compose": False,
         "embed_api_key": bool(settings.embed_api_key),
         "embedding": False,
+        "embedding_dimension": None,
         "chat_api_key": bool(settings.chat_api_key),
         "mysql": False,
         "milvus": False,
@@ -202,7 +206,7 @@ def _retrieval_gates(
             errors[name] = type(error).__name__
     if gates["embed_api_key"]:
         try:
-            embedding_probe()
+            gates["embedding_dimension"] = embedding_probe()
             gates["embedding"] = True
         except Exception as error:
             errors["embedding"] = type(error).__name__

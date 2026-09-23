@@ -112,7 +112,7 @@ def test_compose_health_decodes_docker_json_as_utf8():
 def test_retrieval_gates_report_embedding_failure_without_raising(monkeypatch):
     import scripts.eval_ch03 as evaluator
 
-    monkeypatch.setattr(evaluator, "settings", SimpleNamespace(embed_api_key="key", chat_api_key="", embed_base_url="x", embed_model="m"))
+    monkeypatch.setattr(evaluator, "settings", SimpleNamespace(embed_api_key="supersecret", chat_api_key="", embed_base_url="x", embed_model="m"))
     gates, errors = evaluator._retrieval_gates(
         compose_healthy=lambda: True,
         mysql_probe=lambda: None,
@@ -122,6 +122,23 @@ def test_retrieval_gates_report_embedding_failure_without_raising(monkeypatch):
 
     assert gates["embedding"] is False
     assert errors == {"embedding": "RuntimeError"}
+
+
+def test_retrieval_gate_reports_only_the_validated_embedding_dimension(monkeypatch):
+    import scripts.eval_ch03 as evaluator
+
+    monkeypatch.setattr(evaluator, "settings", SimpleNamespace(embed_api_key="supersecret", chat_api_key="", embed_base_url="x", embed_model="m"))
+    gates, errors = evaluator._retrieval_gates(
+        compose_healthy=lambda: True,
+        mysql_probe=lambda: None,
+        milvus_probe=lambda: None,
+        embedding_probe=lambda: 1024,
+    )
+
+    assert gates["embedding"] is True
+    assert gates["embedding_dimension"] == 1024
+    assert "supersecret" not in json.dumps(gates)
+    assert errors == {}
 
 
 def test_mining_gates_do_not_probe_retrieval_dependencies(monkeypatch):
