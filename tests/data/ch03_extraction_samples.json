@@ -1,0 +1,47 @@
+[
+  {
+    "id": "general-return",
+    "label": "reusable",
+    "conversation": [
+      ["user", "退货期限是多久？"],
+      ["assistant", "商品支持七天无理由退货，保持商品完好后可申请。"]
+    ],
+    "expected": [{"question": "退货期限是多久？", "answer": "商品支持七天无理由退货，保持商品完好后可申请。"}]
+  },
+  {
+    "id": "duplicate-wording",
+    "label": "duplicate",
+    "conversation": [
+      ["user", "运费怎么算？"],
+      ["assistant", "满 99 元包邮，不足时收取 8 元运费。"]
+    ],
+    "expected": [{"question": "运费怎么算？", "answer": "满 99 元包邮，不足时收取 8 元运费。"}]
+  },
+  {
+    "id": "conflicting-answer",
+    "label": "conflict-retained",
+    "conversation": [
+      ["user", "运费怎么算？"],
+      ["assistant", "满 199 元包邮，不足时收取 8 元运费。"]
+    ],
+    "expected": [{"question": "运费怎么算？", "answer": "满 199 元包邮，不足时收取 8 元运费。"}]
+  },
+  {
+    "id": "private-order-logistics",
+    "label": "exclude-private",
+    "conversation": [
+      ["user", "我的订单 A100 到哪了？"],
+      ["assistant", "订单 A100 的物流单号为 SF123456，今天已到上海分拨中心。"]
+    ],
+    "expected": []
+  },
+  {
+    "id": "no-qa",
+    "label": "exclude-no-qa",
+    "conversation": [
+      ["user", "谢谢。"],
+      ["assistant", "不客气，祝您生活愉快。"]
+    ],
+    "expected": []
+  }
+]

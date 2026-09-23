@@ -22,6 +22,9 @@ from app.knowledge.sources import SOURCE_TYPES, read_demo_source
 EmbeddingClient = None
 MilvusStore = None
 settings = None
+get_chat_model = None
+extract_batches = None
+deduplicate_staging = None
 
 
 _COUNTERS = ("imported", "skipped", "indexed", "pending", "failed")
@@ -94,9 +97,27 @@ def vectorize(
     return _result(**index_pending(session_factory, embedder, store, after_upsert=hook))
 
 
-def mine() -> dict[str, int]:
-    """Reserve the stable CLI command until Task 5 supplies extraction."""
-    raise RuntimeError("kb mine is not available until Task 5")
+def mine(*, session_factory: Callable | None = None, model=None) -> dict[str, int]:
+    """Extract reusable QA pairs, then promote globally unique pairs to pending."""
+    session_factory = _session_factory_or_default(session_factory)
+    chat_model_factory = get_chat_model
+    extractor = extract_batches
+    deduplicator = deduplicate_staging
+    if chat_model_factory is None:
+        from app.core.llm import get_chat_model as chat_model_factory
+    if extractor is None:
+        from app.knowledge.extraction import extract_batches as extractor
+    if deduplicator is None:
+        from app.knowledge.dedup import deduplicate_staging as deduplicator
+    if model is None:
+        model = chat_model_factory(disable_thinking=True)
+    extraction = extractor(session_factory, model)
+    deduplication = deduplicator(session_factory)
+    return _result(
+        imported=deduplication["imported"],
+        skipped=extraction["skipped"] + deduplication["discarded"],
+        pending=_pending_count(session_factory),
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -139,7 +160,7 @@ def main(
             if database_engine is None:
                 from app.db.session import engine as database_engine
             with lock(database_engine):
-                outcome = mine()
+                outcome = mine(session_factory=session_factory)
         else:
             raise RuntimeError(f"kb {args.command} is not available until Task 5")
     except Exception as error:

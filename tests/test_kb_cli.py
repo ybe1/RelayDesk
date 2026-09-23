@@ -104,3 +104,30 @@ def test_vectorize_failure_reports_the_pending_rows_that_remain(monkeypatch, cap
 
     assert kb.main(["vectorize"], lock=lock, database_engine=object(), session_factory=session_factory) == 1
     assert json.loads(capsys.readouterr().out)["pending"] == 2
+
+
+def test_mine_holds_writer_lock_and_runs_extraction_before_global_deduplication(monkeypatch):
+    from scripts import kb
+
+    events = []
+
+    @contextmanager
+    def lock(_engine):
+        events.append("locked")
+        yield
+        events.append("released")
+
+    monkeypatch.setattr(kb, "get_chat_model", lambda *, disable_thinking: events.append(("model", disable_thinking)) or object())
+    monkeypatch.setattr(kb, "extract_batches", lambda factory, model: events.append(("extract", factory, model)) or {
+        "batches": 2, "extracted": 3, "skipped": 1,
+    })
+    monkeypatch.setattr(kb, "deduplicate_staging", lambda factory: events.append(("dedup", factory)) or {
+        "kept": 2, "discarded": 1, "imported": 2,
+    })
+    monkeypatch.setattr(kb, "_pending_count", lambda factory: 2)
+
+    factory = object()
+    assert kb.main(["mine"], lock=lock, database_engine=object(), session_factory=factory) == 0
+    assert [event if isinstance(event, str) else event[0] for event in events] == [
+        "locked", "model", "extract", "dedup", "released"
+    ]
