@@ -2,6 +2,12 @@
 
 FastAPI + LangChain,模型上游直连(DeepSeek 官方,OpenAI 协议)。
 
+## Ch04：并行混合检索索引
+
+运行 `uv run python -m scripts.kb ch04-rebuild`（或 `make kb-ch04-rebuild`）可在单写者锁内读取全部 `knowledge_chunks`（含 pending），按原 SQL ID 幂等写入独立的 `knowledge_ch04`。新集合使用 1024 维 COSINE dense 索引、中文 analyzer 与服务端 BM25 sparse 索引。输出包含 `indexed`、`sql_count`、`milvus_count`、`ids_match`、`failed`；只有数量与 ID 集合一致才成功。中断后重新运行同一命令即可重复写入同一 ID。
+
+该命令保留 Ch03 的 `vectorize_status`、`vector_id` 和旧 `knowledge` 集合，在线默认集合仍为 `knowledge`。现有 Ch04 schema 或索引不兼容时会拒绝运行；远端多余 ID 会导致 parity 检查失败，不会自动删除数据。文本字段在嵌入前和 upsert 前按 UTF-8 字节上限校验，错误会带 SQL chunk ID。
+
 ## 启动
 
     cp .env.example .env   # 填入 CHAT_API_KEY

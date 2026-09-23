@@ -21,6 +21,8 @@ from app.knowledge.sources import SOURCE_TYPES, read_demo_source
 # stay inside vectorize so preview/build do not require the Milvus package.
 EmbeddingClient = None
 MilvusStore = None
+HybridMilvusStore = None
+rebuild_ch04 = None
 settings = None
 get_chat_model = None
 extract_batches = None
@@ -103,6 +105,26 @@ def vectorize(
     return _result(**index_pending(session_factory, embedder, store, after_upsert=hook))
 
 
+def ch04_rebuild(*, session_factory: Callable | None = None) -> dict:
+    session_factory = _session_factory_or_default(session_factory)
+    runtime_settings = settings
+    if runtime_settings is None:
+        from app.config import settings as runtime_settings
+    store_class = HybridMilvusStore
+    embedding_class = EmbeddingClient
+    rebuild = rebuild_ch04
+    if store_class is None:
+        from app.knowledge.hybrid_store import HybridMilvusStore as store_class
+    if embedding_class is None:
+        from app.knowledge.embedding import EmbeddingClient as embedding_class
+    if rebuild is None:
+        from app.knowledge.ch04_indexer import rebuild_ch04 as rebuild
+    store = store_class(uri=runtime_settings.milvus_uri)
+    embedder = embedding_class(base_url=runtime_settings.embed_base_url,
+                               api_key=runtime_settings.embed_api_key, model=runtime_settings.embed_model)
+    return rebuild(session_factory, embedder, store)
+
+
 def mine(*, session_factory: Callable | None = None, model=None) -> dict[str, int]:
     """Extract reusable QA pairs, then promote globally unique pairs to pending."""
     session_factory = _session_factory_or_default(session_factory)
@@ -174,6 +196,7 @@ def _parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="command", required=True)
     subcommands.add_parser("preview")
     subcommands.add_parser("build")
+    subcommands.add_parser("ch04-rebuild")
     vector_parser = subcommands.add_parser("vectorize")
     vector_parser.add_argument("--crash-after-upsert", action="store_true", help=argparse.SUPPRESS)
     subcommands.add_parser("mine")
@@ -200,6 +223,11 @@ def main(
                 from app.db.session import engine as database_engine
             with lock(database_engine):
                 outcome = build(session_factory=session_factory, source_root=source_root)
+        elif args.command == "ch04-rebuild":
+            if database_engine is None:
+                from app.db.session import engine as database_engine
+            with lock(database_engine):
+                outcome = ch04_rebuild(session_factory=session_factory)
         elif args.command == "vectorize":
             if database_engine is None:
                 from app.db.session import engine as database_engine

@@ -8,6 +8,26 @@ from sqlalchemy.orm import sessionmaker
 from app.db.models import KnowledgeChunk, QAExtractionStaging
 
 
+def test_ch04_rebuild_holds_writer_lock_and_prints_parity(monkeypatch, capsys):
+    from scripts import kb
+    events = []
+    @contextmanager
+    def lock(_):
+        events.append('locked')
+        yield
+        events.append('released')
+    monkeypatch.setattr(kb, 'HybridMilvusStore', lambda **_: object(), raising=False)
+    monkeypatch.setattr(kb, 'EmbeddingClient', lambda **_: object())
+    monkeypatch.setattr(kb, 'settings', SimpleNamespace(milvus_uri='test', embed_base_url='test', embed_api_key='test', embed_model='test'))
+    def rebuild(*args):
+        events.append('rebuild')
+        return {'indexed': 2, 'sql_count': 2, 'milvus_count': 2, 'ids_match': True, 'failed': 0}
+    monkeypatch.setattr(kb, 'rebuild_ch04', rebuild, raising=False)
+    assert kb.main(['ch04-rebuild'], lock=lock, database_engine=object(), session_factory=object()) == 0
+    assert events == ['locked', 'rebuild', 'released']
+    assert json.loads(capsys.readouterr().out)['ids_match'] is True
+
+
 def test_preview_is_read_only_and_reports_all_counters(monkeypatch, capsys):
     from scripts import kb
 
