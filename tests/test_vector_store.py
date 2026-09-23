@@ -25,6 +25,7 @@ class FakeMilvus:
         self.index_params = None
         self.upserted = []
         self.search_args = None
+        self.query_args = None
         self.loaded = []
         self.indexes = indexes if indexes is not None else ["vector_index"]
         self.index_descriptions = index_descriptions or {
@@ -71,6 +72,10 @@ class FakeMilvus:
         return [[
             {"id": 7, "distance": 0.88, "entity": {"question": "退货", "answer": "七天", "category": "售后"}}
         ]]
+
+    def query(self, **kwargs):
+        self.query_args = kwargs
+        return [{"count(*)": 2}]
 
     def get_collection_stats(self, collection_name):
         assert collection_name == "knowledge"
@@ -174,7 +179,16 @@ def test_search_returns_all_online_read_fields_and_requests_them_from_milvus():
     assert hits == [{"id": 7, "score": 0.88, "question": "退货", "answer": "七天", "category": "售后"}]
 
 
-def test_count_uses_collection_stats_row_count():
+def test_count_uses_exact_scalar_aggregation_when_growing_segments_leave_stats_at_zero():
     from app.knowledge.vector_store import MilvusStore
 
-    assert MilvusStore(client=FakeMilvus()).count() == 2
+    client = FakeMilvus()
+    client.get_collection_stats = lambda _: {"row_count": 0}
+
+    assert MilvusStore(client=client).count() == 2
+    assert client.query_args == {
+        "collection_name": "knowledge",
+        "filter": "",
+        "output_fields": ["count(*)"],
+        "consistency_level": "Strong",
+    }

@@ -74,7 +74,18 @@ class MilvusStore:
         return [self._hit_to_dict(hit) for hit in batches[0]]
 
     def count(self) -> int:
-        return int(self.client.get_collection_stats(COLLECTION_NAME).get("row_count", 0))
+        rows = self.client.query(
+            collection_name=COLLECTION_NAME,
+            filter="",
+            output_fields=["count(*)"],
+            consistency_level="Strong",
+        )
+        if not rows:
+            return 0
+        try:
+            return int(rows[0]["count(*)"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise RuntimeError("Milvus count aggregation returned an invalid response") from error
 
     def clear_collection(self, collection_name: str) -> None:
         """Delete rows only from the fixed Ch03 read model collection."""
