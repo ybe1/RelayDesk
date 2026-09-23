@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 
@@ -107,6 +108,38 @@ def test_compose_health_decodes_docker_json_as_utf8():
     assert _compose_services_healthy(run=run) is False
     assert received["encoding"] == "utf-8"
     assert received["errors"] == "replace"
+
+
+def test_docker_cli_discovery_falls_back_to_windows_desktop_location():
+    from scripts.eval_ch03 import _find_docker_cli
+
+    candidate = Path(r"C:\Users\DELL\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe")
+    found = _find_docker_cli(
+        which=lambda _name: None,
+        environ={"LOCALAPPDATA": r"C:\Users\DELL\AppData\Local", "ProgramFiles": r"C:\Program Files"},
+        is_file=lambda path: path == candidate,
+    )
+
+    assert found == str(candidate)
+
+
+def test_docker_cli_discovery_returns_none_when_path_and_candidates_are_absent():
+    from scripts.eval_ch03 import _find_docker_cli
+
+    assert _find_docker_cli(which=lambda _name: None, environ={}, is_file=lambda _path: False) is None
+
+
+def test_compose_health_accepts_compose_v5_json_lines():
+    from scripts.eval_ch03 import _compose_services_healthy
+
+    rows = [
+        {"Service": "etcd", "State": "running", "Health": "healthy"},
+        {"Service": "minio", "State": "running", "Health": "healthy"},
+        {"Service": "standalone", "State": "running", "Health": "healthy"},
+    ]
+    completed = SimpleNamespace(returncode=0, stdout="\n".join(json.dumps(row) for row in rows))
+
+    assert _compose_services_healthy(run=lambda *_args, **_kwargs: completed, docker_cli="docker") is True
 
 
 def test_retrieval_gates_report_embedding_failure_without_raising(monkeypatch):

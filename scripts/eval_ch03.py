@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -136,11 +138,52 @@ def _load_samples(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-def _compose_services_healthy(run: Callable = subprocess.run) -> bool:
+def _find_docker_cli(
+    *,
+    which: Callable[[str], str | None] = shutil.which,
+    environ: dict[str, str] | None = None,
+    is_file: Callable[[Path], bool] | None = None,
+) -> str | None:
+    """Find Docker without depending on a Windows PATH mutation."""
+    located = which("docker")
+    if located:
+        return located
+    environ = os.environ if environ is None else environ
+    is_file = Path.is_file if is_file is None else is_file
+    candidates = [
+        Path(environ["LOCALAPPDATA"]) / "Programs" / "DockerDesktop" / "resources" / "bin" / "docker.exe"
+        for name in ("LOCALAPPDATA",) if environ.get(name)
+    ] + [
+        Path(environ["ProgramFiles"]) / "Docker" / "Docker" / "resources" / "bin" / "docker.exe"
+        for name in ("ProgramFiles",) if environ.get(name)
+    ]
+    for candidate in candidates:
+        if is_file(candidate):
+            return str(candidate)
+    return None
+
+
+def _compose_rows(stdout: str) -> list[dict] | None:
+    """Accept both Compose's JSON array and v5 newline-delimited JSON records."""
+    try:
+        parsed = json.loads(stdout)
+        rows = parsed if isinstance(parsed, list) else [parsed]
+    except (TypeError, json.JSONDecodeError):
+        try:
+            rows = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+        except (AttributeError, json.JSONDecodeError):
+            return None
+    return rows if all(isinstance(row, dict) for row in rows) else None
+
+
+def _compose_services_healthy(run: Callable = subprocess.run, docker_cli: str | None = None) -> bool:
     """Require every standalone dependency to be both running and healthy."""
+    docker_cli = docker_cli or _find_docker_cli()
+    if docker_cli is None:
+        return False
     try:
         completed = run(
-            ["docker", "compose", "-f", "compose.yaml", "-f", "compose.milvus.yaml", "ps", "--format", "json"],
+            [docker_cli, "compose", "-f", "compose.yaml", "-f", "compose.milvus.yaml", "ps", "--format", "json"],
             cwd=PROJECT_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
             check=False, timeout=15, shell=False,
         )
@@ -148,10 +191,8 @@ def _compose_services_healthy(run: Callable = subprocess.run) -> bool:
         return False
     if completed.returncode != 0:
         return False
-    try:
-        parsed = json.loads(completed.stdout)
-        rows = parsed if isinstance(parsed, list) else [parsed]
-    except (TypeError, json.JSONDecodeError):
+    rows = _compose_rows(completed.stdout)
+    if rows is None:
         return False
     health = {
         row.get("Service"): (str(row.get("State", "")).lower(), str(row.get("Health", "")).lower())
