@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -87,3 +88,54 @@ def test_evaluation_gate_requires_all_category_and_safety_cases():
     assert summarize(rows + [{"kind": "query", "passed": False, "category_ok": False, "safety": False}])["passed"] is False
     assert summarize(rows + [{"kind": "evidence", "passed": False, "safety": True}])["passed"] is False
     assert summarize(rows + [{"kind": "evidence", "passed": False, "safety": False}])["passed"] is True
+
+
+def _query_sample(sample_id):
+    corpus = json.loads((Path(__file__).parent / "data/ch04_query_samples.json").read_text(encoding="utf-8"))
+    return next(sample for sample in corpus["samples"] if sample["id"] == sample_id)
+
+
+@pytest.mark.parametrize("sample_id,normalized,search", [
+    ("q05-unopened", "没拆封的猫粮能退不？", "没拆封的猫粮能退不 退货 退款"),
+    ("q22-colloquial-return", "这包猫粮不想要了，能退吗？", "这包猫粮不想要了，能退吗？退货 退款"),
+])
+def test_saved_live_return_expansion_errors_are_rejected(sample_id, normalized, search):
+    """Known q05/q22 failures from live evaluation 2 must not score as correct."""
+    from scripts.eval_ch04_prompts import assess_query
+
+    errors = assess_query(_query_sample(sample_id), {
+        "normalized_query": normalized, "search_query": search, "category": "退货",
+    })
+    assert "forbidden_content" in errors
+
+
+@pytest.mark.parametrize("sample_id", ["q05-unopened", "q22-colloquial-return"])
+@pytest.mark.parametrize("field", ["normalized_query", "search_query"])
+@pytest.mark.parametrize("expansion", ["退款", "换货"])
+def test_return_samples_reject_nonequivalent_expansion_in_either_field(sample_id, field, expansion):
+    from scripts.eval_ch04_prompts import assess_query
+
+    sample = _query_sample(sample_id)
+    actual = {"normalized_query": sample["query"], "search_query": sample["query"] + " 退货",
+              "category": "退货"}
+    assert assess_query(sample, actual) == []
+    actual[field] += " " + expansion
+    assert "forbidden_content" in assess_query(sample, actual)
+
+
+@pytest.mark.parametrize("sample_id,synonym", [
+    ("q03-delivery", "配送时效 送达时间"),
+    ("q05-unopened", "退货"),
+    ("q09-repair", "修理"),
+    ("q10-warranty", "质保"),
+    ("q22-colloquial-return", "退货"),
+])
+def test_representative_samples_allow_synonyms_only_in_search(sample_id, synonym):
+    from scripts.eval_ch04_prompts import assess_query
+
+    sample = _query_sample(sample_id)
+    actual = {"normalized_query": sample["query"], "search_query": sample["query"] + " " + synonym,
+              "category": sample["category"]}
+    assert assess_query(sample, actual) == []
+    actual["normalized_query"] += " " + synonym
+    assert "normalized_synonym_leak" in assess_query(sample, actual)
