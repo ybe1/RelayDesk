@@ -23,7 +23,7 @@ def get_chat_service() -> ChatService:
     return ChatService(
         model,
         DatabaseChatStore(SessionLocal),
-        lambda conversation_id: build_tools(SessionLocal, conversation_id),
+        lambda conversation_id, *, raw_question=None: build_tools(SessionLocal, conversation_id, raw_question=raw_question),
         ToolExecutor,
     )
 

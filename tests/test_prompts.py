@@ -24,3 +24,9 @@ def test_extract_prompt_renders_text():
     msgs = EXTRACT_PROMPT.format_messages(text="订单 MH1 坏了要退款")
     assert msgs[0].type == "system"
     assert "订单 MH1 坏了要退款" in msgs[-1].content
+
+
+def test_faq_prompt_requires_evidence_citations_refusal_and_no_arrival_promises():
+    system = CUSTOMER_SERVICE_PROMPT.format_messages(history=[])[0].content
+    for rule in ("sufficient", "evidence", "[n]", "reason", "到账时间", "不得编造引用"):
+        assert rule in system

@@ -7,6 +7,7 @@ MySQL after a Milvus hit only to cite the chunk's source document.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import shutil
@@ -17,7 +18,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import create_engine, select, text
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.models import KnowledgeChunk
@@ -38,19 +40,31 @@ def _source_name(section_path: str | None) -> str | None:
 
 
 def _tool_contract(question: str, hits: list[dict]) -> bool:
-    """Exercise the public FAQ tool shape without allowing a database read."""
+    """Exercise legacy matches via async FAQ; isolate Ch04 refusal writes locally."""
     from app.tools.business import build_tools
 
     def forbidden_session():
         raise AssertionError("evaluation FAQ tool opened MySQL")
 
-    tool = {item.name: item for item in build_tools(forbidden_session, 1, retriever=lambda _: hits)}["query_faq"]
-    payload = json.loads(tool.invoke({"keyword": question}))
+    # The Ch03 score still measures dense matches only. A no-hit FAQ now writes
+    # a refusal; give that side effect an ephemeral store, never the live pool.
+    engine = create_engine("sqlite:///:memory:") if not hits else None
+    try:
+        factory = forbidden_session
+        if engine is not None:
+            with engine.begin() as connection:
+                connection.execute(text("CREATE TABLE low_confidence_questions (id INTEGER PRIMARY KEY, conversation_id BIGINT, raw_question TEXT NOT NULL, source TEXT NOT NULL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"))
+            factory = lambda: Session(engine)
+        tool = {item.name: item for item in build_tools(factory, 1, retriever=lambda _: hits)}["query_faq"]
+        payload = json.loads(asyncio.run(tool.ainvoke({"keyword": question})))
+    finally:
+        if engine is not None:
+            engine.dispose()
     expected_matches = [
         {"question": hit["question"], "answer": hit["answer"], "category": hit["category"]}
         for hit in hits
     ]
-    return payload == {"keyword": question, "matches": expected_matches}
+    return payload.get("keyword") == question and payload.get("matches") == expected_matches
 
 
 def assess_retrieval_sample(

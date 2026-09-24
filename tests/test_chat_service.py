@@ -145,3 +145,51 @@ def test_disconnect_after_success_status_keeps_completed_tool_result():
     assert len(results) == 1
     assert results[0].tool_call_id == "call-5"
     assert "ok" in results[0].content
+
+import json
+import pytest
+
+
+@pytest.mark.parametrize("outer", [None, [], "bad json", {"result": "not json"}, {"result": {"sufficient": False, "citations": [{"n": 1}]}}, {"error": {}, "result": {"sufficient": True, "citations": [{"n": 1}]}}])
+def test_malformed_or_unsuccessful_tool_payload_never_emits_citations(outer):
+    from app.services.chat import ChatService
+    selection = AIMessage(content="", tool_calls=[{"name": "query_faq", "args": {"keyword": "退货"}, "id": "c"}])
+    class Executor:
+        async def execute(self, call):
+            return ToolMessage(content=json.dumps(outer), tool_call_id="c")
+    events = collect(ChatService(Model(selection), MemoryStore(), lambda _: [], lambda _: Executor()), ChatRequest(user_id="u", message="退货"))
+    assert not any(kind == "citations" for kind, _ in events)
+    assert events[-1] == ("done", None)
+
+
+def test_citations_precede_delta_and_match_persisted_tool_message():
+    from app.services.chat import ChatService
+    from app.services.tool_executor import ToolExecutor
+    from app.tools.business import build_tools
+    selection = AIMessage(content="", tool_calls=[{"name": "query_faq", "args": {"keyword": "退货"}, "id": "c"}])
+    store = MemoryStore()
+    service = ChatService(Model(selection), store, lambda cid: build_tools(lambda: None, cid, lambda _: [{"id": 17, "question": "退货", "answer": "七天内", "category": "售后"}]), ToolExecutor)
+    events = collect(service, ChatRequest(user_id="u", message="退货"))
+    kinds = [kind for kind, _ in events]
+    assert kinds.index("citations") < kinds.index("delta")
+    citations = next(data["citations"] for kind, data in events if kind == "citations")
+    message = next(m for m in store.rows if isinstance(m, ToolMessage))
+    assert citations == json.loads(json.loads(message.content)["result"])["citations"]
+    assert citations[0]["chunk_id"] == 17
+
+
+def test_chat_supplies_raw_question_without_changing_model_arguments():
+    from app.services.chat import ChatService
+    from app.services.tool_executor import ToolExecutor
+    from app.tools.business import build_tools
+    raw = "  我真急！邮费到底多少钱？  "
+    store = MemoryStore()
+    selection = AIMessage(content="", tool_calls=[{"name": "query_faq", "args": {"keyword": "邮费"}, "id": "c"}])
+    received = []
+    def factory(cid, *, raw_question=None):
+        received.append(raw_question)
+        return build_tools(lambda: None, cid, lambda _: [{"id": 17, "question": "邮费", "answer": "满99包邮", "category": "配送"}])
+    events = collect(ChatService(Model(selection), store, factory, ToolExecutor), ChatRequest(user_id="u", message=raw))
+    assert events[-1] == ("done", None)
+    assert received == [raw]
+    assert store.rows[1].tool_calls[0]["args"] == {"keyword": "邮费"}

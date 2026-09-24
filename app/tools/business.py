@@ -1,6 +1,8 @@
 """Single-call customer service tools."""
 
 import json
+import asyncio
+import inspect
 import random
 from collections.abc import Callable
 from typing import Literal
@@ -26,32 +28,61 @@ class TicketArgs(BaseModel):
     ticket_type: Literal["售后", "投诉", "咨询"] = Field(description="工单类型")
 
 
-def _production_retriever(query: str) -> list[dict]:
-    """Create dense retrieval dependencies only when the FAQ tool is invoked."""
-    from app.config import settings
-    from app.knowledge.embedding import EmbeddingClient
-    from app.knowledge.retrieval import search_knowledge
-    from app.knowledge.vector_store import MilvusStore
+async def _production_retriever(query: str):
+    """Create and close hybrid retrieval dependencies for this invocation."""
+    from app.knowledge.retrieval import search_knowledge_ch04
 
-    embedder = EmbeddingClient(
-        base_url=settings.embed_base_url,
-        api_key=settings.embed_api_key,
-        model=settings.embed_model,
-    )
-    store = MilvusStore(uri=settings.milvus_uri)
-    return search_knowledge(
-        query,
-        embedder,
-        store,
-        top_k=settings.rag_top_k,
-        min_score=settings.rag_min_score,
-    )
+    return await search_knowledge_ch04(query)
+
+
+async def _production_checker(query: str, hits: list[dict]):
+    from app.core.llm import get_chat_model
+    from app.knowledge.evidence_check import check_evidence
+
+    return await check_evidence(get_chat_model(disable_thinking=True), query, hits)
+
+
+async def _call(function, *args):
+    # Sync legacy retrievers may perform I/O; keep them off the event loop.
+    value = await function(*args) if inspect.iscoroutinefunction(function) else await asyncio.to_thread(function, *args)
+    return await value if inspect.isawaitable(value) else value
+
+
+def _bounded_faq_payload(payload: dict, max_bytes: int = 60000) -> str:
+    """Bound the actual nested ToolMessage JSON, including escaping overhead."""
+    def serialize():
+        inner = json.dumps(payload, ensure_ascii=False)
+        return inner, len(json.dumps({"result": inner}, ensure_ascii=False).encode("utf-8"))
+
+    def shorten(value, limit):
+        if isinstance(value, str):
+            return value[:limit]  # Python slices at code point boundaries.
+        if isinstance(value, list):
+            return [shorten(item, limit) for item in value]
+        if isinstance(value, dict):
+            return {key: shorten(item, limit) for key, item in value.items()}
+        return value
+
+    inner, size = serialize()
+    limit = 8192
+    while size > max_bytes:
+        if limit < 1:
+            raise ValueError("FAQ metadata exceeds ToolMessage byte budget")
+        shortened = shorten(payload, limit)
+        payload.clear()
+        payload.update(shortened)
+        inner, size = serialize()
+        limit //= 2
+    return inner
 
 
 def build_tools(
     session_factory,
     conversation_id: int,
-    retriever: Callable[[str], list[dict]] | None = None,
+    retriever: Callable | None = None,
+    evidence_checker: Callable | None = None,
+    *,
+    raw_question: str | None = None,
 ):
     """Bind persistence and trusted conversation identity to model-visible tools."""
 
@@ -78,12 +109,71 @@ def build_tools(
                           ensure_ascii=False)
 
     @tool(args_schema=FaqArgs)
-    def query_faq(keyword: str) -> str:
-        """按问题语义检索平台知识库；无命中时返回空结果。"""
-        rows = (retriever or _production_retriever)(keyword)
-        return json.dumps({"keyword": keyword, "matches": [
-            {"question": row["question"], "answer": row["answer"], "category": row["category"]}
-            for row in rows]}, ensure_ascii=False)
+    async def query_faq(keyword: str) -> str:
+        """检索平台规则并核验证据；仅依证据回答，证据不足时拒答，不承诺到账时间。"""
+        from app.knowledge.evidence_check import EvidenceDecision
+        from app.knowledge.query_understanding import QueryUnderstanding
+        from app.knowledge.retrieval import RetrievalResult
+        from app.repositories.low_confidence import insert_low_confidence
+
+        result = await _call(retriever or _production_retriever, keyword)
+        legacy = isinstance(result, list)
+        if legacy:
+            result = RetrievalResult(
+                QueryUnderstanding(normalized_query=keyword, search_query=keyword),
+                result, bool(result), "retrieval_ok" if result else "no_hits",
+            )
+        if not isinstance(result, RetrievalResult):
+            raise TypeError("retriever must return RetrievalResult or list[dict]")
+
+        evidence, citations = [], []
+        for row in result.hits:
+            chunk_id = row.get("id")
+            n = len(citations) + 1 if chunk_id is not None else None
+            item = {"n": n, "chunk_id": chunk_id, "section_path": row.get("section_path"),
+                    "question": row["question"], "answer": row["answer"], "category": row.get("category", "")}
+            evidence.append(item)
+            if chunk_id is not None:
+                citations.append({key: item[key] for key in ("n", "chunk_id", "section_path", "question")} | {
+                    "answer_excerpt": row["answer"][:512],
+                })
+        payload = {"keyword": keyword, "sufficient": result.sufficient, "reason": result.reason,
+                   "evidence": evidence, "citations": citations}
+        if legacy:
+            payload["matches"] = [{key: row[key] for key in ("question", "answer", "category")} for row in result.hits]
+        # Judge the same bounded evidence that the final model will receive.
+        # Reserve room for the checker reason (2048 code points, nested JSON escaping).
+        _bounded_faq_payload(payload, max_bytes=44000)
+        source = "retrieval_low_conf"
+        if result.sufficient:
+            if evidence_checker is not None or not legacy:
+                checked_hits = [{"id": item["chunk_id"], "question": item["question"],
+                                 "answer": item["answer"], "category": item["category"]}
+                                for item in payload["evidence"]]
+                decision = await _call(evidence_checker or _production_checker,
+                                       raw_question if raw_question is not None else keyword, checked_hits)
+                decision = EvidenceDecision.model_validate(decision)
+                payload["sufficient"] = decision.useful
+                payload["reason"] = decision.reason[:2048]
+                source = "self_check"
+        if not payload["sufficient"]:
+            payload["evidence"], payload["citations"] = [], []
+            if legacy:
+                payload["matches"] = []
+            # All network/model awaits have completed before opening this transaction.
+            try:
+                with session_factory() as session:
+                    try:
+                        insert_low_confidence(session, conversation_id, raw_question if raw_question is not None else keyword,
+                                              source, payload["reason"])
+                        session.commit()
+                    except Exception:
+                        session.rollback()
+                        raise
+            except Exception as exc:
+                # A failed/uncertain write must not trigger the read-only retry policy.
+                raise RuntimeError("low-confidence persistence failed") from exc
+        return _bounded_faq_payload(payload)
 
     @tool(args_schema=TicketArgs)
     def create_ticket(description: str, ticket_type: Literal["售后", "投诉", "咨询"]) -> str:

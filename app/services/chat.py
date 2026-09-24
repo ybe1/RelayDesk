@@ -1,6 +1,7 @@
 """One selection call, at most one tool execution, then a streamed final answer."""
 
 import json
+import inspect
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -10,6 +11,34 @@ from langchain_core.messages.utils import count_tokens_approximately
 from app.config import settings
 from app.core.prompts import CUSTOMER_SERVICE_PROMPT
 from app.schemas.chat import ChatRequest
+
+
+def _tool_payload(content) -> dict:
+    try:
+        payload = json.loads(content)
+    except (ValueError, TypeError):
+        return {"error": {"code": "malformed_tool_result"}}
+    return payload if isinstance(payload, dict) else {"error": {"code": "malformed_tool_result"}}
+
+
+def _faq_citations(payload: dict) -> list:
+    if "error" in payload:
+        return []
+    result = payload.get("result")
+    result = _tool_payload(result) if isinstance(result, str) else result
+    if not isinstance(result, dict) or result.get("sufficient") is not True:
+        return []
+    citations = result.get("citations")
+    fields = {"n", "chunk_id", "section_path", "question", "answer_excerpt"}
+    if not isinstance(citations, list) or any(
+        not isinstance(item, dict) or set(item) != fields
+        or type(item["n"]) is not int or item["n"] != n
+        or item["chunk_id"] is None
+        or not isinstance(item["question"], str) or not isinstance(item["answer_excerpt"], str)
+        for n, item in enumerate(citations, 1)
+    ):
+        return []
+    return citations
 
 
 def trim_turns(messages: list, budget: int) -> list:
@@ -88,7 +117,12 @@ class ChatService:
 
         history = trim_turns(self.store.load_history(conversation_id), settings.token_budget)
         prompt_messages = CUSTOMER_SERVICE_PROMPT.format_messages(history=history)
-        tools = self.tools_factory(conversation_id)
+        try:
+            inspect.signature(self.tools_factory).bind(conversation_id, raw_question=req.message)
+        except (TypeError, ValueError):
+            tools = self.tools_factory(conversation_id)  # Legacy injected factories.
+        else:
+            tools = self.tools_factory(conversation_id, raw_question=req.message)
         selection = await self.model.bind_tools(tools, tool_choice="auto").ainvoke(prompt_messages)
         final_messages = list(prompt_messages)
 
@@ -112,9 +146,11 @@ class ChatService:
                     pending.pop(call["id"])
                     final_messages.append(result)
                     if index == 0:
-                        payload = json.loads(result.content)
+                        payload = _tool_payload(result.content)
                         phase = "error" if "error" in payload else "success"
                         yield "tool_status", {"tool_name": call["name"], "phase": phase, "message": "查询完成" if phase == "success" else "查询失败"}
+                        if call["name"] == "query_faq" and (citations := _faq_citations(payload)):
+                            yield "citations", {"citations": citations}
             finally:
                 for call in pending.values():
                     self.store.append(

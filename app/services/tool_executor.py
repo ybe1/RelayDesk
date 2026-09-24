@@ -12,7 +12,7 @@ READ_ONLY = frozenset({"query_order", "query_product", "query_logistics", "query
 
 
 class ToolExecutor:
-    def __init__(self, tools, timeout_seconds: float = 5, backoff_seconds: float = 0.1):
+    def __init__(self, tools, timeout_seconds: float | None = None, backoff_seconds: float = 0.1):
         self.registry = {item.name: item for item in tools}
         self.timeout_seconds = timeout_seconds
         self.backoff_seconds = backoff_seconds
@@ -31,7 +31,8 @@ class ToolExecutor:
         attempts = 3 if name in READ_ONLY else 1
         for attempt in range(attempts):
             try:
-                result = await asyncio.wait_for(selected.ainvoke(args), timeout=self.timeout_seconds)
+                timeout = self.timeout_seconds if self.timeout_seconds is not None else (120 if name == "query_faq" else 5)
+                result = await asyncio.wait_for(selected.ainvoke(args), timeout=timeout)
                 return self._message(call_id, {"result": result})
             except Exception as exc:
                 LOGGER.warning("Tool %s failed on attempt %s", name, attempt + 1, exc_info=exc)
@@ -43,4 +44,7 @@ class ToolExecutor:
 
     @staticmethod
     def _message(call_id: str, payload: dict) -> ToolMessage:
-        return ToolMessage(content=json.dumps(payload, ensure_ascii=False), tool_call_id=call_id)
+        content = json.dumps(payload, ensure_ascii=False)
+        if len(content.encode("utf-8")) > 60000:
+            raise ValueError("serialized ToolMessage exceeds 60000 UTF-8 bytes")
+        return ToolMessage(content=content, tool_call_id=call_id)

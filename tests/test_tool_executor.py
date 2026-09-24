@@ -80,3 +80,19 @@ def test_read_only_timeout_is_bounded_and_returns_error():
     ))
     assert attempts == 3
     assert json.loads(result.content)["error"]["code"] == "timeout"
+
+
+def test_oversized_tool_result_returns_bounded_operational_error():
+    result = asyncio.run(ToolExecutor([echo]).execute({"name": "echo", "args": {"value": "😀" * 60000}, "id": "large"}))
+    assert len(result.content.encode("utf-8")) <= 60000
+    assert json.loads(result.content)["error"]["code"] == "execution_failed"
+
+
+def test_default_faq_budget_allows_multistage_retrieval_longer_than_five_seconds():
+    @tool(args_schema=Input)
+    async def query_faq(value: str) -> str:
+        """Run a multistage FAQ lookup."""
+        await asyncio.sleep(5.05)
+        return value
+    result = asyncio.run(ToolExecutor([query_faq], backoff_seconds=0).execute({"name": "query_faq", "args": {"value": "ok"}, "id": "slow"}))
+    assert json.loads(result.content) == {"result": "ok"}
