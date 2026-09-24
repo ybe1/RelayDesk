@@ -95,7 +95,12 @@ def set_faith_case_status(
         .execution_options(synchronize_session=False)
     )
     if result.rowcount == 0:
-        if session.get(FaithCase, id) is None:
+        # Read the column from the database, bypassing cached ORM instances.
+        # FOR UPDATE is a current read under InnoDB REPEATABLE READ.
+        exists = session.scalar(
+            select(FaithCase.id).where(FaithCase.id == id).with_for_update()
+        )
+        if exists is None:
             raise LookupError("faith case not found")
         raise Conflict("faith case changed after it was read")
     return session.get(FaithCase, id, populate_existing=True)

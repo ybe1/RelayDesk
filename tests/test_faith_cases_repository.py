@@ -3,7 +3,7 @@
 from datetime import datetime
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import FaithCase
@@ -116,6 +116,21 @@ def test_stale_admin_status_update_cannot_overwrite_eval_recurrence(tmp_path):
             assert row.seen_count == 2
     finally:
         engine.dispose()
+
+
+def test_deleted_case_in_identity_map_reports_missing_not_conflict(session):
+    row = put(session)
+    case_id = row.id
+    version = row.seen_count
+    session.execute(
+        delete(FaithCase).where(FaithCase.id == case_id)
+        .execution_options(synchronize_session=False)
+    )
+    assert row in session
+    with pytest.raises(LookupError, match="not found"):
+        set_faith_case_status(
+            case_id, "已解决", "旧页面处置", expected_seen_count=version, session=session,
+        )
 
 
 def test_status_change_clears_resolution_when_reopened_and_rejects_unknown(session):
