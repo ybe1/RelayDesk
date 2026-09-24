@@ -1,6 +1,6 @@
 """Faithfulness case ledger. Write operations use the caller's transaction."""
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -9,6 +9,10 @@ from app.db.models import FaithCase
 
 
 STATUSES = frozenset({"未解决", "已解决", "无需解决"})
+
+
+class Conflict(RuntimeError):
+    """The case changed after the administrator read it."""
 
 
 def upsert_faith_case(
@@ -70,21 +74,31 @@ def list_faith_cases(
 
 
 def set_faith_case_status(
-    id: int, status: str, resolution: str | None, *, session: Session,
+    id: int, status: str, resolution: str | None, *, expected_seen_count: int,
+    session: Session,
 ) -> FaithCase:
     if status not in STATUSES:
         raise ValueError("invalid faith-case status")
+    if isinstance(expected_seen_count, bool) or not isinstance(expected_seen_count, int) or expected_seen_count < 1:
+        raise ValueError("expected_seen_count must be a positive integer")
     if status != "未解决" and (not isinstance(resolution, str) or not resolution.strip()):
         raise ValueError("resolution is required for a resolved faith case")
-    row = session.get(FaithCase, id)
-    if row is None:
-        raise LookupError("faith case not found")
-    row.status = status
-    row.resolution = resolution.strip() if status != "未解决" else None
+    if status != "未解决" and len(resolution.strip()) > 300:
+        raise ValueError("resolution must be 1..300 characters after trimming")
+    values = {"status": status, "resolution": resolution.strip() if status != "未解决" else None}
     if status != "未解决":
-        row.resolved_at = func.current_timestamp()
-    session.flush()
-    return row
+        values["resolved_at"] = func.current_timestamp()
+    result = session.execute(
+        update(FaithCase)
+        .where(FaithCase.id == id, FaithCase.seen_count == expected_seen_count)
+        .values(**values)
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount == 0:
+        if session.get(FaithCase, id) is None:
+            raise LookupError("faith case not found")
+        raise Conflict("faith case changed after it was read")
+    return session.get(FaithCase, id, populate_existing=True)
 
 
 def faith_case_status_map(eval_ids: list[str], *, session: Session) -> dict[str, str]:

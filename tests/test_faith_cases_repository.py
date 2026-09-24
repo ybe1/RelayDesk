@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import FaithCase
 from app.repositories.faith_cases import (
+    Conflict,
     faith_case_status_map,
     list_faith_cases,
     set_faith_case_status,
@@ -61,7 +62,7 @@ def test_upsert_nullable_citations_replace_prior_snapshot(session):
 
 def test_resolved_recurrence_reopens_but_retains_resolution_history(session):
     row = put(session)
-    set_faith_case_status(row.id, "已解决", "补了政策条款", session=session)
+    set_faith_case_status(row.id, "已解决", "补了政策条款", expected_seen_count=row.seen_count, session=session)
     resolved_at = row.resolved_at
     assert resolved_at is not None
     reopened = put(session, answer="再次编造")
@@ -76,28 +77,64 @@ def test_terminal_status_needs_meaningful_resolution(session, status):
     row = put(session)
     for resolution in (None, "", " \n "):
         with pytest.raises(ValueError, match="resolution"):
-            set_faith_case_status(row.id, status, resolution, session=session)
+            set_faith_case_status(row.id, status, resolution, expected_seen_count=row.seen_count, session=session)
     assert row.status == "未解决"
     assert row.resolved_at is None
 
 
+def test_resolution_is_trimmed_and_limited_to_300_characters(session):
+    row = put(session)
+    set_faith_case_status(row.id, "已解决", "  " + "a" * 300 + "  ", expected_seen_count=row.seen_count, session=session)
+    assert row.resolution == "a" * 300
+    with pytest.raises(ValueError, match="resolution"):
+        set_faith_case_status(row.id, "已解决", "  " + "b" * 301 + "  ", expected_seen_count=row.seen_count, session=session)
+    assert row.resolution == "a" * 300
+
+
+def test_stale_admin_status_update_cannot_overwrite_eval_recurrence(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'faith.db'}")
+    FaithCase.__table__.create(engine)
+    try:
+        with Session(engine) as setup:
+            case_id = put(setup).id
+            setup.commit()
+        with Session(engine) as admin_read:
+            version_read_by_admin = admin_read.get(FaithCase, case_id).seen_count
+        with Session(engine) as evaluator:
+            put(evaluator, answer="新的编造答案")
+            evaluator.commit()
+        with Session(engine) as admin_write:
+            with pytest.raises(Conflict):
+                set_faith_case_status(
+                    case_id, "已解决", "旧页面的处置", expected_seen_count=version_read_by_admin,
+                    session=admin_write,
+                )
+            row = admin_write.get(FaithCase, case_id)
+            assert row.status == "未解决"
+            assert row.resolution is None
+            assert row.answer == "新的编造答案"
+            assert row.seen_count == 2
+    finally:
+        engine.dispose()
+
+
 def test_status_change_clears_resolution_when_reopened_and_rejects_unknown(session):
     row = put(session)
-    set_faith_case_status(row.id, "无需解决", "裁判误判", session=session)
+    set_faith_case_status(row.id, "无需解决", "裁判误判", expected_seen_count=row.seen_count, session=session)
     resolved_at = row.resolved_at
     assert row.resolution == "裁判误判"
-    set_faith_case_status(row.id, "未解决", "忽略此文本", session=session)
+    set_faith_case_status(row.id, "未解决", "忽略此文本", expected_seen_count=row.seen_count, session=session)
     assert row.resolution is None
     assert row.resolved_at == resolved_at
     with pytest.raises(ValueError, match="status"):
-        set_faith_case_status(row.id, "unknown", "原因", session=session)
+        set_faith_case_status(row.id, "unknown", "原因", expected_seen_count=row.seen_count, session=session)
     with pytest.raises(LookupError):
-        set_faith_case_status(99999, "未解决", None, session=session)
+        set_faith_case_status(99999, "未解决", None, expected_seen_count=1, session=session)
 
 
 def test_upsert_and_status_changes_rollback_with_caller(session):
     row = put(session)
-    set_faith_case_status(row.id, "已解决", "已修复", session=session)
+    set_faith_case_status(row.id, "已解决", "已修复", expected_seen_count=row.seen_count, session=session)
     session.rollback()
     assert session.scalar(select(FaithCase)) is None
 
@@ -116,7 +153,7 @@ def test_list_sorts_latest_first_then_id_and_paginates(session):
     rows, total = list_faith_cases(None, 2, 2, session=session)
     assert total == 3
     assert [r.eval_id for r in rows] == ["A1"]
-    set_faith_case_status(a.id, "已解决", "补充了证据", session=session)
+    set_faith_case_status(a.id, "已解决", "补充了证据", expected_seen_count=a.seen_count, session=session)
     rows, total = list_faith_cases("已解决", 1, 10, session=session)
     assert total == 1
     assert [r.eval_id for r in rows] == ["A1"]
@@ -125,7 +162,7 @@ def test_list_sorts_latest_first_then_id_and_paginates(session):
 def test_status_map_returns_only_requested_known_eval_ids(session):
     a = put(session, "A1")
     put(session, "A2")
-    set_faith_case_status(a.id, "无需解决", "误判", session=session)
+    set_faith_case_status(a.id, "无需解决", "误判", expected_seen_count=a.seen_count, session=session)
     assert faith_case_status_map(["A1", "missing"], session=session) == {"A1": "无需解决"}
     assert faith_case_status_map([], session=session) == {}
 
