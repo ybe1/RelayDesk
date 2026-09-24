@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+import asyncio
+from dataclasses import dataclass, field
+from typing import Any, Protocol
+
+from app.knowledge.hybrid_store import HybridMilvusStore, build_filter
+from app.knowledge.query_understanding import QueryUnderstanding, understand_query
+from app.knowledge.rerank import MAX_DOCUMENT_BYTES, MAX_TOTAL_DOCUMENT_BYTES, RerankClient
 
 
 class Embedder(Protocol):
@@ -28,3 +34,130 @@ def search_knowledge(
         key=lambda hit: hit["score"],
         reverse=True,
     )
+
+
+@dataclass
+class RetrievalResult:
+    """Mechanical retrieval decision; semantic evidence judgment is a later step."""
+
+    understood_query: QueryUnderstanding
+    hits: list[dict]
+    sufficient: bool
+    reason: str
+
+
+@dataclass
+class RetrievalDependencies:
+    """Caller owns injected dependencies; use async with or finally await aclose()."""
+
+    model: Any
+    embedder: Embedder
+    store: HybridMilvusStore
+    reranker: RerankClient
+    rerank_min_score: float = 0.0
+    _owns_store: bool = field(default=False, repr=False)
+    _closed: bool = field(default=False, init=False, repr=False)
+
+    @classmethod
+    def from_settings(cls) -> RetrievalDependencies:
+        from app.config import settings
+        from app.core.llm import get_chat_model
+        from app.knowledge.embedding import EmbeddingClient
+
+        return cls(
+            model=get_chat_model(disable_thinking=True),
+            embedder=EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key,
+                                     model=settings.embed_model),
+            store=HybridMilvusStore(uri=settings.milvus_uri),
+            reranker=RerankClient(base_url=settings.rerank_base_url, api_key=settings.rerank_api_key,
+                                  model=settings.rerank_model),
+            rerank_min_score=settings.rerank_min_score,
+            _owns_store=True,
+        )
+
+    async def __aenter__(self) -> RetrievalDependencies:
+        if self._closed:
+            raise RuntimeError("retrieval dependencies are closed")
+        return self
+
+    async def __aexit__(self, _exc_type, _exc, _tb) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            await self.reranker.aclose()
+        finally:
+            if self._owns_store:
+                await asyncio.to_thread(self.store.client.close)
+
+
+async def search_knowledge_ch04(
+    query: str,
+    *,
+    strategy: str = "hybrid_rerank",
+    top_k: int = 10,
+    category: str | None = None,
+    dependencies: RetrievalDependencies | None = None,
+) -> RetrievalResult:
+    """Four strategies share query understanding, typed filters and context ordering.
+
+    Each recall leg requests 50. Hybrid candidates are Milvus RRF output, deduplicated
+    before the optional Top-10 rerank. Operational exceptions always propagate.
+    Injected dependencies remain open until their owner closes them.
+    """
+    from app.config import settings
+
+    if strategy not in {"dense", "vector", "bm25", "hybrid", "hybrid_rerank"}:
+        raise ValueError("unsupported retrieval strategy")
+    if type(top_k) is not int or not 1 <= top_k <= 10:
+        raise ValueError("top_k must be an integer from 1..10")
+    if category is not None and (not isinstance(category, str) or category not in settings.rag_category_allowlist):
+        raise ValueError("category is outside the configured allowlist")
+    if dependencies is None:
+        async with RetrievalDependencies.from_settings() as owned:
+            return await search_knowledge_ch04(query, strategy=strategy, top_k=top_k,
+                                               category=category, dependencies=owned)
+    if dependencies._closed:
+        raise RuntimeError("retrieval dependencies are closed")
+
+    understood = await understand_query(dependencies.model, query)
+    filter_expr = build_filter(category=category if category is not None else understood.category)
+    store = dependencies.store
+    if strategy == "bm25":
+        candidates = await asyncio.to_thread(store.bm25_search, understood.search_query,
+                                             limit=50, filter_expr=filter_expr)
+    else:
+        vectors = await asyncio.to_thread(dependencies.embedder.embed, [understood.normalized_query])
+        if strategy in {"dense", "vector"}:
+            candidates = await asyncio.to_thread(store.dense_search, vectors[0], limit=50,
+                                                 filter_expr=filter_expr)
+        else:
+            candidates = await asyncio.to_thread(store.hybrid_search, vectors[0], understood.search_query,
+                                                 recall_limit=50, output_limit=50, filter_expr=filter_expr)
+
+    unique: dict[int, dict] = {}
+    for candidate in candidates:
+        unique.setdefault(candidate["id"], candidate)
+    candidates = list(unique.values())[:50]
+    if not candidates:
+        return RetrievalResult(understood, [], False, "no_hits")
+
+    sufficient, reason = True, "retrieval_ok"
+    if strategy == "hybrid_rerank":
+        # Share the aggregate budget so every candidate retains a document.
+        budget = min(MAX_DOCUMENT_BYTES, MAX_TOTAL_DOCUMENT_BYTES // len(candidates))
+        documents = [f"问题：{hit['question']}\n答案：{hit['answer']}".encode("utf-8")[:budget].decode("utf-8", errors="ignore")
+                     for hit in candidates]
+        scores = await dependencies.reranker.rerank(understood.normalized_query, documents, top_n=top_k)
+        ranked = sorted(scores, key=lambda item: item[1], reverse=True)
+        hits = [{**candidates[index], "rerank_score": score} for index, score in ranked]
+        if hits[0]["rerank_score"] < dependencies.rerank_min_score:
+            sufficient, reason = False, "rerank_below_threshold"
+    else:
+        hits = candidates[:top_k]
+
+    ordered = hits[::2] + hits[1::2][::-1]
+    return RetrievalResult(understood, ordered, sufficient, reason)
