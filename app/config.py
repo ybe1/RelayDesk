@@ -22,5 +22,7 @@ class Settings(BaseSettings):
     rerank_min_score: float = 0.0
     rag_top_k: int = 5
     rag_min_score: float = 0.55
+    # Exact Milvus category values; empty disables category filtering.
+    rag_category_allowlist: tuple[str, ...] = ()
 
 settings = Settings()
