@@ -18,6 +18,8 @@ _RETRYABLE_STATUS_CODES = {429, 503, 504}
 
 
 class RerankClient:
+    """Reusable reranker; injected HTTP clients remain owned by their caller."""
+
     def __init__(
         self,
         *,
@@ -26,9 +28,14 @@ class RerankClient:
         model: str = "BAAI/bge-reranker-v2-m3",
         timeout: float = 30.0,
         max_retries: int = 2,
+        client: httpx.AsyncClient | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
+        if type(max_retries) is not int or not 0 <= max_retries <= 5:
+            raise ValueError("max_retries must be an integer from 0..5")
+        if client is not None and transport is not None:
+            raise ValueError("client and transport cannot be supplied together")
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
@@ -36,8 +43,29 @@ class RerankClient:
         self.max_retries = max_retries
         self.transport = transport
         self.sleep = sleep
+        self._client = client
+        self._owns_client = client is None
+        self._closed = False
+
+    async def __aenter__(self) -> RerankClient:
+        if self._closed:
+            raise RuntimeError("rerank client is closed")
+        return self
+
+    async def __aexit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        """Close only the HTTP client created by this instance."""
+        if self._closed:
+            return
+        self._closed = True
+        if self._owns_client and self._client is not None:
+            await self._client.aclose()
 
     async def rerank(self, query: str, documents: list[str], top_n: int) -> list[tuple[int, float]]:
+        if self._closed:
+            raise RuntimeError("rerank client is closed")
         if not documents:
             return []
         if not self.api_key:
@@ -53,14 +81,17 @@ class RerankClient:
         }
         headers = {"Authorization": f"Bearer {self.api_key}"}
 
-        async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
-            for attempt in range(self.max_retries + 1):
-                response = await client.post(f"{self.base_url}/rerank", headers=headers, json=payload)
-                if response.status_code in _RETRYABLE_STATUS_CODES and attempt < self.max_retries:
-                    await self.sleep(0.25 * (2**attempt))
-                    continue
-                response.raise_for_status()
-                return self._validate_results(response.json(), len(documents), result_count)
+        if self._client is None:
+            self._client = httpx.AsyncClient(timeout=self.timeout, transport=self.transport)
+        for attempt in range(self.max_retries + 1):
+            response = await self._client.post(
+                f"{self.base_url}/rerank", headers=headers, json=payload, timeout=self.timeout,
+            )
+            if response.status_code in _RETRYABLE_STATUS_CODES and attempt < self.max_retries:
+                await self.sleep(0.25 * (2**attempt))
+                continue
+            response.raise_for_status()
+            return self._validate_results(response.json(), len(documents), result_count)
 
         raise AssertionError("unreachable")
 

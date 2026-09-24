@@ -218,3 +218,85 @@ async def test_http_failure_does_not_log_documents_or_credentials(caplog):
         await client.rerank("q", ["sensitive document"], 1)
     assert "sensitive document" not in caplog.text
     assert "private-key" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_owned_http_client_reuses_transport_until_explicit_close():
+    class CountingTransport(httpx.AsyncBaseTransport):
+        def __init__(self):
+            self.requests = 0
+            self.closes = 0
+
+        async def handle_async_request(self, request):
+            self.requests += 1
+            return _response([(0, 0.8)])
+
+        async def aclose(self):
+            self.closes += 1
+
+    transport = CountingTransport()
+    client = RerankClient(base_url="https://example.test/v1", api_key="key", transport=transport)
+    assert await client.rerank("first", ["a"], 1) == [(0, 0.8)]
+    assert await client.rerank("second", ["b"], 1) == [(0, 0.8)]
+    assert transport.requests == 2
+    assert transport.closes == 0
+    await client.aclose()
+    assert transport.closes == 1
+    with pytest.raises(RuntimeError, match="closed"):
+        await client.rerank("third", ["c"], 1)
+
+
+@pytest.mark.asyncio
+async def test_injected_http_client_remains_caller_owned():
+    external = httpx.AsyncClient(transport=httpx.MockTransport(lambda _: _response([(0, 0.8)])))
+    try:
+        client = RerankClient(base_url="https://example.test/v1", api_key="key", client=external)
+        assert await client.rerank("first", ["a"], 1) == [(0, 0.8)]
+        assert await client.rerank("second", ["b"], 1) == [(0, 0.8)]
+        await client.aclose()
+        assert external.is_closed is False
+    finally:
+        await external.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_closes_owned_client():
+    transport = httpx.MockTransport(lambda _: _response([(0, 0.8)]))
+    async with RerankClient(base_url="https://example.test/v1", api_key="key", transport=transport) as client:
+        assert await client.rerank("q", ["a"], 1) == [(0, 0.8)]
+    with pytest.raises(RuntimeError, match="closed"):
+        await client.rerank("q", ["a"], 1)
+
+
+@pytest.mark.parametrize("max_retries", [-1, 6, True, False, 1.5, "2"])
+def test_constructor_rejects_invalid_retry_budget(max_retries):
+    with pytest.raises(ValueError, match="max_retries.*0..5"):
+        RerankClient(base_url="https://example.test/v1", api_key="key", max_retries=max_retries)
+
+
+def test_constructor_rejects_client_and_transport_together():
+    external = httpx.AsyncClient()
+    try:
+        with pytest.raises(ValueError, match="client.*transport"):
+            RerankClient(
+                base_url="https://example.test/v1", api_key="key",
+                client=external, transport=httpx.MockTransport(lambda _: _response([(0, 0.8)])),
+            )
+    finally:
+        import asyncio
+        asyncio.run(external.aclose())
+
+
+@pytest.mark.asyncio
+async def test_zero_retry_budget_sends_one_request():
+    attempts = 0
+
+    def handler(_):
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(503)
+
+    client = _client(handler, max_retries=0)
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.rerank("q", ["a"], 1)
+    assert attempts == 1
