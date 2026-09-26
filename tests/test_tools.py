@@ -1,5 +1,6 @@
 import json
 import asyncio
+import time
 from types import SimpleNamespace
 
 from app.tools.business import build_tools
@@ -242,3 +243,95 @@ async def test_evidence_checker_checks_full_user_question_not_shortened_keyword(
     assert result["sufficient"] is False
     with Session(faq_database) as session:
         assert session.scalar(select(LowConfidenceQuestion)).source == "self_check"
+
+
+async def test_faq_timeout_after_slow_commit_never_repeats_insert(faq_database):
+    from langchain_core.callbacks import AsyncCallbackHandler
+
+    commits = []
+
+    class FinishCallback(AsyncCallbackHandler):
+        async def on_tool_end(self, output, **kwargs):
+            # Model a yielding tracing callback after the tool body completes.
+            await asyncio.sleep(0.01)
+
+    class SlowCommitSession(Session):
+        def commit(self):
+            super().commit()
+            commits.append("committed")
+            # The DB has committed while the tool invocation has not returned yet.
+            time.sleep(0.08)
+
+    async def retrieve(_):
+        return retrieval([], False, "no_hits")
+
+    tool = build_tools(lambda: SlowCommitSession(faq_database), 42, retrieve)[3]
+    tool.callbacks = [FinishCallback()]
+    result = await ToolExecutor([tool], timeout_seconds=0.03, backoff_seconds=0).execute(
+        {"name": "query_faq", "args": {"keyword": "unknown policy"}, "id": "slow-commit"},
+    )
+    assert json.loads(result.content)["error"]["code"] == "timeout"
+    with Session(faq_database) as session:
+        rows = list(session.scalars(select(LowConfidenceQuestion)))
+        assert len(rows) == 1
+        assert rows[0].raw_question == "unknown policy"
+    assert commits == ["committed"]
+
+
+@pytest.mark.parametrize("failure", [TimeoutError, ConnectionError, OSError])
+async def test_faq_with_sufficient_retrieval_never_retries_transient_checker_failure(failure):
+    calls = []
+
+    def forbidden_session():
+        raise AssertionError("operational failure must not write")
+
+    async def retrieve(_):
+        calls.append("retrieval")
+        return retrieval()
+
+    async def checker(*_):
+        calls.append("checker")
+        raise failure("transient")
+
+    tool = build_tools(forbidden_session, 42, retrieve, checker)[3]
+    result = await ToolExecutor([tool], backoff_seconds=0).execute(
+        {"name": "query_faq", "args": {"keyword": "policy"}, "id": "no-write"},
+    )
+    assert json.loads(result.content)["error"]["code"] == (
+        "timeout" if failure is TimeoutError else "execution_failed"
+    )
+    assert calls == ["retrieval", "checker"]
+
+
+@pytest.mark.parametrize("failure", [TimeoutError, ConnectionError, OSError])
+async def test_sufficient_faq_completion_failure_never_retries(failure):
+    from langchain_core.callbacks import AsyncCallbackHandler
+
+    calls = []
+
+    class FailingCompletion(AsyncCallbackHandler):
+        raise_error = True
+
+        async def on_tool_end(self, output, **kwargs):
+            assert json.loads(output)["sufficient"] is True
+            raise failure("completion failed")
+
+    def forbidden_session():
+        raise AssertionError("sufficient answer must not write")
+
+    async def retrieve(_):
+        calls.append("retrieval")
+        return retrieval()
+
+    async def checker(*_):
+        return EvidenceDecision(useful=True, reason="covered")
+
+    tool = build_tools(forbidden_session, 42, retrieve, checker)[3]
+    tool.callbacks = [FailingCompletion()]
+    result = await ToolExecutor([tool], backoff_seconds=0).execute(
+        {"name": "query_faq", "args": {"keyword": "policy"}, "id": "completed"},
+    )
+    assert json.loads(result.content)["error"]["code"] == (
+        "timeout" if failure is TimeoutError else "execution_failed"
+    )
+    assert calls == ["retrieval"]

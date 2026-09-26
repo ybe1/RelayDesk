@@ -8,7 +8,10 @@ from langchain_core.messages import ToolMessage
 from pydantic import ValidationError
 
 LOGGER = logging.getLogger(__name__)
-READ_ONLY = frozenset({"query_order", "query_product", "query_logistics", "query_faq"})
+# Only these tools are safe to repeat after an uncertain outcome. query_faq can
+# commit a refusal before ainvoke finishes, so it always gets one attempt, even
+# on sufficient-evidence paths. Unclassified tools also get one attempt.
+RETRY_SAFE_TOOLS = frozenset({"query_order", "query_product", "query_logistics"})
 
 
 class ToolExecutor:
@@ -28,7 +31,7 @@ class ToolExecutor:
         except (ValidationError, TypeError, ValueError):
             return self._message(call_id, {"error": {"code": "invalid_arguments", "message": "工具参数不正确"}})
 
-        attempts = 3 if name in READ_ONLY else 1
+        attempts = 3 if name in RETRY_SAFE_TOOLS else 1
         for attempt in range(attempts):
             try:
                 timeout = self.timeout_seconds if self.timeout_seconds is not None else (120 if name == "query_faq" else 5)

@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+import pytest
+
 from langchain.tools import tool
 from pydantic import BaseModel
 
@@ -28,20 +30,21 @@ def test_executor_matches_call_id_and_validates_arguments():
     assert json.loads(unknown.content)["error"]["code"] == "unknown_tool"
 
 
-def test_read_only_transient_failure_retries_twice():
+@pytest.mark.parametrize("name", ["query_order", "query_product", "query_logistics"])
+def test_read_only_transient_failure_retries_twice(name):
     attempts = 0
 
-    @tool(args_schema=Input)
-    def query_faq(value: str) -> str:
-        """Find a FAQ."""
+    @tool(name, args_schema=Input)
+    def query_order(value: str) -> str:
+        """Look up an order."""
         nonlocal attempts
         attempts += 1
         if attempts < 3:
             raise ConnectionError("temporary")
         return value
 
-    result = asyncio.run(ToolExecutor([query_faq], backoff_seconds=0).execute(
-        {"name": "query_faq", "args": {"value": "policy"}, "id": "call-4"}
+    result = asyncio.run(ToolExecutor([query_order], backoff_seconds=0).execute(
+        {"name": name, "args": {"value": "policy"}, "id": "call-4"}
     ))
     assert attempts == 3
     assert json.loads(result.content)["result"] == "policy"
