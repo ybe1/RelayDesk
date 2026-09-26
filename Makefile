@@ -1,4 +1,4 @@
-.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild
+.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild eval-check
 
 dev:
 	./scripts/dev.sh
@@ -8,6 +8,9 @@ test:
 
 eval:
 	uv run python scripts/eval_extract.py
+
+eval-check:
+	uv run python -m scripts.validate_eval_ch04
 
 kb-preview:
 	uv run python -m scripts.kb preview
