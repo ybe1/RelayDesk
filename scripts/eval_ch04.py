@@ -294,8 +294,9 @@ async def evaluate(cases, *, retriever, generator=None, judge=None, ledger=None,
 
         await asyncio.gather(*(generate_case(row, strategy) for strategy in STRATEGIES for row in report["cases"][strategy]))
         checkpoint()
+        # A smoke/continuation limit cannot relax the full-dataset judge barrier.
         generations_ready = all(row["generation"]["status"] == "ok"
-            for rows in report["cases"].values() for row in rows if row["id"] in selected)
+            for rows in report["cases"].values() for row in rows)
 
         async def judge_case(row, strategy):
             async with semaphore:

@@ -256,3 +256,51 @@ async def test_judging_waits_for_generation_of_all_four_strategies():
     report = await evaluate(cases(), retriever=retrieve, generator=generate, judge=judge, concurrency=1)
     assert observed == [8]
     assert report["generation"]["status"] == "complete"
+
+
+async def test_generation_limit_cannot_start_judging_with_unselected_unfinished_answers():
+    from scripts.eval_ch04 import evaluate
+    judged = []
+    async def generate(case, result): return {"answer": "满99元包邮", "refused": False}
+    async def judge(case, answer, citations):
+        judged.append(case["id"])
+        return {"faithful": True, "reason": "有依据"}
+    report = await evaluate(cases(), retriever=retrieve, generator=generate, judge=judge,
+                            generation_limit=1, concurrency=1)
+    assert sum(row["generation"]["status"] == "ok" for rows in report["cases"].values() for row in rows) == 4
+    assert judged == []
+    assert report["generation"]["faithfulness"]["completed"] == 0
+    assert report["generation"]["status"] == "partial"
+
+
+@pytest.mark.parametrize("failure_reason", ["TimeoutError", "APIStatusError"])
+async def test_generation_limit_cannot_hide_existing_failed_answers_outside_selection(failure_reason):
+    from scripts.eval_ch04 import evaluate
+    resume = await evaluate(cases(), retriever=retrieve)
+    for rows in resume["cases"].values():
+        rows[1]["generation"] = {"status": "skipped", "reason": failure_reason}
+    judged = []
+    async def generate(case, result): return {"answer": "满99元包邮", "refused": False}
+    async def judge(case, answer, citations):
+        judged.append(case["id"])
+        return {"faithful": True, "reason": "有依据"}
+    report = await evaluate(cases(), retriever=retrieve, generator=generate, judge=judge, resume=resume,
+                            phase="generation", generation_limit=1, concurrency=1)
+    assert judged == []
+    assert report["generation"]["faithfulness"]["completed"] == 0
+    assert report["generation"]["status"] == "partial"
+
+
+async def test_generation_limit_allows_judging_when_every_answer_is_already_successful():
+    from scripts.eval_ch04 import evaluate
+    async def generate(case, result): return {"answer": "满99元包邮", "refused": False}
+    resume = await evaluate(cases(), retriever=retrieve, generator=generate)
+    async def forbidden(*args): raise AssertionError("successful generation must be reused")
+    judged = []
+    async def judge(case, answer, citations):
+        judged.append(case["id"])
+        return {"faithful": True, "reason": "有依据"}
+    report = await evaluate(cases(), retriever=forbidden, generator=forbidden, judge=judge, resume=resume,
+                            phase="generation", generation_limit=1, concurrency=1)
+    assert judged == ["A1"]
+    assert report["generation"]["status"] == "complete"
