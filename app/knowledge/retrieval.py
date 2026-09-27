@@ -101,6 +101,7 @@ async def search_knowledge_ch04(
     top_k: int = 10,
     category: str | None = None,
     dependencies: RetrievalDependencies | None = None,
+    understood_query: QueryUnderstanding | None = None,
 ) -> RetrievalResult:
     """Four strategies share query understanding, typed filters and context ordering.
 
@@ -119,11 +120,15 @@ async def search_knowledge_ch04(
     if dependencies is None:
         async with RetrievalDependencies.from_settings() as owned:
             return await search_knowledge_ch04(query, strategy=strategy, top_k=top_k,
-                                               category=category, dependencies=owned)
+                                               category=category, dependencies=owned,
+                                               understood_query=understood_query)
     if dependencies._closed:
         raise RuntimeError("retrieval dependencies are closed")
 
-    understood = await understand_query(dependencies.model, query)
+    # Offline comparisons can reuse the same validated interpretation for all legs.
+    # Normal online calls still perform understanding here exactly once.
+    understood = (QueryUnderstanding.model_validate(understood_query.model_dump())
+                  if understood_query is not None else await understand_query(dependencies.model, query))
     filter_expr = build_filter(category=category if category is not None else understood.category)
     store = dependencies.store
     if strategy == "bm25":
@@ -159,5 +164,7 @@ async def search_knowledge_ch04(
     else:
         hits = candidates[:top_k]
 
+    # Persist relevance rank before reordering context; tied scores cannot recover it.
+    hits = [{**hit, "rank": rank} for rank, hit in enumerate(hits, 1)]
     ordered = hits[::2] + hits[1::2][::-1]
     return RetrievalResult(understood, ordered, sufficient, reason)

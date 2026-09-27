@@ -15,3 +15,8 @@ def test_disable_thinking_sets_extra_body():
 
 def test_default_has_no_extra_body():
     assert get_chat_model().extra_body is None
+
+
+def test_judge_can_set_zero_temperature_without_changing_chat_default():
+    assert get_chat_model(temperature=0).temperature == 0
+    assert get_chat_model().temperature == 0.3

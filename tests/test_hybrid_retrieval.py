@@ -196,6 +196,30 @@ async def test_lost_middle_order_retains_each_hit_once(setup, count, want):
         assert [x["id"] for x in result.hits] == want
 
 
+@pytest.mark.parametrize("strategy", ["dense", "bm25", "hybrid", "hybrid_rerank"])
+async def test_original_rank_survives_context_reordering_even_with_equal_scores(setup, strategy):
+    response = httpx.Response(200, json={"results": [
+        {"index": i, "relevance_score": 0.9} for i in range(6)
+    ]})
+    deps, _, _ = setup([hit(i, score=0.5) for i in range(6)], response)
+    async with deps:
+        result = await retrieval.search_knowledge_ch04("型号", strategy=strategy, top_k=6, dependencies=deps)
+        assert [row["rank"] for row in result.hits] == [1, 3, 5, 6, 4, 2]
+        assert [row["id"] for row in sorted(result.hits, key=lambda row: row["rank"])] == [0, 1, 2, 3, 4, 5]
+
+
+async def test_evaluation_can_reuse_one_validated_understanding_for_fair_strategy_comparison(setup):
+    from app.knowledge.query_understanding import QueryUnderstanding
+    deps, _, model_calls = setup()
+    prepared = QueryUnderstanding(normalized_query="固定问题", search_query="固定问题 同义词", category=None)
+    async with deps:
+        result = await retrieval.search_knowledge_ch04("原问题", strategy="bm25", dependencies=deps,
+                                                       understood_query=prepared)
+    assert model_calls == []
+    assert result.understood_query == prepared
+    assert deps.store.calls[0][1] == "固定问题 同义词"
+
+
 @pytest.mark.parametrize("kwargs", [{"strategy": "bad"}, {"top_k": 0}, {"top_k": True}, {"top_k": 11}])
 async def test_invalid_selection_rejected_before_remote_calls(setup, kwargs):
     deps, requests, model_calls = setup()
