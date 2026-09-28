@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.core.jobs import JOBS, JobAlreadyRunning, JobRunner, JobUnavailable, UnknownJob
 
@@ -14,6 +14,7 @@ def get_job_runner() -> JobRunner:
 
 
 class StartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     confirmation: str | None = None
 
 
@@ -40,6 +41,8 @@ def start_job(name: str, request: StartRequest | None = None):
         raise HTTPException(404, "unknown job")
     if name == "kb-reset" and (request is None or request.confirmation != "RESET_CH03"):
         raise HTTPException(400, "confirmation must be RESET_CH03")
+    if name == "eval-rag" and (request is None or request.confirmation != "RUN_EVAL_RAG"):
+        raise HTTPException(422, "confirmation must be RUN_EVAL_RAG")
     try:
         return get_job_runner().start(name)
     except (UnknownJob, JobAlreadyRunning, JobUnavailable) as error:

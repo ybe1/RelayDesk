@@ -1,4 +1,4 @@
-"""Local-only runner for the fixed Ch03 maintenance commands."""
+"""Local-only runner for fixed maintenance and evaluation commands."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -22,7 +23,23 @@ JOBS = {
     "kb-reset": [sys.executable, "-m", "scripts.kb", "reset", "--confirmed"],
     "eval-retrieval": [sys.executable, "-m", "scripts.eval_ch03", "retrieval"],
     "eval-mining": [sys.executable, "-m", "scripts.eval_ch03", "mining"],
+    "eval-rag": [sys.executable, "-m", "scripts.eval_ch04"],
 }
+
+# Availability is tied to a named module, never inferred from a job-name prefix.
+# Existing KB commands retain their current availability behavior.
+JOB_MODULES = {
+    "kb-preview": None,
+    "kb-build": None,
+    "kb-mine": None,
+    "kb-vectorize": None,
+    "seed-conv": None,
+    "kb-reset": None,
+    "eval-retrieval": Path("scripts/eval_ch03.py"),
+    "eval-mining": Path("scripts/eval_ch03.py"),
+    "eval-rag": Path("scripts/eval_ch04.py"),
+}
+HEAVY_JOBS = frozenset({"kb-reset", "eval-rag"})
 
 
 class UnknownJob(LookupError):
@@ -45,13 +62,15 @@ class JobRunner:
         self.log_dir = log_dir or project_root / "log" / "acceptance"
         self.popen = popen
         self._jobs: dict[str, dict] = {}
+        self._start_lock = threading.Lock()
 
     def _check_name(self, name: str) -> None:
         if name not in JOBS:
             raise UnknownJob(name)
 
     def _available(self, name: str) -> bool:
-        return not name.startswith("eval-") or (self.project_root / "scripts" / "eval_ch03.py").is_file()
+        module = JOB_MODULES[name]
+        return module is None or (self.project_root / module).is_file()
 
     def _tail(self, path: Path, limit: int = 200) -> str:
         try:
@@ -85,36 +104,39 @@ class JobRunner:
     def _payload(self, record: dict, limit: int = 200) -> dict:
         state, code = self._state(record)
         return {"job_id": record["job_id"], "name": record["name"], "state": state,
-                "exit_code": code, "log_tail": self._tail(record["log_path"], limit)}
+                "exit_code": code, "log_tail": self._tail(record["log_path"], limit),
+                "heavy": record["name"] in HEAVY_JOBS}
 
     def start(self, name: str) -> dict:
         self._check_name(name)
-        if not self._available(name):
-            raise JobUnavailable(f"{name} is unavailable until Task 9 installs scripts.eval_ch03")
-        if name in self._jobs and self._jobs[name]["process"].poll() is None:
-            raise JobAlreadyRunning(name)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        path = self.log_dir / f"{name}-{int(time.time() * 1000)}.log"
-        log_file = path.open("w", encoding="utf-8")
-        kwargs = {"cwd": self.project_root, "stdout": log_file, "stderr": subprocess.STDOUT, "shell": False}
-        if os.name == "nt":
-            kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        else:
-            kwargs["start_new_session"] = True
-        try:
-            process = self.popen(JOBS[name], **kwargs)
-        except Exception:
-            log_file.close()
-            raise
-        self._jobs[name] = {"job_id": uuid.uuid4().hex, "name": name, "process": process,
-                            "log_path": path, "log_file": log_file, "stop_requested": False}
-        return self._payload(self._jobs[name])
+        with self._start_lock:
+            if not self._available(name):
+                raise JobUnavailable(f"{name} is unavailable: required module {JOB_MODULES[name]} is missing")
+            if name in self._jobs and self._jobs[name]["process"].poll() is None:
+                raise JobAlreadyRunning(name)
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+            path = self.log_dir / f"{name}-{int(time.time() * 1000)}.log"
+            log_file = path.open("w", encoding="utf-8")
+            kwargs = {"cwd": self.project_root, "stdout": log_file, "stderr": subprocess.STDOUT, "shell": False}
+            if os.name == "nt":
+                kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            else:
+                kwargs["start_new_session"] = True
+            try:
+                process = self.popen(JOBS[name], **kwargs)
+            except Exception:
+                log_file.close()
+                raise
+            self._jobs[name] = {"job_id": uuid.uuid4().hex, "name": name, "process": process,
+                                "log_path": path, "log_file": log_file, "stop_requested": False}
+            return self._payload(self._jobs[name])
 
     def status(self, name: str, limit: int = 200) -> dict:
         self._check_name(name)
         record = self._jobs.get(name)
         if record is None:
-            return {"job_id": None, "name": name, "state": "stopped", "exit_code": None, "log_tail": ""}
+            return {"job_id": None, "name": name, "state": "stopped", "exit_code": None,
+                    "log_tail": "", "heavy": name in HEAVY_JOBS}
         result = self._payload(record, limit)
         if result["state"] != "running" and not record["log_file"].closed:
             record["log_file"].close()

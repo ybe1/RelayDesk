@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.kb import overview as kb_overview
 from app.api.jobs import get_job_runner
+from app.api.rageval import overview as rag_eval_overview
 
 router = APIRouter()
 
@@ -20,4 +21,8 @@ def overview():
         jobs = job_summary()
     except Exception:
         jobs = None
-    return {"knowledge": knowledge, "jobs": jobs}
+    try:
+        rag_eval = rag_eval_overview()
+    except Exception:
+        rag_eval = None
+    return {"knowledge": knowledge, "jobs": jobs, "rag_eval": rag_eval}

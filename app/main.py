@@ -48,6 +48,11 @@ async def admin_page() -> FileResponse:
     return FileResponse(_BASE_DIR / "static" / "admin.html")
 
 
+@app.get("/rag-eval", include_in_schema=False)
+async def rag_eval_page() -> FileResponse:
+    return FileResponse(_BASE_DIR / "static" / "rag-eval.html")
+
+
 @app.on_event("shutdown")
 def stop_owned_background_jobs() -> None:
     from app.api.jobs import get_job_runner

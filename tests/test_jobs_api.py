@@ -1,4 +1,6 @@
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
 from fastapi.testclient import TestClient
@@ -125,3 +127,113 @@ def test_eval_jobs_are_rejected_until_the_task9_module_exists(monkeypatch, tmp_p
     runner = JobRunner(project_root=tmp_path, log_dir=tmp_path, popen=lambda *_args, **_kwargs: None)
     with pytest.raises(JobUnavailable):
         runner.start("eval-retrieval")
+
+
+@pytest.mark.parametrize("payload", [None, {}, {"confirmation": "wrong"}, {"confirmation": "RESET_CH03"}])
+def test_eval_start_requires_its_server_side_confirmation(monkeypatch, payload):
+    from app.api import jobs
+
+    runner = FakeRunner()
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    client = TestClient(app)
+    response = client.post("/api/jobs/eval-rag", json=payload) if payload is not None else client.post("/api/jobs/eval-rag")
+    assert response.status_code == 422
+    assert runner.started == []
+    assert client.post("/api/jobs/eval-rag", json={"confirmation": "RUN_EVAL_RAG"}).status_code == 202
+    assert runner.started == ["eval-rag"]
+
+
+def test_eval_job_rejects_user_supplied_argv(monkeypatch):
+    from app.api import jobs
+
+    runner = FakeRunner()
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    response = TestClient(app).post("/api/jobs/eval-rag", json={
+        "confirmation": "RUN_EVAL_RAG", "argv": ["-c", "print('untrusted')"]})
+    assert response.status_code == 422
+    assert runner.started == []
+
+
+def test_eval_runner_uses_fixed_python_module_and_explicit_availability(tmp_path):
+    from app.core.jobs import JobRunner, JobUnavailable
+
+    calls = []
+    class Process:
+        pid = 123
+        def poll(self): return None
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs",
+                       popen=lambda argv, **kwargs: (calls.append((argv, kwargs)), Process())[1])
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "eval_ch03.py").touch()
+    with pytest.raises(JobUnavailable):
+        runner.start("eval-rag")
+    (scripts / "eval_ch04.py").touch()
+    started = runner.start("eval-rag")
+    assert started["state"] == "running"
+    assert calls[0][0] == [sys.executable, "-m", "scripts.eval_ch04"]
+    assert calls[0][1]["shell"] is False
+
+
+def test_only_one_eval_process_can_start_during_concurrent_requests(tmp_path):
+    from app.core.jobs import JobAlreadyRunning, JobRunner
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "eval_ch04.py").touch()
+    entered = Event()
+    release = Event()
+    calls = []
+    class Process:
+        pid = 123
+        def poll(self): return None
+    def popen(argv, **kwargs):
+        calls.append(argv)
+        entered.set()
+        assert release.wait(3)
+        return Process()
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs", popen=popen)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(runner.start, "eval-rag")
+        assert entered.wait(3)
+        second = pool.submit(runner.start, "eval-rag")
+        release.set()
+        assert first.result()["state"] == "running"
+        with pytest.raises(JobAlreadyRunning):
+            second.result()
+    assert len(calls) == 1
+
+
+def test_eval_status_and_tail_hide_credentials(tmp_path, monkeypatch):
+    from app.api import jobs
+    from app.core.jobs import JobRunner
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "eval_ch04.py").touch()
+    class Process:
+        pid = 123
+        code = None
+        def poll(self): return self.code
+    process = Process()
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs",
+                       popen=lambda *_args, **_kwargs: process)
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    client = TestClient(app)
+    assert client.post("/api/jobs/eval-rag", json={"confirmation": "RUN_EVAL_RAG"}).status_code == 202
+    record = runner._jobs["eval-rag"]
+    record["log_file"].write("Authorization: Bearer sensitive-value\nfinished\n")
+    record["log_file"].flush()
+    status = client.get("/api/jobs/eval-rag", params={"limit": 2}).json()
+    assert status["state"] == "running"
+    assert "sensitive-value" not in status["log_tail"]
+    assert "Bearer [redacted]" in status["log_tail"]
+    process.code = 0
+    assert client.post("/api/jobs/eval-rag/stop").json()["state"] == "succeeded"
+
+
+def test_eval_job_is_marked_heavy_in_job_status(tmp_path):
+    from app.core.jobs import JobRunner
+
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs")
+    assert runner.status("eval-rag")["heavy"] is True
+    assert runner.status("kb-reset")["heavy"] is True
+    assert runner.status("kb-preview")["heavy"] is False
