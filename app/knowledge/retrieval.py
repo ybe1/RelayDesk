@@ -68,7 +68,7 @@ class RetrievalDependencies:
             model=get_chat_model(disable_thinking=True),
             embedder=EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key,
                                      model=settings.embed_model),
-            store=HybridMilvusStore(uri=settings.milvus_uri),
+            store=HybridMilvusStore(uri=settings.milvus_uri, collection_name=settings.milvus_collection),
             reranker=RerankClient(base_url=settings.rerank_base_url, api_key=settings.rerank_api_key,
                                   model=settings.rerank_model),
             rerank_min_score=settings.rerank_min_score,

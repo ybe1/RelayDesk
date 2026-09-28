@@ -245,3 +245,29 @@ async def test_default_dependencies_are_closed_even_on_failure(setup, monkeypatc
     with pytest.raises(httpx.HTTPStatusError):
         await retrieval.search_knowledge_ch04("型号")
     assert deps.reranker._client.is_closed
+
+
+@pytest.mark.parametrize('strategy', ['bm25', 'vector', 'hybrid'])
+async def test_online_search_uses_configured_collection(monkeypatch, strategy):
+    from app.config import settings
+    from app.knowledge import hybrid_store
+    from app.knowledge.query_understanding import QueryUnderstanding
+    from app.knowledge.embedding import EmbeddingClient
+
+    # Only replace the network boundary; exercise real dependency construction
+    # and the real store so hardcoded collection routing is observable.
+    calls = []
+    class Client:
+        def search(self, **kwargs):
+            calls.append(kwargs)
+            return []
+        def close(self):
+            pass
+        hybrid_search = search
+    monkeypatch.setattr(settings, 'milvus_collection', 'knowledge_ch04_shadow')
+    monkeypatch.setattr(hybrid_store, 'MilvusClient', lambda **kwargs: Client())
+    monkeypatch.setattr(EmbeddingClient, 'embed', lambda self, texts: [[0.1] * 1024])
+    prepared = QueryUnderstanding(normalized_query='MH-V10', search_query='MH-V10', category=None)
+    result = await retrieval.search_knowledge_ch04('MH-V10', strategy=strategy, understood_query=prepared)
+    assert not result.sufficient
+    assert calls[0]['collection_name'] == 'knowledge_ch04_shadow'

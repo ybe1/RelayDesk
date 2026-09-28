@@ -29,7 +29,7 @@ def test_ch04_settings_have_safe_defaults(monkeypatch):
     assert config.rerank_base_url == "https://api.siliconflow.cn/v1"
     assert config.rerank_api_key == ""
     assert config.rerank_model == "BAAI/bge-reranker-v2-m3"
-    assert config.milvus_collection == "knowledge"
+    assert config.milvus_collection == "knowledge_ch04"
     assert config.recall_top_k == 50
     assert config.rerank_top_k == 10
     assert config.rerank_min_score == 0.0

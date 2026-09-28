@@ -61,7 +61,9 @@ def validate_text_fields(row: dict) -> None:
 
 
 class HybridMilvusStore:
-    def __init__(self, *, uri: str | None = None, client: Any | None = None):
+    def __init__(self, *, uri: str | None = None, client: Any | None = None,
+                 collection_name: str = COLLECTION_NAME):
+        self.collection_name = collection_name
         if client is None:
             if not uri:
                 raise ValueError("Milvus URI is required")
@@ -69,8 +71,8 @@ class HybridMilvusStore:
         self.client = client
 
     def ensure_collection(self) -> None:
-        if self.client.has_collection(COLLECTION_NAME):
-            self._verify_schema(self.client.describe_collection(COLLECTION_NAME))
+        if self.client.has_collection(self.collection_name):
+            self._verify_schema(self.client.describe_collection(self.collection_name))
             self._verify_indexes()
         else:
             schema = self.client.create_schema(auto_id=False, enable_dynamic_field=False)
@@ -86,9 +88,9 @@ class HybridMilvusStore:
             indexes = self.client.prepare_index_params()
             indexes.add_index("dense", index_type="AUTOINDEX", metric_type="COSINE")
             indexes.add_index("sparse", index_type="SPARSE_INVERTED_INDEX", metric_type="BM25")
-            self.client.create_collection(collection_name=COLLECTION_NAME, schema=schema,
+            self.client.create_collection(collection_name=self.collection_name, schema=schema,
                                           index_params=indexes, consistency_level="Strong")
-        self.client.load_collection(COLLECTION_NAME)
+        self.client.load_collection(self.collection_name)
 
     def upsert(self, rows: list[dict]) -> None:
         for row in rows:
@@ -101,7 +103,7 @@ class HybridMilvusStore:
                 raise ValueError(f"SQL chunk {row['id']}: unexpected fields (sparse is server-generated)")
             validate_vectors([row["dense"]], 1)
         if rows:
-            self.client.upsert(collection_name=COLLECTION_NAME, data=rows)
+            self.client.upsert(collection_name=self.collection_name, data=rows)
 
     @staticmethod
     def _positive(limit: int) -> None:
@@ -120,7 +122,7 @@ class HybridMilvusStore:
     def _search(self, data, field, metric, limit, filter_expr):
         self._positive(limit)
         return self._hits(self.client.search(
-            collection_name=COLLECTION_NAME, data=[data], anns_field=field,
+            collection_name=self.collection_name, data=[data], anns_field=field,
             search_params={"metric_type": metric}, limit=limit,
             filter=_expression(filter_expr), output_fields=OUTPUT_FIELDS, consistency_level="Strong",
         ))
@@ -137,7 +139,7 @@ class HybridMilvusStore:
                                  limit=recall_limit, expr=expr)
                 for data, field, metric in [(vector, "dense", "COSINE"), (text, "sparse", "BM25")]]
         return self._hits(self.client.hybrid_search(
-            collection_name=COLLECTION_NAME, reqs=reqs, ranker=RRFRanker(), limit=output_limit,
+            collection_name=self.collection_name, reqs=reqs, ranker=RRFRanker(), limit=output_limit,
             output_fields=OUTPUT_FIELDS, consistency_level="Strong",
         ))
 
@@ -149,12 +151,12 @@ class HybridMilvusStore:
                  **{name: hit["entity"][name] for name in OUTPUT_FIELDS}} for hit in batches[0]]
 
     def count(self) -> int:
-        rows = self.client.query(collection_name=COLLECTION_NAME, filter="", output_fields=["count(*)"],
+        rows = self.client.query(collection_name=self.collection_name, filter="", output_fields=["count(*)"],
                                  consistency_level="Strong")
         return int(rows[0]["count(*)"])
 
     def ids(self) -> set[int]:
-        iterator = self.client.query_iterator(collection_name=COLLECTION_NAME, filter="", output_fields=["id"],
+        iterator = self.client.query_iterator(collection_name=self.collection_name, filter="", output_fields=["id"],
                                               batch_size=1000, consistency_level="Strong")
         result = set()
         try:
@@ -199,8 +201,8 @@ class HybridMilvusStore:
 
     def _verify_indexes(self):
         for field, metric, index_type in [("dense", "COSINE", "AUTOINDEX"), ("sparse", "BM25", "SPARSE_INVERTED_INDEX")]:
-            descriptions = [self.client.describe_index(COLLECTION_NAME, name)
-                            for name in self.client.list_indexes(COLLECTION_NAME, field_name=field)]
+            descriptions = [self.client.describe_index(self.collection_name, name)
+                            for name in self.client.list_indexes(self.collection_name, field_name=field)]
             if not any(d.get("field_name") == field and d.get("metric_type") == metric
                        and d.get("index_type") == index_type for d in descriptions):
                 raise RuntimeError(f"incompatible existing knowledge_ch04 index: {field}")

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     embed_model: str = "BAAI/bge-m3"
     embed_api_key: str = ""
     milvus_uri: str = "http://127.0.0.1:19530"
-    milvus_collection: str = "knowledge"
+    milvus_collection: str = "knowledge_ch04"
     recall_top_k: int = 50
     rerank_base_url: str = "https://api.siliconflow.cn/v1"
     rerank_api_key: str = ""
