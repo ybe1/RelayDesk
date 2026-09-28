@@ -37,6 +37,18 @@ def _reject_nonfinite(value):
     raise ValueError("non-finite number in report")
 
 
+def _validate_finite_values(value):
+    """JSON exponent overflow can yield infinity without parse_constant."""
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("non-finite number in report")
+    if isinstance(value, dict):
+        for child in value.values():
+            _validate_finite_values(child)
+    elif isinstance(value, list):
+        for child in value:
+            _validate_finite_values(child)
+
+
 @router.get("/api/rag-eval/overview")
 def overview():
     unavailable = {"report_status": "missing", "report": None, "best_mrr": None}
@@ -44,6 +56,7 @@ def overview():
         report = json.loads(REPORT_PATH.read_text(encoding="utf-8"), parse_constant=_reject_nonfinite)
         if not isinstance(report, dict):
             raise ValueError("report must be an object")
+        _validate_finite_values(report)
     except FileNotFoundError:
         return unavailable
     except (OSError, ValueError):

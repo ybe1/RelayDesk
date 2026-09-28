@@ -7,7 +7,10 @@ from app.main import app
 
 
 @pytest.mark.parametrize("content,status", [(None, "missing"), ("{", "corrupt"), ("[]", "corrupt"),
-    ('{"mrr":NaN}', "corrupt"), ('{"mrr":Infinity}', "corrupt")])
+    ('{"mrr":NaN}', "corrupt"), ('{"mrr":Infinity}', "corrupt"),
+    ('{"generation":{"elapsed":1e400}}', "corrupt"),
+    ('{"cases":[{"timings":[-1e400]}]}', "corrupt"),
+    ('{"retrieval":{"vector":{"overall":{"mrr":1e400}}}}', "corrupt")])
 def test_unavailable_report_is_usable(monkeypatch, tmp_path, content, status):
     from app.api import rageval
     path = tmp_path / "report.json"

@@ -34,13 +34,14 @@ async def run_with_responses(cases, outputs):
 
 
 async def test_status_expectations_stored_snapshot_temperature_and_mismatch():
-    rows = [case("未解决"), case("已解决", id=2), case("无需解决", id=3)]
-    result, requests = await run_with_responses(rows, [{"faithful": False, "reason": "无依据"},
+    rows = [case("未解决", answer="未经人工审核"), case("已解决", id=2), case("无需解决", id=3)]
+    result, requests = await run_with_responses(rows, [
         {"faithful": False, "reason": "修复不改变旧快照"}, {"faithful": False, "reason": "误判"}])
-    assert result["checked"] == 3 and result["mismatches"] == 1 and result["exit_code"] == 1
-    assert [row["expected"] for row in result["cases"]] == [False, False, True]
+    assert result["checked"] == 2 and result["mismatches"] == 1 and result["exit_code"] == 1
+    assert [row["expected"] for row in result["cases"] if row["status"] == "checked"] == [False, True]
+    assert len(requests) == 2
     assert json.loads(requests[0]["messages"][-1]["content"]) == {
-        "query": rows[0]["query"], "answer": rows[0]["answer"], "citations": rows[0]["citations"]}
+        "query": rows[1]["query"], "answer": rows[1]["answer"], "citations": rows[1]["citations"]}
     assert all(request["temperature"] == 0 for request in requests)
     prompt = requests[0]["messages"][0]["content"]
     assert "边界例6" in prompt and "faithful=true" in prompt and "faithful=false" in prompt
@@ -70,6 +71,32 @@ async def test_absent_snapshot_is_excluded_empty_evidence_is_valid():
 async def test_no_cases_is_blocked_not_passed():
     result, requests = await run_with_responses([], [])
     assert result["exit_code"] == 2 and result["agreement_rate"] is None and requests == []
+
+
+async def test_unreviewed_cases_never_call_judge_or_count_as_failures():
+    result, requests = await run_with_responses([case("未解决")], [])
+    assert result["status"] == "incomplete" and result["exit_code"] == 2
+    assert result["checked"] == 0 and result["excluded"] == 0
+    assert result["agreement_rate"] is None and requests == []
+    assert result["cases"][0]["status"] == "skipped"
+
+
+async def test_mixed_ledger_agreement_uses_only_reviewed_snapshots():
+    result, requests = await run_with_responses([case("未解决"), case("已解决", id=2), case("无需解决", id=3)],
+        [{"faithful": False, "reason": "旧答案编造"}, {"faithful": True, "reason": "人工认可"}])
+    assert result["checked"] == 2 and result["excluded"] == 0 and result["mismatches"] == 0
+    assert result["agreement_rate"] == 1.0 and result["exit_code"] == 0
+    assert len(requests) == 2
+
+
+@pytest.mark.parametrize("rows", [[], [case("未解决")]])
+def test_cli_without_reviewed_cases_does_not_construct_model(monkeypatch, capsys, rows):
+    from scripts import judge_check
+    monkeypatch.setattr(judge_check, "load_cases", lambda: rows)
+    monkeypatch.setattr(judge_check, "get_model", lambda: pytest.fail("unreviewed ledger cannot construct model"))
+    assert judge_check.main([]) == 2
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "incomplete" and result["reviewed"] == 0
 
 
 def test_cli_inspection_does_not_construct_model(monkeypatch, capsys):

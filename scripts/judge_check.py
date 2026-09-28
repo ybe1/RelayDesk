@@ -6,13 +6,19 @@ import json
 
 from app.evaluation.faithfulness import EmptyCompletion, judge_faithfulness
 
+REVIEWED_STATUSES = ("已解决", "无需解决")
+
 
 async def replay_cases(cases, model):
     results = []
     for case in cases:
+        if case["status"] == "未解决":
+            results.append({"id": case["id"], "eval_id": case["eval_id"],
+                            "status": "skipped", "reason": "not_reviewed"})
+            continue
         row = {"id": case["id"], "eval_id": case["eval_id"],
                "expected": case["status"] == "无需解决"}
-        if case["status"] not in ("未解决", "已解决", "无需解决") or case["citations"] is None:
+        if case["status"] not in REVIEWED_STATUSES or case["citations"] is None:
             results.append({**row, "status": "excluded", "reason": "missing_snapshot_or_invalid_status"})
             continue
         for attempt in range(2):
@@ -29,7 +35,7 @@ async def replay_cases(cases, model):
                 break
     checked = [row for row in results if row["status"] == "checked"]
     mismatches = sum(not row["match"] for row in checked)
-    excluded = len(results) - len(checked)
+    excluded = sum(row["status"] == "excluded" for row in results)
     code = 1 if mismatches else (2 if excluded or not checked else 0)
     return {"status": "mismatch" if code == 1 else ("incomplete" if code == 2 else "passed"),
             "checked": len(checked), "excluded": excluded, "mismatches": mismatches,
@@ -58,9 +64,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         cases = load_cases()
-        if args.inspect_only or not cases:
-            result = {"status": "blocked", "reason": "cloud_calls_disabled" if args.inspect_only else "no_cases",
-                      "total": len(cases), "reviewed": sum(case["status"] in ("已解决", "无需解决") for case in cases),
+        reviewed = sum(case["status"] in REVIEWED_STATUSES for case in cases)
+        if args.inspect_only or not reviewed:
+            result = {"status": "blocked" if args.inspect_only else "incomplete",
+                      "reason": "cloud_calls_disabled" if args.inspect_only else "no_reviewed_cases",
+                      "total": len(cases), "reviewed": reviewed,
                       "exit_code": 2}
         else:
             result = asyncio.run(replay_cases(cases, get_model()))
