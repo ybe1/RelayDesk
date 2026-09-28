@@ -1,16 +1,47 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>RAG 评估 · 喵喵优选</title>
   <link rel="stylesheet" href="/static/admin.css">
+  <style>
+    .eval-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .eval-meta { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .eval-bar-row { display:grid; grid-template-columns:125px 1fr 55px; gap:9px; align-items:center; margin:10px 0; font-size:13px; }
+    .eval-bar-track { height:12px; border-radius:99px; background:#f3f4f6; overflow:hidden; }
+    .eval-bar-fill { height:100%; border-radius:99px; background:#f97316; }
+    .eval-bar-row .score { text-align:right; font-variant-numeric:tabular-nums; }
+    .eval-bar-row .score.secondary { color:#2563eb; }
+    .eval-bar-row .eval-bar-fill.secondary { background:#2563eb; }
+    .eval-table { min-width:760px; } .ledger-table { min-width:1000px; }
+    .ledger-table td { max-width:260px; white-space:pre-wrap; } .ledger-table .case-actions { min-width:230px; }
+    .case-actions select,.case-actions input { margin-bottom:6px; } .case-actions button { margin-top:2px; }
+    .eval-toolbar { display:flex; gap:9px; flex-wrap:wrap; align-items:end; }
+    .eval-toolbar label { margin:0; } .eval-toolbar select { width:auto; min-width:140px; }
+    .eval-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:9px; margin-top:12px; }
+    .eval-footer .actions { margin:0; } .eval-split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:900px) { .eval-metrics { grid-template-columns:repeat(2,1fr); } .eval-split { grid-template-columns:1fr; } }
+    @media (max-width:520px) { .eval-bar-row { grid-template-columns:95px 1fr 48px; } }
+  </style>
 </head>
 <body>
-  <header class="site-header"><a class="brand" href="/">喵喵优选</a><nav class="site-nav"><a href="/admin">后台管理</a></nav></header>
+  <header class="site-header"><a class="brand" href="/"><span class="brand-mark">🐱</span><span><b>喵喵优选</b><small>智能客服工作台</small></span></a><nav id="app-nav" class="site-nav" aria-label="主导航"></nav></header>
   <main id="rag-eval" class="page">
-    <div class="page-title"><div><h1>RAG 评估</h1><p class="muted">评估报告与人工复核工作台正在准备中。</p></div></div>
-    <article class="card"><p class="muted">当前报告可通过后台管理概览查看。</p><div class="actions"><a href="/admin">返回后台管理</a></div></article>
+    <div class="page-title"><div><h1>RAG 评估</h1><p class="muted">查看已保存的检索与生成指标，复核编造个案。</p></div><button id="eval-refresh" class="secondary" type="button">刷新报告</button></div>
+    <div id="eval-notice" class="notice" role="status"></div>
+    <section class="card" aria-labelledby="report-title"><h2 id="report-title">报告状态</h2><div id="report-meta" class="eval-meta"><span class="status-chip">读取中…</span></div><p id="report-message" class="muted" style="margin-top:10px"></p></section>
+    <section class="section" aria-label="关键指标"><div class="grid eval-metrics">
+      <article class="card metric"><div class="label">最佳 MRR</div><div class="value" id="kpi-mrr">—</div><div class="hint" id="kpi-mrr-hint">等待报告</div></article>
+      <article class="card metric"><div class="label">该策略 Recall@5</div><div class="value" id="kpi-recall">—</div><div class="hint">不含 D 桶</div></article>
+      <article class="card metric"><div class="label">该策略证据覆盖率</div><div class="value" id="kpi-evidence">—</div><div class="hint">按报告原值</div></article>
+      <article class="card metric"><div class="label">生成忠实率</div><div class="value" id="kpi-faith">—</div><div class="hint" id="kpi-faith-hint">等待裁判</div></article>
+    </div></section>
+    <section class="section eval-split"><article class="card"><h2>策略 MRR</h2><p class="muted">已保存总体均值；未完成显示“—”。</p><div id="strategy-chart"></div></article><article class="card"><h2>分桶 MRR</h2><p class="muted">按策略选择；D 桶按报告排除。</p><label for="bucket-strategy" style="margin-top:10px">策略</label><select id="bucket-strategy"></select><div id="bucket-chart"></div></article></section>
+    <section class="section"><div class="section-heading"><span class="section-no">检索</span><h2>策略汇总</h2></div><article class="card"><div class="table-wrap"><table class="eval-table"><thead><tr><th>策略</th><th>完成 / 总数</th><th>Recall@5</th><th>MRR</th><th>证据覆盖率</th></tr></thead><tbody id="retrieval-body"><tr><td colspan="5" class="empty">读取中…</td></tr></tbody></table></div></article></section>
+    <section class="section"><div class="section-heading"><span class="section-no">生成</span><h2>完成情况</h2></div><article class="card"><p id="generation-summary" class="muted">读取中…</p><div class="table-wrap" style="margin-top:12px"><table class="eval-table"><thead><tr><th>策略</th><th>完成 / 总数</th><th>跳过</th><th>答案要点覆盖率</th><th>D 桶拒答率</th></tr></thead><tbody id="generation-body"><tr><td colspan="5" class="empty">读取中…</td></tr></tbody></table></div></article></section>
+    <section class="section"><div class="section-heading"><span class="section-no">台账</span><h2>编造个案复核</h2></div><article class="card"><div class="eval-toolbar"><label for="faith-status">处置状态<br><select id="faith-status"><option value="">全部</option><option>未解决</option><option>已解决</option><option>无需解决</option></select></label><button id="faith-refresh" class="secondary" type="button">刷新台账</button></div><p id="faith-notice" class="muted" role="status" style="margin:10px 0"></p><div class="table-wrap"><table class="ledger-table"><thead><tr><th>题号 / 桶 / 策略</th><th>用户问题与答案</th><th>编造原因 / 证据</th><th>状态 / 次数</th><th>人工处置</th></tr></thead><tbody id="faith-body"><tr><td colspan="5" class="empty">读取中…</td></tr></tbody></table></div><div class="eval-footer"><span id="faith-page" class="muted"></span><div class="actions"><button id="faith-prev" class="secondary" type="button">上一页</button><button id="faith-next" class="secondary" type="button">下一页</button></div></div></article></section>
+    <section class="section"><div class="section-heading"><span class="section-no">作业</span><h2>固定评估任务</h2></div><article class="card heavy"><p class="muted">完整评估可能耗时并调用已配置的模型服务。启动前需要确认；运行状态和日志来自本地作业系统。</p><div class="actions"><button id="eval-start" type="button">启动完整评估…</button><button id="eval-stop" class="danger" type="button">停止评估</button><button id="job-refresh" class="secondary" type="button">刷新状态 / 日志</button></div><p id="job-state" class="muted" role="status" style="margin-top:12px">读取中…</p><pre id="job-log" class="log">尚无日志。</pre></article></section>
   </main>
+  <script src="/static/admin.js"></script><script src="/static/rageval.js"></script>
 </body>
 </html>

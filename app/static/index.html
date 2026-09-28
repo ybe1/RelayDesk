@@ -53,6 +53,7 @@
   header .nav { margin-left: auto; display: flex; gap: 6px; }
   header .nav a { color: var(--text-dim); text-decoration: none; font-size: 13px; padding: 7px 10px; border-radius: 8px; }
   header .nav a:hover { color: #9a3412; background: var(--accent-soft); }
+  header .nav a[aria-current="page"] { color: #9a3412; background: var(--accent-soft); font-weight: 600; }
 
   #messages {
     flex: 1; overflow-y: auto;
@@ -93,6 +94,22 @@
   .tool-trace.running::before { content: '⏳ '; }
   .tool-trace.success::before { content: '✓ '; }
   .tool-trace.failed::before { content: '⚠ '; }
+  .citation { display: inline; margin: 0 2px; padding: 0 4px; border: 0; border-radius: 5px; background: var(--accent-soft); color: #9a3412; font: inherit; font-weight: 700; cursor: pointer; }
+  .citation:focus-visible, .feedback button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .feedback { display: flex; align-items: center; gap: 5px; margin-top: 8px; color: var(--text-dim); font-size: 12px; }
+  .feedback button { padding: 3px 7px; border: 1px solid var(--border); border-radius: 7px; background: #fff; cursor: pointer; }
+  .feedback button.selected { color: #9a3412; border-color: var(--accent); background: var(--accent-soft); }
+  .feedback button:disabled:not(.selected) { opacity: .45; }
+  #citation-dialog { width: min(620px, calc(100% - 32px)); max-height: 85vh; margin: auto; padding: 22px; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 60px #11182740; color: var(--text); }
+  #citation-dialog::backdrop { background: #11182780; }
+  .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .dialog-head h2 { font-size: 19px; }
+  .dialog-close { border: 0; background: var(--accent-soft); color: #9a3412; border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  .source-label { color: var(--text-dim); font-size: 12px; margin: 8px 0 15px; overflow-wrap: anywhere; }
+  .source-section { margin: 14px 0; }
+  .source-section h3 { font-size: 13px; margin-bottom: 5px; }
+  .source-section p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+  .source-state { color: var(--text-dim); font-size: 13px; }
   .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
   .typing span {
     width: 7px; height: 7px; border-radius: 50%;
@@ -136,6 +153,7 @@
       <a href="/" aria-current="page">客服聊天</a>
       <a href="/kb">知识库</a>
       <a href="/admin">后台管理</a>
+      <a href="/rag-eval">RAG 评估</a>
     </nav>
     <div class="status">在线</div>
   </header>
@@ -146,11 +164,95 @@
     <textarea id="input" rows="1" placeholder="输入你的问题，回车发送…"></textarea>
     <button id="send">发送</button>
   </footer>
+  <dialog id="citation-dialog" aria-labelledby="citation-title">
+    <div class="dialog-head"><h2 id="citation-title">引用来源</h2><button id="citation-close" class="dialog-close" type="button" aria-label="关闭引用来源">关闭</button></div>
+    <p id="citation-label" class="source-label"></p>
+    <p id="citation-state" class="source-state" role="status"></p>
+    <div id="citation-detail" hidden>
+      <section class="source-section"><h3>章节路径</h3><p id="citation-path"></p></section>
+      <section class="source-section"><h3>问题</h3><p id="citation-question"></p></section>
+      <section class="source-section"><h3>完整回答</h3><p id="citation-answer"></p></section>
+    </div>
+  </dialog>
 
 <script>
   const messagesEl = document.getElementById('messages');
   const inputEl = document.getElementById('input');
   const sendBtn = document.getElementById('send');
+  const citationDialog = document.getElementById('citation-dialog');
+  const citationState = document.getElementById('citation-state');
+  const citationDetail = document.getElementById('citation-detail');
+  let citationRequest = 0;
+
+  async function openCitation(citation) {
+    const request = ++citationRequest;
+    const previousFocus = document.activeElement;
+    document.getElementById('citation-label').textContent =
+      `[${citation.n}] ${String(citation.section_path || '').slice(0, 140)} · ${String(citation.question || '').slice(0, 120)}`;
+    citationDetail.hidden = true;
+    citationState.textContent = '正在读取完整来源…';
+    citationDialog.showModal();
+    document.getElementById('citation-close').focus();
+    citationDialog.addEventListener('close', () => { citationRequest++; previousFocus?.focus(); }, { once: true });
+    try {
+      const response = await fetch(`/api/kb/chunks/${encodeURIComponent(citation.chunk_id)}`);
+      if (!response.ok) throw new Error(response.status === 404 ? '来源已不存在（404）。' : `读取失败（${response.status}）。`);
+      const detail = await response.json();
+      if (request !== citationRequest || !citationDialog.open) return;
+      document.getElementById('citation-path').textContent = detail.section_path || '未提供';
+      document.getElementById('citation-question').textContent = Array.isArray(detail.questions) ? detail.questions.join('；') : String(detail.questions || '未提供');
+      document.getElementById('citation-answer').textContent = detail.answer || '未提供';
+      citationState.textContent = '';
+      citationDetail.hidden = false;
+    } catch (error) {
+      if (request === citationRequest && citationDialog.open) citationState.textContent =
+        error instanceof TypeError ? '网络连接失败，请稍后重试。' : error.message;
+    }
+  }
+  document.getElementById('citation-close').addEventListener('click', () => citationDialog.close());
+  citationDialog.addEventListener('click', event => {
+    if (event.target === citationDialog) citationDialog.close();
+  });
+
+  function renderAnswer(body, content, citations) {
+    const parts = content.split(/(\[\d+\])/g);
+    body.replaceChildren(...parts.map(part => {
+      const match = /^\[(\d+)\]$/.exec(part);
+      const citation = match && citations.get(Number(match[1]));
+      if (!citation) return document.createTextNode(part);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'citation';
+      button.textContent = part;
+      button.setAttribute('aria-label', `查看引用 ${match[1]}：${String(citation.section_path || '').slice(0, 100)}`);
+      button.title = String(citation.answer_excerpt || citation.question || '').slice(0, 180);
+      button.addEventListener('click', () => openCitation(citation));
+      return button;
+    }));
+  }
+
+  function addFeedback(bubble) {
+    const bar = document.createElement('div');
+    bar.className = 'feedback';
+    bar.setAttribute('aria-label', '评价本次回答');
+    const buttons = ['👍', '👎'].map((label, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.setAttribute('aria-label', index === 0 ? '回答有帮助' : '回答无帮助');
+      button.addEventListener('click', () => {
+        if (buttons.some(item => item.disabled)) return;
+        button.classList.add('selected');
+        buttons.forEach(item => { item.disabled = true; });
+        const done = document.createElement('span');
+        done.textContent = '已反馈';
+        bar.append(done);
+      });
+      return button;
+    });
+    bar.append(...buttons);
+    bubble.append(bar);
+  }
 
   // 服务端分配数字会话 ID；匿名用户标识由浏览器保存。
   let conversationId = Number(localStorage.getItem('mewhelp_conversation_id')) || null;
@@ -189,7 +291,7 @@
   function showTyping(body) {
     const t = document.createElement('span');
     t.className = 'typing';
-    t.innerHTML = '<span></span><span></span><span></span>';
+    for (let i = 0; i < 3; i++) t.appendChild(document.createElement('span'));
     body.appendChild(t);
     scrollToBottom();
     return t;
@@ -218,6 +320,7 @@
     if (eventType === 'error') return { type: 'error', message: data.message || '出错了' };
     if (eventType === 'conversation') return { type: 'conversation', conversationId: data.conversation_id };
     if (eventType === 'tool_status') return { type: 'tool_status', ...data };
+    if (eventType === 'citations') return { type: 'citations', citations: data.citations };
     if (data.delta) return { type: 'delta', delta: data.delta };
     return { type: 'ignore' };
   }
@@ -229,12 +332,14 @@
     inputEl.style.height = 'auto';
 
     addBubble('user', text);
-    const { body, trace } = addBubble('assistant', '');
+    const { bubble, body, trace } = addBubble('assistant', '');
     const typing = showTyping(body);
     setSending(true);
 
     let content = '';
     let failed = false;
+    let completed = false;
+    const citations = new Map();
     try {
       const resp = await fetch('/api/chat', {
         method: 'POST',
@@ -257,8 +362,13 @@
           const res = parseFrame(frame);
           if (res.type === 'delta') {
             content += res.delta;
-            body.textContent = content;
+            renderAnswer(body, content, citations);
             scrollToBottom();
+          } else if (res.type === 'citations') {
+            if (Array.isArray(res.citations)) for (const item of res.citations) {
+              if (Number.isSafeInteger(item?.n) && item.n > 0 && Number.isSafeInteger(item.chunk_id) && item.chunk_id > 0) citations.set(item.n, item);
+            }
+            renderAnswer(body, content, citations);
           } else if (res.type === 'conversation') {
             const id = Number(res.conversationId);
             if (Number.isSafeInteger(id) && id > 0) {
@@ -276,6 +386,7 @@
           } else if (res.type === 'error') {
             throw new Error(res.message);
           } else if (res.type === 'done') {
+            completed = true;
             finished = true;
           }
         }
@@ -287,6 +398,7 @@
     } finally {
       if (typing.parentNode) typing.remove();
       if (!content && !failed) body.textContent = '（未收到回复）';
+      if (completed && content.trim() && !failed) addFeedback(bubble);
       setSending(false);
       scrollToBottom();
     }
