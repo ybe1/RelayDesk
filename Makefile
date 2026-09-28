@@ -1,4 +1,4 @@
-.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild eval-check eval-rag
+.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild eval-check eval-rag judge-check
 
 dev:
 	./scripts/dev.sh
@@ -14,6 +14,9 @@ eval-check:
 
 eval-rag:
 	uv run python -m scripts.eval_ch04
+
+judge-check:
+	uv run python -m scripts.judge_check
 
 kb-preview:
 	uv run python -m scripts.kb preview

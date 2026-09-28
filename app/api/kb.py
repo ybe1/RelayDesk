@@ -217,3 +217,16 @@ def search(request: SearchRequest):
 @router.get("/api/kb/recent")
 def recent(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)):
     return recent_chunks(get_session_factory(), limit=limit, offset=offset)
+
+
+@router.get("/api/kb/chunks/{chunk_id}")
+def chunk_detail(chunk_id: int):
+    """Read the authoritative full source text without any vector-store calls."""
+    from app.db.models import KnowledgeChunk
+    with get_session_factory()() as session:
+        row = session.get(KnowledgeChunk, chunk_id)
+        if row is None:
+            raise HTTPException(404, "knowledge chunk not found")
+        return {"id": row.id, "section_path": row.section_path, "questions": row.questions,
+                "answer": row.answer, "category": row.category, "content_type": row.content_type,
+                "is_key_clause": bool(row.is_key_clause)}
