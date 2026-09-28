@@ -22,7 +22,8 @@ def overview():
     except Exception:
         jobs = None
     try:
-        rag_eval = rag_eval_overview()
+        report_overview = rag_eval_overview()
+        rag_eval = {key: report_overview[key] for key in ("report_status", "best_mrr")}
     except Exception:
         rag_eval = None
     return {"knowledge": knowledge, "jobs": jobs, "rag_eval": rag_eval}

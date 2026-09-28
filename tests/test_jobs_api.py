@@ -1,5 +1,5 @@
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from threading import Event
 
 import pytest
@@ -237,3 +237,79 @@ def test_eval_job_is_marked_heavy_in_job_status(tmp_path):
     assert runner.status("eval-rag")["heavy"] is True
     assert runner.status("kb-reset")["heavy"] is True
     assert runner.status("kb-preview")["heavy"] is False
+
+
+def test_eval_key_assignments_are_redacted_in_every_job_read_path(tmp_path, monkeypatch):
+    from app.api import admin, jobs
+    from app.core.jobs import JobRunner
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "eval_ch04.py").touch()
+    class Process:
+        pid = 123
+        code = None
+        def poll(self): return self.code
+    process = Process()
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs",
+                       popen=lambda *_args, **_kwargs: process)
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    monkeypatch.setattr(admin, "get_job_runner", lambda: runner)
+    monkeypatch.setattr(admin, "kb_overview", lambda: None)
+    monkeypatch.setattr(admin, "rag_eval_overview", lambda: None)
+    client = TestClient(app)
+    assert client.post("/api/jobs/eval-rag", json={"confirmation": "RUN_EVAL_RAG"}).status_code == 202
+    record = runner._jobs["eval-rag"]
+    record["log_file"].write(
+        "CHAT_API_KEY=chat-secret EMBED_API_KEY='embed-secret' RERANK_API_KEY=\"rerank-secret\" "
+        "JUDGE_API_KEY = judge-secret CUSTOM_API_KEY=custom-secret MESSAGE=ready\n")
+    record["log_file"].flush()
+    process.code = 0
+    outputs = [client.get("/api/jobs/eval-rag").json()["log_tail"],
+               next(item for item in client.get("/api/jobs").json() if item["name"] == "eval-rag")["log_tail"],
+               client.post("/api/jobs/eval-rag/stop").json()["log_tail"],
+               next(item for item in client.get("/api/admin/overview").json()["jobs"]
+                    if item["name"] == "eval-rag")["log_tail"]]
+    for output in outputs:
+        assert all(secret not in output for secret in
+                   ("chat-secret", "embed-secret", "rerank-secret", "judge-secret", "custom-secret"))
+        assert output.count("[redacted]") == 5
+        assert "MESSAGE=ready" in output
+
+
+def test_stop_waits_for_slow_eval_spawn_then_stops_the_owned_process(tmp_path, monkeypatch):
+    from app.core import jobs
+    from app.core.jobs import JobRunner
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "eval_ch04.py").touch()
+    spawn_entered = Event()
+    allow_spawn = Event()
+    stop_entered = Event()
+    class Process:
+        pid = 456
+        code = None
+        def poll(self): return self.code
+    process = Process()
+    def popen(*_args, **_kwargs):
+        spawn_entered.set()
+        assert allow_spawn.wait(3)
+        return process
+    runner = JobRunner(project_root=tmp_path, log_dir=tmp_path / "logs", popen=popen)
+    monkeypatch.setattr(jobs.os, "name", "posix")
+    monkeypatch.setattr(jobs.os, "killpg", lambda _pid, _signal: setattr(process, "code", -15), raising=False)
+    def stop():
+        stop_entered.set()
+        return runner.stop("eval-rag")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        started = pool.submit(runner.start, "eval-rag")
+        assert spawn_entered.wait(3)
+        stopped = pool.submit(stop)
+        assert stop_entered.wait(3)
+        try:
+            with pytest.raises(FutureTimeoutError):
+                stopped.result(timeout=0.2)
+        finally:
+            allow_spawn.set()
+        assert started.result()["state"] == "running"
+        assert stopped.result()["state"] == "stopped"
+    assert runner.status("eval-rag")["state"] == "stopped"

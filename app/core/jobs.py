@@ -80,11 +80,11 @@ class JobRunner:
         # Credentials must never be replayed to the UI, including common JSON,
         # header, and standalone bearer-token forms.
         tail = "\n".join(lines[-max(1, min(limit, 200)):])
-        tail = re.sub(r'(?i)("(?:api[_-]?key|token|secret|password|authorization)"\s*:\s*")[^"]*(")', r"\1[redacted]\2", tail)
-        tail = re.sub(r"(?i)(\b(?:api[_-]?key|token|secret|password)\s*[:=]\s*[\"'])[^\"']*([\"'])", r"\1[redacted]\2", tail)
+        tail = re.sub(r'(?i)("(?:(?:[A-Za-z0-9_]+_)?api[_-]?key|token|secret|password|authorization)"\s*:\s*")[^"]*(")', r"\1[redacted]\2", tail)
+        tail = re.sub(r"(?i)(\b(?:(?:[A-Za-z0-9_]+_)?api[_-]?key|token|secret|password)\s*[:=]\s*[\"'])[^\"']*([\"'])", r"\1[redacted]\2", tail)
         tail = re.sub(r"(?i)(\bauthorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;\"}]+", r"\1Bearer [redacted]", tail)
         tail = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [redacted]", tail)
-        return re.sub(r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s,;\"}]+", r"\1=[redacted]", tail)
+        return re.sub(r"(?i)\b((?:[A-Za-z0-9_]+_)?api[_-]?key|token|secret|password)\s*[:=]\s*[^\s,;\"}]+", r"\1=[redacted]", tail)
 
     def tail(self, name: str, limit: int = 200) -> str:
         self._check_name(name)
@@ -147,25 +147,27 @@ class JobRunner:
 
     def stop(self, name: str) -> dict:
         self._check_name(name)
-        record = self._jobs.get(name)
-        if record is None:
+        # A stop arriving during Popen must wait until start owns the process.
+        with self._start_lock:
+            record = self._jobs.get(name)
+            if record is None:
+                return self.status(name)
+            process = record["process"]
+            # A terminal process keeps its actual succeeded/failed state. A
+            # failed or asynchronous termination still owns a live process, so a
+            # subsequent start remains blocked until poll() proves it exited.
+            if process.poll() is not None:
+                return self.status(name)
+            try:
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False, shell=False,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                else:
+                    os.killpg(process.pid, 15)
+            except OSError:
+                return self.status(name)
+            record["stop_requested"] = True
             return self.status(name)
-        process = record["process"]
-        # A terminal process keeps its actual succeeded/failed state.  A
-        # failed or asynchronous termination still owns a live process, so a
-        # subsequent start remains blocked until poll() proves it exited.
-        if process.poll() is not None:
-            return self.status(name)
-        try:
-            if os.name == "nt":
-                subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False, shell=False,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                os.killpg(process.pid, 15)
-        except OSError:
-            return self.status(name)
-        record["stop_requested"] = True
-        return self.status(name)
 
     def shutdown(self) -> None:
         for name in tuple(self._jobs):

@@ -19,7 +19,8 @@ def test_admin_eval_card_reuses_the_saved_report_without_writing(monkeypatch, tm
 
     report = {"meta": {"retrieval_status": "complete"},
               "retrieval": {"hybrid": {"overall": {"mrr": 0.75}}},
-              "generation": {"status": "partial", "faithfulness": {"faithfulness_rate": None}}}
+              "generation": {"status": "partial", "faithfulness": {"faithfulness_rate": None}},
+              "cases": [{"answer": "x" * 100_000}]}
     path = tmp_path / "rag_eval.json"
     path.write_text(json.dumps(report), encoding="utf-8")
     before = path.read_bytes(), path.stat().st_mtime_ns
@@ -28,9 +29,12 @@ def test_admin_eval_card_reuses_the_saved_report_without_writing(monkeypatch, tm
     monkeypatch.setattr(admin, "job_summary", lambda: [])
     client = TestClient(app)
     eval_overview = client.get("/api/rag-eval/overview").json()
-    admin_overview = client.get("/api/admin/overview").json()
-    assert admin_overview["rag_eval"] == eval_overview
-    assert admin_overview["rag_eval"]["report"] == report
+    admin_response = client.get("/api/admin/overview")
+    admin_overview = admin_response.json()
+    assert eval_overview["report"] == report
+    assert admin_overview["rag_eval"] == {
+        "report_status": "partial", "best_mrr": {"strategy": "hybrid", "mrr": 0.75}}
+    assert len(admin_response.content) < 1_000
     assert before == (path.read_bytes(), path.stat().st_mtime_ns)
 
 
