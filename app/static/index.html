@@ -218,15 +218,23 @@
     const parts = content.split(/(\[\d+\])/g);
     body.replaceChildren(...parts.map(part => {
       const match = /^\[(\d+)\]$/.exec(part);
-      const citation = match && citations.get(Number(match[1]));
-      if (!citation) return document.createTextNode(part);
+      if (!match) return document.createTextNode(part);
+      const number = Number(match[1]);
+      const citation = citations.get(number);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'citation';
       button.textContent = part;
-      button.setAttribute('aria-label', `查看引用 ${match[1]}：${String(citation.section_path || '').slice(0, 100)}`);
-      button.title = String(citation.answer_excerpt || citation.question || '').slice(0, 180);
-      button.addEventListener('click', () => openCitation(citation));
+      button.setAttribute('aria-label', `查看引用 ${number}${citation ? `：${String(citation.section_path || '').slice(0, 100)}` : ''}`);
+      button.title = citation ? String(citation.answer_excerpt || citation.question || '').slice(0, 180) : '点击查看引用来源';
+      button.addEventListener('click', () => {
+        const latest = citations.get(number);
+        if (latest) return openCitation(latest);
+        citationDetail.hidden = true;
+        document.getElementById('citation-label').textContent = `[${number}]`;
+        citationState.textContent = '引用来源尚未就绪，请稍后再试。';
+        citationDialog.showModal();
+      });
       return button;
     }));
   }
@@ -366,7 +374,11 @@
             scrollToBottom();
           } else if (res.type === 'citations') {
             if (Array.isArray(res.citations)) for (const item of res.citations) {
-              if (Number.isSafeInteger(item?.n) && item.n > 0 && Number.isSafeInteger(item.chunk_id) && item.chunk_id > 0) citations.set(item.n, item);
+              const n = Number(item?.n);
+              const chunkId = Number(item?.chunk_id);
+              if (Number.isSafeInteger(n) && n > 0 && Number.isSafeInteger(chunkId) && chunkId > 0) {
+                citations.set(n, { ...item, n, chunk_id: chunkId });
+              }
             }
             renderAnswer(body, content, citations);
           } else if (res.type === 'conversation') {
@@ -398,6 +410,7 @@
     } finally {
       if (typing.parentNode) typing.remove();
       if (!content && !failed) body.textContent = '（未收到回复）';
+      if (content && !failed) renderAnswer(body, content, citations);
       if (completed && content.trim() && !failed) addFeedback(bubble);
       setSending(false);
       scrollToBottom();
