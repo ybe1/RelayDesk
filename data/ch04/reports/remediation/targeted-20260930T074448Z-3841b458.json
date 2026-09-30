@@ -1,0 +1,1019 @@
+{
+  "schema": "ch04-remediation/v1",
+  "at": "2026-09-30T07:44:26.822759+00:00",
+  "strategy": "hybrid_rerank",
+  "model": "deepseek-v4-pro",
+  "source_sha256": "313648b6daa81111b2435456254e4107894744da21bd28a9bee0e491914f969a",
+  "prompt_sha256": {
+    "app/evaluation/faithfulness.py": "b4f5a768f29cf2e0c4564f9bd978083729ebb03f66c49151c19aba2334638da0",
+    "app/core/rag_prompts.py": "61801fa78e86fce8559a15088a8a51a9c19d2796754c7f44e82b5122f25f5d2c"
+  },
+  "metric_note": "Whitespace-normalized literal labeled points; semantic review is separate.",
+  "rows": [
+    {
+      "id": "ch04-C-053",
+      "query": "我一单买好几样只来一包，会不会分仓寄的，剩下去哪儿查？",
+      "expected_groups": [
+        {
+          "group_id": "policy",
+          "allowed_section_paths": [
+            "shipping.md / 运费说明 / 拆单配送"
+          ],
+          "expect_points": [
+            "同一订单可能因不同仓库分成多个包裹",
+            "各包裹的物流单号在订单详情页分别展示"
+          ]
+        }
+      ],
+      "retrieval": {
+        "status": "ok",
+        "hits": [
+          {
+            "id": 17,
+            "score": 0.032786883413791656,
+            "text": "分类：运费说明 / 拆单配送\n问题：拆单配送\n答案：演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "拆单配送",
+            "answer": "演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 拆单配送",
+            "section_path": "shipping.md / 运费说明 / 拆单配送",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.6368352770805359,
+            "rank": 1
+          },
+          {
+            "id": 15,
+            "score": 0.030017919838428497,
+            "text": "分类：运费说明 / 物流停滞\n问题：物流停滞\n答案：演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "物流停滞",
+            "answer": "演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 物流停滞",
+            "section_path": "shipping.md / 运费说明 / 物流停滞",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0079329339787364,
+            "rank": 3
+          },
+          {
+            "id": 18,
+            "score": 0.016129031777381897,
+            "text": "分类：运费说明 / 指定快递\n问题：指定快递\n答案：演示数据：普通订单由仓库根据收货区域选择承运商；暂不支持指定快递公司。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "指定快递",
+            "answer": "演示数据：普通订单由仓库根据收货区域选择承运商；暂不支持指定快递公司。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 指定快递",
+            "section_path": "shipping.md / 运费说明 / 指定快递",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0013620717218145728,
+            "rank": 5
+          },
+          {
+            "id": 12,
+            "score": 0.015384615398943424,
+            "text": "分类：退货政策 / 套装退货\n问题：套装退货\n答案：演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "套装退货",
+            "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 套装退货",
+            "section_path": "returns.md / 退货政策 / 套装退货",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0005820383667014539,
+            "rank": 7
+          },
+          {
+            "id": 16,
+            "score": 0.029709506779909134,
+            "text": "分类：运费说明 / 包裹破损\n问题：包裹破损\n答案：演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "包裹破损",
+            "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 包裹破损",
+            "section_path": "shipping.md / 运费说明 / 包裹破损",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0004301927692722529,
+            "rank": 9
+          },
+          {
+            "id": 33,
+            "score": 0.01587301678955555,
+            "text": "分类：售后手册 / 维修寄送\n问题：维修寄送\n答案：演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "维修寄送",
+            "answer": "演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "售后手册 / 维修寄送",
+            "section_path": "after_sales.md / 售后手册 / 维修寄送",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.0004028057446703315,
+            "rank": 10
+          },
+          {
+            "id": 34,
+            "score": 0.01315789483487606,
+            "text": "分类：售后手册 / 电子发票\n问题：电子发票\n答案：演示数据：订单完成后可在订单详情页申请电子发票；开票时需准确填写发票抬头。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "电子发票",
+            "answer": "演示数据：订单完成后可在订单详情页申请电子发票；开票时需准确填写发票抬头。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "售后手册 / 电子发票",
+            "section_path": "after_sales.md / 售后手册 / 电子发票",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.0005783882807008922,
+            "rank": 8
+          },
+          {
+            "id": 13,
+            "score": 0.03057890012860298,
+            "text": "分类：运费说明 / 发货时限\n问题：发货时限\n答案：演示数据：现货订单支付成功后四十八小时内发货；预售订单以商品页标注的发货日期为准。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "发货时限",
+            "answer": "演示数据：现货订单支付成功后四十八小时内发货；预售订单以商品页标注的发货日期为准。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 发货时限",
+            "section_path": "shipping.md / 运费说明 / 发货时限",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0008585871546529233,
+            "rank": 6
+          },
+          {
+            "id": 6,
+            "score": 0.02985074557363987,
+            "text": "分类：售后手册 / 处理流程\n问题：处理流程\n答案：客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "question": "处理流程",
+            "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "category": "售后手册 / 处理流程",
+            "section_path": "after_sales.md / 售后手册 / 处理流程",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.004575053695589304,
+            "rank": 4
+          },
+          {
+            "id": 5,
+            "score": 0.03030303120613098,
+            "text": "分类：商品 FAQ / 商品咨询\n问题：商品咨询\n答案：商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+            "question": "商品咨询",
+            "answer": "商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+            "category": "商品 FAQ / 商品咨询",
+            "section_path": "products.md / 商品 FAQ / 商品咨询",
+            "content_type": "faq",
+            "is_key_clause": false,
+            "rerank_score": 0.056689437478780746,
+            "rank": 2
+          }
+        ],
+        "sufficient": true,
+        "reason": "retrieval_ok",
+        "understood_query": {
+          "normalized_query": "我一单买好几样只来一包，会不会分仓寄的，剩下去哪儿查？",
+          "search_query": "一单买好几样只来一包 会不会分仓寄 剩下包裹去哪儿查 分仓发货 物流查询",
+          "category": null
+        }
+      },
+      "citations": [
+        {
+          "n": 1,
+          "chunk_id": 17,
+          "rank": 1,
+          "section_path": "shipping.md / 运费说明 / 拆单配送",
+          "question": "拆单配送",
+          "answer": "演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.032786883413791656,
+          "rerank_score": 0.6368352770805359,
+          "category": "运费说明 / 拆单配送",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 2,
+          "chunk_id": 15,
+          "rank": 3,
+          "section_path": "shipping.md / 运费说明 / 物流停滞",
+          "question": "物流停滞",
+          "answer": "演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.030017919838428497,
+          "rerank_score": 0.0079329339787364,
+          "category": "运费说明 / 物流停滞",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 3,
+          "chunk_id": 18,
+          "rank": 5,
+          "section_path": "shipping.md / 运费说明 / 指定快递",
+          "question": "指定快递",
+          "answer": "演示数据：普通订单由仓库根据收货区域选择承运商；暂不支持指定快递公司。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.016129031777381897,
+          "rerank_score": 0.0013620717218145728,
+          "category": "运费说明 / 指定快递",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 4,
+          "chunk_id": 12,
+          "rank": 7,
+          "section_path": "returns.md / 退货政策 / 套装退货",
+          "question": "套装退货",
+          "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.015384615398943424,
+          "rerank_score": 0.0005820383667014539,
+          "category": "退货政策 / 套装退货",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 5,
+          "chunk_id": 16,
+          "rank": 9,
+          "section_path": "shipping.md / 运费说明 / 包裹破损",
+          "question": "包裹破损",
+          "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.029709506779909134,
+          "rerank_score": 0.0004301927692722529,
+          "category": "运费说明 / 包裹破损",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 6,
+          "chunk_id": 33,
+          "rank": 10,
+          "section_path": "after_sales.md / 售后手册 / 维修寄送",
+          "question": "维修寄送",
+          "answer": "演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.01587301678955555,
+          "rerank_score": 0.0004028057446703315,
+          "category": "售后手册 / 维修寄送",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 7,
+          "chunk_id": 34,
+          "rank": 8,
+          "section_path": "after_sales.md / 售后手册 / 电子发票",
+          "question": "电子发票",
+          "answer": "演示数据：订单完成后可在订单详情页申请电子发票；开票时需准确填写发票抬头。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.01315789483487606,
+          "rerank_score": 0.0005783882807008922,
+          "category": "售后手册 / 电子发票",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 8,
+          "chunk_id": 13,
+          "rank": 6,
+          "section_path": "shipping.md / 运费说明 / 发货时限",
+          "question": "发货时限",
+          "answer": "演示数据：现货订单支付成功后四十八小时内发货；预售订单以商品页标注的发货日期为准。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.03057890012860298,
+          "rerank_score": 0.0008585871546529233,
+          "category": "运费说明 / 发货时限",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 9,
+          "chunk_id": 6,
+          "rank": 4,
+          "section_path": "after_sales.md / 售后手册 / 处理流程",
+          "question": "处理流程",
+          "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+          "score": 0.02985074557363987,
+          "rerank_score": 0.004575053695589304,
+          "category": "售后手册 / 处理流程",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 10,
+          "chunk_id": 5,
+          "rank": 2,
+          "section_path": "products.md / 商品 FAQ / 商品咨询",
+          "question": "商品咨询",
+          "answer": "商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+          "score": 0.03030303120613098,
+          "rerank_score": 0.056689437478780746,
+          "category": "商品 FAQ / 商品咨询",
+          "content_type": "faq",
+          "is_key_clause": false
+        }
+      ],
+      "original_generation": {
+        "status": "ok",
+        "answer": "同一订单可能因不同仓库分成多个包裹，各包裹的物流单号会在订单详情页分别展示 [1]。因此您一单买好几样只收到一包，可能是分仓拆单配送，其余包裹的物流单号可在订单详情页查看 [1]。",
+        "refused": false,
+        "answer_point_coverage": 0.5
+      },
+      "original_faithfulness": {
+        "status": "ok",
+        "faithful": false,
+        "reason": "证据[1]明确标注\"本条款仅用于教学演示，不代表真实平台承诺\"，且内容为\"演示数据\"。回答将其作为真实平台规则陈述，并据此给出\"可能是分仓拆单配送、其余包裹物流单号可在订单详情页查看\"的肯定性业务承诺，把演示数据当作真实平台能力，属于编造/无真实依据的业务承诺。"
+      },
+      "passed": true,
+      "generation": {
+        "answer": "关于分仓寄送：演示资料中规定，“同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。”[1] 因此，一单多件只收到一包，确实可能是分仓拆单配送，其余包裹的物流单号可在订单详情页分别查看。\n\n关于剩余包裹去向：演示资料未提供“剩余包裹具体去向/查询入口”的专门说明，但结合上述规则，各包裹的物流单号在订单详情页分别展示，可据此追踪其余包裹。[1] 若物流轨迹连续七十二小时未更新，可联系客服核查，核查时需提供订单号。[2]\n\n需要说明：以上条款均标注“仅用于教学演示，不代表真实平台承诺”，因此不能据此确认您真实订单的实际分仓或物流状态，具体请以订单详情页展示的物流信息为准。",
+        "refused": false,
+        "answer_point_coverage": 1.0
+      },
+      "answer_points": [
+        {
+          "point": "同一订单可能因不同仓库分成多个包裹",
+          "covered": true
+        },
+        {
+          "point": "各包裹的物流单号在订单详情页分别展示",
+          "covered": true
+        }
+      ],
+      "faithfulness": {
+        "faithful": true,
+        "reason": "回答关于分仓拆单、各包裹物流单号在订单详情页分别展示、物流停滞72小时可联系客服核查等业务事实均有对应证据[1][2]支持；对剩余包裹去向明确说明资料未提供专门说明，并如实标注条款为教学演示、不代表真实平台承诺，未凭空编造数值或承诺。"
+      }
+    },
+    {
+      "id": "ch04-E-041",
+      "query": "请逐项判断，两个问题都不能遗漏：才拿到六天，东西好好的但盒子没了，这样退会卡住吗？快递三天没动静，我光报名字够不够查，还缺啥？",
+      "expected_groups": [
+        {
+          "group_id": "first_policy",
+          "allowed_section_paths": [
+            "returns.md / 退货政策 / 申请时限"
+          ],
+          "expect_points": [
+            "签收后七日内可申请退货",
+            "商品需保持完好并附带原包装"
+          ]
+        },
+        {
+          "group_id": "second_policy",
+          "allowed_section_paths": [
+            "shipping.md / 运费说明 / 物流停滞"
+          ],
+          "expect_points": [
+            "物流轨迹连续七十二小时未更新可联系客服核查",
+            "核查时需提供订单号"
+          ]
+        }
+      ],
+      "retrieval": {
+        "status": "ok",
+        "hits": [
+          {
+            "id": 1,
+            "score": 0.030414745211601257,
+            "text": "分类：退货政策 / 申请时限\n问题：申请时限\n答案：> [!\nIMPORTANT]\n> 演示规则：签收后七日内可申请退货。\n本材料仅用于演示。",
+            "question": "申请时限",
+            "answer": "> [!\nIMPORTANT]\n> 演示规则：签收后七日内可申请退货。\n本材料仅用于演示。",
+            "category": "退货政策 / 申请时限",
+            "section_path": "returns.md / 退货政策 / 申请时限",
+            "content_type": "policy",
+            "is_key_clause": true,
+            "rerank_score": 0.02684018388390541,
+            "rank": 1
+          },
+          {
+            "id": 7,
+            "score": 0.028404511511325836,
+            "text": "分类：退货政策 / 退货申请入口\n问题：退货申请入口\n答案：演示数据：在订单详情页选择申请售后；提交退货原因和商品照片。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "退货申请入口",
+            "answer": "演示数据：在订单详情页选择申请售后；提交退货原因和商品照片。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 退货申请入口",
+            "section_path": "returns.md / 退货政策 / 退货申请入口",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.020925460383296013,
+            "rank": 3
+          },
+          {
+            "id": 8,
+            "score": 0.029469121247529984,
+            "text": "分类：退货政策 / 退款处理时间\n问题：退款处理时间\n答案：演示数据：退件验收通过后两个工作日内发起退款；到账时间由原支付渠道决定。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "退款处理时间",
+            "answer": "演示数据：退件验收通过后两个工作日内发起退款；到账时间由原支付渠道决定。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 退款处理时间",
+            "section_path": "returns.md / 退货政策 / 退款处理时间",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.009502007625997066,
+            "rank": 5
+          },
+          {
+            "id": 16,
+            "score": 0.03077651560306549,
+            "text": "分类：运费说明 / 包裹破损\n问题：包裹破损\n答案：演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "包裹破损",
+            "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 包裹破损",
+            "section_path": "shipping.md / 运费说明 / 包裹破损",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0052662999369204044,
+            "rank": 7
+          },
+          {
+            "id": 9,
+            "score": 0.02904040366411209,
+            "text": "分类：退货政策 / 退货寄回地址\n问题：退货寄回地址\n答案：演示数据：寄回地址以售后申请审核通过后展示的地址为准；不要直接寄回原发货地址。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "退货寄回地址",
+            "answer": "演示数据：寄回地址以售后申请审核通过后展示的地址为准；不要直接寄回原发货地址。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 退货寄回地址",
+            "section_path": "returns.md / 退货政策 / 退货寄回地址",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0015878237318247557,
+            "rank": 9
+          },
+          {
+            "id": 33,
+            "score": 0.026050420477986336,
+            "text": "分类：售后手册 / 维修寄送\n问题：维修寄送\n答案：演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "维修寄送",
+            "answer": "演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "售后手册 / 维修寄送",
+            "section_path": "after_sales.md / 售后手册 / 维修寄送",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.0014683245681226254,
+            "rank": 10
+          },
+          {
+            "id": 6,
+            "score": 0.013333333656191826,
+            "text": "分类：售后手册 / 处理流程\n问题：处理流程\n答案：客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "question": "处理流程",
+            "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "category": "售后手册 / 处理流程",
+            "section_path": "after_sales.md / 售后手册 / 处理流程",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.003161017084494233,
+            "rank": 8
+          },
+          {
+            "id": 12,
+            "score": 0.030117753893136978,
+            "text": "分类：退货政策 / 套装退货\n问题：套装退货\n答案：演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "套装退货",
+            "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 套装退货",
+            "section_path": "returns.md / 退货政策 / 套装退货",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.009312581270933151,
+            "rank": 6
+          },
+          {
+            "id": 15,
+            "score": 0.0317460335791111,
+            "text": "分类：运费说明 / 物流停滞\n问题：物流停滞\n答案：演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "物流停滞",
+            "answer": "演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 物流停滞",
+            "section_path": "shipping.md / 运费说明 / 物流停滞",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.009635873138904572,
+            "rank": 4
+          },
+          {
+            "id": 2,
+            "score": 0.032522473484277725,
+            "text": "分类：退货政策 / 申请时限\n问题：申请时限\n答案：商品需保持完好并附带原包装。",
+            "question": "申请时限",
+            "answer": "商品需保持完好并附带原包装。",
+            "category": "退货政策 / 申请时限",
+            "section_path": "returns.md / 退货政策 / 申请时限",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.022639382630586624,
+            "rank": 2
+          }
+        ],
+        "sufficient": true,
+        "reason": "retrieval_ok",
+        "understood_query": {
+          "normalized_query": "才拿到六天，东西好好的但盒子没了，这样退会卡住吗？快递三天没动静，我光报名字够不够查，还缺啥？",
+          "search_query": "才拿到六天，东西好好的但盒子没了，这样退会卡住吗？退货 包装盒丢失；快递三天没动静，光报名字够不够查，还缺啥？物流 查询",
+          "category": null
+        }
+      },
+      "citations": [
+        {
+          "n": 1,
+          "chunk_id": 1,
+          "rank": 1,
+          "section_path": "returns.md / 退货政策 / 申请时限",
+          "question": "申请时限",
+          "answer": "> [!\nIMPORTANT]\n> 演示规则：签收后七日内可申请退货。\n本材料仅用于演示。",
+          "score": 0.030414745211601257,
+          "rerank_score": 0.02684018388390541,
+          "category": "退货政策 / 申请时限",
+          "content_type": "policy",
+          "is_key_clause": true
+        },
+        {
+          "n": 2,
+          "chunk_id": 7,
+          "rank": 3,
+          "section_path": "returns.md / 退货政策 / 退货申请入口",
+          "question": "退货申请入口",
+          "answer": "演示数据：在订单详情页选择申请售后；提交退货原因和商品照片。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.028404511511325836,
+          "rerank_score": 0.020925460383296013,
+          "category": "退货政策 / 退货申请入口",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 3,
+          "chunk_id": 8,
+          "rank": 5,
+          "section_path": "returns.md / 退货政策 / 退款处理时间",
+          "question": "退款处理时间",
+          "answer": "演示数据：退件验收通过后两个工作日内发起退款；到账时间由原支付渠道决定。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.029469121247529984,
+          "rerank_score": 0.009502007625997066,
+          "category": "退货政策 / 退款处理时间",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 4,
+          "chunk_id": 16,
+          "rank": 7,
+          "section_path": "shipping.md / 运费说明 / 包裹破损",
+          "question": "包裹破损",
+          "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.03077651560306549,
+          "rerank_score": 0.0052662999369204044,
+          "category": "运费说明 / 包裹破损",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 5,
+          "chunk_id": 9,
+          "rank": 9,
+          "section_path": "returns.md / 退货政策 / 退货寄回地址",
+          "question": "退货寄回地址",
+          "answer": "演示数据：寄回地址以售后申请审核通过后展示的地址为准；不要直接寄回原发货地址。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.02904040366411209,
+          "rerank_score": 0.0015878237318247557,
+          "category": "退货政策 / 退货寄回地址",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 6,
+          "chunk_id": 33,
+          "rank": 10,
+          "section_path": "after_sales.md / 售后手册 / 维修寄送",
+          "question": "维修寄送",
+          "answer": "演示数据：维修寄出前应取下可拆卸的个人存储介质；维修单中应注明订单号和故障现象。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.026050420477986336,
+          "rerank_score": 0.0014683245681226254,
+          "category": "售后手册 / 维修寄送",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 7,
+          "chunk_id": 6,
+          "rank": 8,
+          "section_path": "after_sales.md / 售后手册 / 处理流程",
+          "question": "处理流程",
+          "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+          "score": 0.013333333656191826,
+          "rerank_score": 0.003161017084494233,
+          "category": "售后手册 / 处理流程",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 8,
+          "chunk_id": 12,
+          "rank": 6,
+          "section_path": "returns.md / 退货政策 / 套装退货",
+          "question": "套装退货",
+          "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.030117753893136978,
+          "rerank_score": 0.009312581270933151,
+          "category": "退货政策 / 套装退货",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 9,
+          "chunk_id": 15,
+          "rank": 4,
+          "section_path": "shipping.md / 运费说明 / 物流停滞",
+          "question": "物流停滞",
+          "answer": "演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.0317460335791111,
+          "rerank_score": 0.009635873138904572,
+          "category": "运费说明 / 物流停滞",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 10,
+          "chunk_id": 2,
+          "rank": 2,
+          "section_path": "returns.md / 退货政策 / 申请时限",
+          "question": "申请时限",
+          "answer": "商品需保持完好并附带原包装。",
+          "score": 0.032522473484277725,
+          "rerank_score": 0.022639382630586624,
+          "category": "退货政策 / 申请时限",
+          "content_type": "policy",
+          "is_key_clause": false
+        }
+      ],
+      "original_generation": {
+        "status": "ok",
+        "answer": "当前知识库证据不足，无法可靠回答这个问题。",
+        "refused": true,
+        "answer_point_coverage": 0.0
+      },
+      "original_faithfulness": {
+        "status": "ok",
+        "faithful": false,
+        "reason": "回答称\"当前知识库证据不足，无法可靠回答\"，但所给证据实际可支持回答两个问题：证据1、10显示签收后七日内可申请退货且商品需保持完好并附带原包装（可回应\"六天、盒子没了\"的退货问题）；证据9显示物流轨迹连续七十二小时未更新可联系客服核查且需提供订单号（可回应\"快递三天没动静、光报名字够不够\"的问题）。回答以证据不足为由拒答，遗漏了可依据的关键证据，构成对可回答问题的错误拒答。"
+      },
+      "passed": true,
+      "generation": {
+        "answer": "逐项回答如下：\n\n**问题一：才拿到六天，东西好好的但盒子没了，这样退会卡住吗？**\n\n证据 [1] 规定：\"演示规则：签收后七日内可申请退货。本材料仅用于演示。\" 你拿到六天，在七日内，时限上符合申请退货的条件。\n\n但证据 [10] 同时规定：\"商品需保持完好并附带原包装。\" 你提到\"盒子没了\"，即缺少原包装，这与\"附带原包装\"的要求不符，因此按演示资料中的规定，退货可能会因缺少原包装而被卡住。\n\n需要说明的是，以上均为演示资料中的规定，不代表真实平台承诺，不能据此确认你真实订单的实际处理结果。\n\n**问题二：快递三天没动静，我光报名字够不够查，还缺啥？**\n\n证据 [9] 规定：\"演示数据：物流轨迹连续七十二小时未更新可联系客服核查；核查时需提供订单号。本条款仅用于教学演示，不代表真实平台承诺。\"\n\n快递三天（七十二小时）没动静，符合\"连续七十二小时未更新\"的可核查条件。但核查时\"需提供订单号\"，光报名字是不够的，还缺少订单号。\n\n同样，该条款仅用于教学演示，不代表真实平台承诺。",
+        "refused": false,
+        "answer_point_coverage": 1.0
+      },
+      "answer_points": [
+        {
+          "point": "签收后七日内可申请退货",
+          "covered": true
+        },
+        {
+          "point": "商品需保持完好并附带原包装",
+          "covered": true
+        },
+        {
+          "point": "物流轨迹连续七十二小时未更新可联系客服核查",
+          "covered": true
+        },
+        {
+          "point": "核查时需提供订单号",
+          "covered": true
+        }
+      ],
+      "faithfulness": {
+        "faithful": true,
+        "reason": "问题一：证据[1]支持\"签收后七日内可申请退货\"，证据[10]支持\"商品需保持完好并附带原包装\"，回答据此判断六天在时限内、缺原包装可能被卡住，并明确标注为演示资料、不代表真实平台承诺，忠实。问题二：证据[9]支持\"连续七十二小时未更新可联系客服核查；核查时需提供订单号\"，回答据此判断三天符合条件、光报名字不够还需订单号，并标注演示性质，忠实。两问均无凭空数值、时限或对象错配。"
+      }
+    },
+    {
+      "id": "ch04-E-042",
+      "query": "请逐项判断，两个问题都不能遗漏：买九十八和九十九，就差一块，邮费会差多少？破盒子我拍过照啦，先扔了再找客服没问题吧？",
+      "expected_groups": [
+        {
+          "group_id": "first_policy",
+          "allowed_section_paths": [
+            "shipping.md / 运费说明 / 配送费用"
+          ],
+          "expect_points": [
+            "满 99 元包邮",
+            "不足 99 元运费 8 元"
+          ]
+        },
+        {
+          "group_id": "second_policy",
+          "allowed_section_paths": [
+            "shipping.md / 运费说明 / 包裹破损"
+          ],
+          "expect_points": [
+            "签收时发现外包装破损应拍摄包装和商品照片",
+            "保留包装并及时联系平台客服"
+          ]
+        }
+      ],
+      "retrieval": {
+        "status": "ok",
+        "hits": [
+          {
+            "id": 3,
+            "score": 0.03201844170689583,
+            "text": "分类：运费说明 / 配送费用\n问题：配送费用\n答案：> [!\nIMPORTANT]\n> 演示规则：满 99 元包邮；不足 99 元运费 8 元。\n本材料仅用于演示。",
+            "question": "配送费用",
+            "answer": "> [!\nIMPORTANT]\n> 演示规则：满 99 元包邮；不足 99 元运费 8 元。\n本材料仅用于演示。",
+            "category": "运费说明 / 配送费用",
+            "section_path": "shipping.md / 运费说明 / 配送费用",
+            "content_type": "policy",
+            "is_key_clause": true,
+            "rerank_score": 0.2318762093782425,
+            "rank": 1
+          },
+          {
+            "id": 6,
+            "score": 0.029286926612257957,
+            "text": "分类：售后手册 / 处理流程\n问题：处理流程\n答案：客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "question": "处理流程",
+            "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+            "category": "售后手册 / 处理流程",
+            "section_path": "after_sales.md / 售后手册 / 处理流程",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.006867929827421904,
+            "rank": 3
+          },
+          {
+            "id": 11,
+            "score": 0.0295138880610466,
+            "text": "分类：退货政策 / 非质量退货运费\n问题：非质量退货运费\n答案：演示数据：非质量原因退货的寄回运费由买家承担；不接受到付退件。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "非质量退货运费",
+            "answer": "演示数据：非质量原因退货的寄回运费由买家承担；不接受到付退件。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 非质量退货运费",
+            "section_path": "returns.md / 退货政策 / 非质量退货运费",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.001560057164169848,
+            "rank": 5
+          },
+          {
+            "id": 5,
+            "score": 0.02633402682840824,
+            "text": "分类：商品 FAQ / 商品咨询\n问题：商品咨询\n答案：商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+            "question": "商品咨询",
+            "answer": "商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+            "category": "商品 FAQ / 商品咨询",
+            "section_path": "products.md / 商品 FAQ / 商品咨询",
+            "content_type": "faq",
+            "is_key_clause": false,
+            "rerank_score": 0.00034365427563898265,
+            "rank": 7
+          },
+          {
+            "id": 35,
+            "score": 0.026584506034851074,
+            "text": "分类：售后手册 / 人工客服时段\n问题：人工客服时段\n答案：演示数据：人工客服服务时间为每日九点至二十一点；非服务时段可留言并留下订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "人工客服时段",
+            "answer": "演示数据：人工客服服务时间为每日九点至二十一点；非服务时段可留言并留下订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "售后手册 / 人工客服时段",
+            "section_path": "after_sales.md / 售后手册 / 人工客服时段",
+            "content_type": "manual",
+            "is_key_clause": false,
+            "rerank_score": 0.00024109968217089772,
+            "rank": 9
+          },
+          {
+            "id": 12,
+            "score": 0.027863778173923492,
+            "text": "分类：退货政策 / 套装退货\n问题：套装退货\n答案：演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "套装退货",
+            "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 套装退货",
+            "section_path": "returns.md / 退货政策 / 套装退货",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.00022935181914363056,
+            "rank": 10
+          },
+          {
+            "id": 17,
+            "score": 0.02964426949620247,
+            "text": "分类：运费说明 / 拆单配送\n问题：拆单配送\n答案：演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "拆单配送",
+            "answer": "演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 拆单配送",
+            "section_path": "shipping.md / 运费说明 / 拆单配送",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.0002521903079468757,
+            "rank": 8
+          },
+          {
+            "id": 10,
+            "score": 0.03057890012860298,
+            "text": "分类：退货政策 / 质量问题退货运费\n问题：质量问题退货运费\n答案：演示数据：确认属于质量问题时由商家承担退货运费；寄回前需与客服确认寄件方式。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "质量问题退货运费",
+            "answer": "演示数据：确认属于质量问题时由商家承担退货运费；寄回前需与客服确认寄件方式。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "退货政策 / 质量问题退货运费",
+            "section_path": "returns.md / 退货政策 / 质量问题退货运费",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.001540358760394156,
+            "rank": 6
+          },
+          {
+            "id": 4,
+            "score": 0.03015873208642006,
+            "text": "分类：运费说明 / 配送费用\n问题：配送费用\n答案：偏远地区的配送时效以承运商实际安排为准。",
+            "question": "配送费用",
+            "answer": "偏远地区的配送时效以承运商实际安排为准。",
+            "category": "运费说明 / 配送费用",
+            "section_path": "shipping.md / 运费说明 / 配送费用",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.005349778104573488,
+            "rank": 4
+          },
+          {
+            "id": 16,
+            "score": 0.032522473484277725,
+            "text": "分类：运费说明 / 包裹破损\n问题：包裹破损\n答案：演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "question": "包裹破损",
+            "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+            "category": "运费说明 / 包裹破损",
+            "section_path": "shipping.md / 运费说明 / 包裹破损",
+            "content_type": "policy",
+            "is_key_clause": false,
+            "rerank_score": 0.03358237072825432,
+            "rank": 2
+          }
+        ],
+        "sufficient": true,
+        "reason": "retrieval_ok",
+        "understood_query": {
+          "normalized_query": "买九十八和九十九，就差一块，邮费会差多少？破盒子我拍过照啦，先扔了再找客服没问题吧？",
+          "search_query": "买九十八和九十九，就差一块，邮费会差多少？ 运费 配送费 破盒子我拍过照啦，先扔了再找客服没问题吧？ 包装破损 拍照",
+          "category": null
+        }
+      },
+      "citations": [
+        {
+          "n": 1,
+          "chunk_id": 3,
+          "rank": 1,
+          "section_path": "shipping.md / 运费说明 / 配送费用",
+          "question": "配送费用",
+          "answer": "> [!\nIMPORTANT]\n> 演示规则：满 99 元包邮；不足 99 元运费 8 元。\n本材料仅用于演示。",
+          "score": 0.03201844170689583,
+          "rerank_score": 0.2318762093782425,
+          "category": "运费说明 / 配送费用",
+          "content_type": "policy",
+          "is_key_clause": true
+        },
+        {
+          "n": 2,
+          "chunk_id": 6,
+          "rank": 3,
+          "section_path": "after_sales.md / 售后手册 / 处理流程",
+          "question": "处理流程",
+          "answer": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。",
+          "score": 0.029286926612257957,
+          "rerank_score": 0.006867929827421904,
+          "category": "售后手册 / 处理流程",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 3,
+          "chunk_id": 11,
+          "rank": 5,
+          "section_path": "returns.md / 退货政策 / 非质量退货运费",
+          "question": "非质量退货运费",
+          "answer": "演示数据：非质量原因退货的寄回运费由买家承担；不接受到付退件。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.0295138880610466,
+          "rerank_score": 0.001560057164169848,
+          "category": "退货政策 / 非质量退货运费",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 4,
+          "chunk_id": 5,
+          "rank": 7,
+          "section_path": "products.md / 商品 FAQ / 商品咨询",
+          "question": "商品咨询",
+          "answer": "商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。",
+          "score": 0.02633402682840824,
+          "rerank_score": 0.00034365427563898265,
+          "category": "商品 FAQ / 商品咨询",
+          "content_type": "faq",
+          "is_key_clause": false
+        },
+        {
+          "n": 5,
+          "chunk_id": 35,
+          "rank": 9,
+          "section_path": "after_sales.md / 售后手册 / 人工客服时段",
+          "question": "人工客服时段",
+          "answer": "演示数据：人工客服服务时间为每日九点至二十一点；非服务时段可留言并留下订单号。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.026584506034851074,
+          "rerank_score": 0.00024109968217089772,
+          "category": "售后手册 / 人工客服时段",
+          "content_type": "manual",
+          "is_key_clause": false
+        },
+        {
+          "n": 6,
+          "chunk_id": 12,
+          "rank": 10,
+          "section_path": "returns.md / 退货政策 / 套装退货",
+          "question": "套装退货",
+          "answer": "演示数据：套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.027863778173923492,
+          "rerank_score": 0.00022935181914363056,
+          "category": "退货政策 / 套装退货",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 7,
+          "chunk_id": 17,
+          "rank": 8,
+          "section_path": "shipping.md / 运费说明 / 拆单配送",
+          "question": "拆单配送",
+          "answer": "演示数据：同一订单可能因不同仓库分成多个包裹；各包裹的物流单号在订单详情页分别展示。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.02964426949620247,
+          "rerank_score": 0.0002521903079468757,
+          "category": "运费说明 / 拆单配送",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 8,
+          "chunk_id": 10,
+          "rank": 6,
+          "section_path": "returns.md / 退货政策 / 质量问题退货运费",
+          "question": "质量问题退货运费",
+          "answer": "演示数据：确认属于质量问题时由商家承担退货运费；寄回前需与客服确认寄件方式。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.03057890012860298,
+          "rerank_score": 0.001540358760394156,
+          "category": "退货政策 / 质量问题退货运费",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 9,
+          "chunk_id": 4,
+          "rank": 4,
+          "section_path": "shipping.md / 运费说明 / 配送费用",
+          "question": "配送费用",
+          "answer": "偏远地区的配送时效以承运商实际安排为准。",
+          "score": 0.03015873208642006,
+          "rerank_score": 0.005349778104573488,
+          "category": "运费说明 / 配送费用",
+          "content_type": "policy",
+          "is_key_clause": false
+        },
+        {
+          "n": 10,
+          "chunk_id": 16,
+          "rank": 2,
+          "section_path": "shipping.md / 运费说明 / 包裹破损",
+          "question": "包裹破损",
+          "answer": "演示数据：签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。\n本条款仅用于教学演示，不代表真实平台承诺。",
+          "score": 0.032522473484277725,
+          "rerank_score": 0.03358237072825432,
+          "category": "运费说明 / 包裹破损",
+          "content_type": "policy",
+          "is_key_clause": false
+        }
+      ],
+      "original_generation": {
+        "status": "ok",
+        "answer": "当前知识库证据不足，无法可靠回答这个问题。",
+        "refused": true,
+        "answer_point_coverage": 0.0
+      },
+      "original_faithfulness": {
+        "status": "ok",
+        "faithful": false,
+        "reason": "回答称\"证据不足，无法可靠回答\"，但证据中已明确给出运费规则（满99元包邮、不足99元运费8元），可据此判断98元与99元邮费相差8元；同时证据也明确要求签收时发现外包装破损应拍摄照片并\"保留包装\"及时联系客服，回答却笼统拒答，遗漏了关键限制（需保留包装），未如实反映已有证据。"
+      },
+      "passed": true,
+      "generation": {
+        "answer": "逐项回答如下：\n\n**问题一：买九十八和九十九，就差一块，邮费会差多少？**\n\n证据 [1] 规定（演示规则）：“满 99 元包邮；不足 99 元运费 8 元。”该材料仅用于演示。\n\n据此：买 98 元属于“不足 99 元”，运费为 8 元；买 99 元达到“满 99 元包邮”，运费为 0 元。两者相差 8 元。需要说明，这是演示资料中的规定，不代表真实平台承诺。\n\n**问题二：破盒子拍过照了，先扔了再找客服没问题吧？**\n\n证据 [10] 规定（演示数据）：“签收时发现外包装破损应拍摄包装和商品照片；保留包装并及时联系平台客服。”该条款仅用于教学演示，不代表真实平台承诺。\n\n据此，演示资料中的要求是“保留包装”并及时联系客服，因此先扔掉包装后再找客服，与演示资料中“保留包装”的要求不符。但证据中未说明“先扔包装再找客服”会带来何种具体后果，也无法据此确认您真实订单的实际处理结果。同时，证据 [2] 提到“客服会核验订单和问题描述，再提供相应处理方案”，但未涉及包装已丢弃情况下的具体处理规则，因此无法就“先扔了再找客服是否没问题”给出有依据的肯定结论。",
+        "refused": false,
+        "answer_point_coverage": 1.0
+      },
+      "answer_points": [
+        {
+          "point": "满 99 元包邮",
+          "covered": true
+        },
+        {
+          "point": "不足 99 元运费 8 元",
+          "covered": true
+        },
+        {
+          "point": "签收时发现外包装破损应拍摄包装和商品照片",
+          "covered": true
+        },
+        {
+          "point": "保留包装并及时联系平台客服",
+          "covered": true
+        }
+      ],
+      "faithfulness": {
+        "faithful": true,
+        "reason": "问题一：证据[1]明确\"满99元包邮；不足99元运费8元\"，回答据此得出98元运费8元、99元运费0元、相差8元，并标注为演示规则，有依据。问题二：证据[10]明确要求\"保留包装并及时联系平台客服\"，回答据此指出先扔包装与\"保留包装\"要求不符，并说明证据未涉及丢弃包装后的具体后果、无法给出肯定结论，同时引用证据[2]说明客服核验流程但未涉及该情形，均属有依据的忠实表述，未凭空编造数值、时限或承诺。"
+      }
+    }
+  ],
+  "source_unchanged": true,
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "all_passed": true
+  }
+}
