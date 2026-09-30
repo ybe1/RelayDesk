@@ -62,12 +62,13 @@ def validate_text_fields(row: dict) -> None:
 
 class HybridMilvusStore:
     def __init__(self, *, uri: str | None = None, client: Any | None = None,
-                 collection_name: str = COLLECTION_NAME):
+                 collection_name: str = COLLECTION_NAME, timeout: float = 20.0):
         self.collection_name = collection_name
+        self.timeout = timeout
         if client is None:
             if not uri:
                 raise ValueError("Milvus URI is required")
-            client = MilvusClient(uri=uri)
+            client = MilvusClient(uri=uri, timeout=timeout)
         self.client = client
 
     def ensure_collection(self) -> None:
@@ -124,7 +125,7 @@ class HybridMilvusStore:
         return self._hits(self.client.search(
             collection_name=self.collection_name, data=[data], anns_field=field,
             search_params={"metric_type": metric}, limit=limit,
-            filter=_expression(filter_expr), output_fields=OUTPUT_FIELDS, consistency_level="Strong",
+            filter=_expression(filter_expr), output_fields=OUTPUT_FIELDS, consistency_level="Strong", timeout=self.timeout,
         ))
 
     def hybrid_search(self, vector, text: str, recall_limit: int = 50, output_limit: int = 10,
@@ -140,7 +141,7 @@ class HybridMilvusStore:
                 for data, field, metric in [(vector, "dense", "COSINE"), (text, "sparse", "BM25")]]
         return self._hits(self.client.hybrid_search(
             collection_name=self.collection_name, reqs=reqs, ranker=RRFRanker(), limit=output_limit,
-            output_fields=OUTPUT_FIELDS, consistency_level="Strong",
+            output_fields=OUTPUT_FIELDS, consistency_level="Strong", timeout=self.timeout,
         ))
 
     @staticmethod

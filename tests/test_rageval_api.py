@@ -26,7 +26,8 @@ def test_partial_report_forwards_all_metrics_without_recalculation(monkeypatch, 
     from app.api import rageval
     report = {"meta": {"retrieval_status": "complete"}, "generation": {
         "status": "partial", "faithfulness": {"faithfulness_rate": None, "completed": 0}},
-        "retrieval": {"vector": {"overall": {"mrr": 0.8}}, "bm25": {"overall": {"mrr": 0.9}},
+        "retrieval": {"vector": {"overall": {"mrr": 0.8, "completed": 2, "case_count": 2}},
+                      "bm25": {"overall": {"mrr": 0.9, "completed": 1, "case_count": 2}},
                       "hybrid": {"overall": {"mrr": None}}},
         "cases": {"vector": [{"metrics": {"mrr": 0.1}}]}, "best": {"strategy": "vector", "mrr": 0.8}}
     path = tmp_path / "report.json"
@@ -35,7 +36,29 @@ def test_partial_report_forwards_all_metrics_without_recalculation(monkeypatch, 
     result = TestClient(app).get("/api/rag-eval/overview").json()
     assert result["report"] == report
     assert result["report_status"] == "partial"
-    assert result["best_mrr"] == {"strategy": "bm25", "mrr": 0.9}
+    assert result["best_mrr"] == {"strategy": "vector", "mrr": 0.8}
+
+
+@pytest.mark.parametrize("best,overall", [
+    (None, {"mrr": 0.8, "completed": 2, "case_count": 2}),
+    ({"strategy": "missing", "mrr": 0.8}, {"mrr": 0.8, "completed": 2, "case_count": 2}),
+    ({"strategy": [], "mrr": 0.8}, {"mrr": 0.8, "completed": 2, "case_count": 2}),
+    ({"strategy": "vector", "mrr": 0.9}, {"mrr": 0.8, "completed": 2, "case_count": 2}),
+    ({"strategy": "vector", "mrr": 0.8}, {"mrr": 0.8, "completed": 1, "case_count": 2}),
+    ({"strategy": "vector", "mrr": 0.8}, {"mrr": 0.8}),
+    ({"strategy": "vector", "mrr": 0.8}, {"mrr": 0.8, "completed": True, "case_count": 1}),
+    ({"strategy": "vector", "mrr": 0.8}, {"mrr": 0.8, "completed": 0, "case_count": 0}),
+    ({"strategy": "vector", "mrr": True}, {"mrr": 1.0, "completed": 2, "case_count": 2}),
+])
+def test_overview_does_not_invent_or_trust_invalid_saved_best(monkeypatch, tmp_path, best, overall):
+    from app.api import rageval
+    report = {"best": best, "retrieval": {"vector": {"overall": overall}}}
+    path = tmp_path / "report.json"
+    path.write_text(json.dumps(report), encoding="utf-8")
+    monkeypatch.setattr(rageval, "REPORT_PATH", path)
+    result = TestClient(app).get("/api/rag-eval/overview").json()
+    assert result["report"] == report
+    assert result["best_mrr"] is None
 
 
 def test_report_without_metrics_has_no_invented_best(monkeypatch, tmp_path):

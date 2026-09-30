@@ -18,7 +18,8 @@ def test_admin_eval_card_reuses_the_saved_report_without_writing(monkeypatch, tm
     from app.api import admin, rageval
 
     report = {"meta": {"retrieval_status": "complete"},
-              "retrieval": {"hybrid": {"overall": {"mrr": 0.75}}},
+              "retrieval": {"hybrid": {"overall": {"mrr": 0.75, "completed": 2, "case_count": 2}}},
+              "best": {"strategy": "hybrid", "mrr": 0.75},
               "generation": {"status": "partial", "faithfulness": {"faithfulness_rate": None}},
               "cases": [{"answer": "x" * 100_000}]}
     path = tmp_path / "rag_eval.json"

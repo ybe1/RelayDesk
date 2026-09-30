@@ -10,6 +10,8 @@ FastAPI + LangChain,模型上游直连(DeepSeek 官方,OpenAI 协议)。
 
 旧 `knowledge` 集合保留 6 条用于恢复旧版本。回滚需要恢复上一稳定的 Ch03 应用版本，将集合配置改回 `knowledge`，然后重启；旧集合没有 BM25/dense 字段，不能只改配置让当前 Ch04 混合检索兼容旧 schema。不要删除旧集合。
 
+切换到 `knowledge_ch04` 后，旧 `kb-reset` 管理入口和 `scripts.kb reset --confirmed` 都会明确拒绝执行，保护共享 SQL 原文和两个集合。本章未提供 Ch04 完整重置动作；需要另行设计完整维护流程。
+
 ## Ch04：演示与验收
 
 先确认 Docker Desktop 运行、MySQL 与 Milvus 服务健康，`.env` 已配置 `CHAT_API_KEY`、`EMBED_API_KEY`、独立的 `RERANK_API_KEY` 和 `MILVUS_COLLECTION=knowledge_ch04`。启动已有服务和应用：
@@ -52,9 +54,15 @@ finally:
 
 ```powershell
 uv run python -m scripts.eval_ch04 --phase generation --retry-skipped --concurrency 2 --timeout 90
-# 新一轮完整评估：uv run python -m scripts.eval_ch04（make eval-rag）
+# 继续已有断点（不重试失败项）：uv run python -m scripts.eval_ch04（make eval-rag）
+# 重试失败并继续断点：uv run python -m scripts.eval_ch04 --retry-skipped
+# 新一轮完整评估：uv run python -m scripts.eval_ch04 --fresh
 # 有人工处置且含证据快照的案例后：uv run python -m scripts.judge_check（make judge-check）
 ```
+
+RAG 评估页提供「继续已有断点」「重试失败项」「新一轮完整评估」三种方式，分别映射服务端固定的 `resume`、`retry`、`fresh` 模式。三种方式都需要 `RUN_EVAL_RAG` 确认，不能传任意命令参数。新一轮会重新执行所有项目并替换当前报告；继续断点遇到已经完成的报告时不会再调用模型。
+
+同一报告路径在整个评估运行期间持有跨进程文件锁；其他 CLI 或服务进程会立即报告 `Evaluation busy`（退出码 3），待当前运行退出后再试。旁边的 `.lock` 文件保留，进程退出会释放操作系统锁，无需手动删除文件。
 
 报告位于 `data/ch04/reports/rag_eval.json` 和 `rag_eval.txt`，开发记录位于 `dev-notes/ch04.md`。完整云评估、真实浏览器引用/反馈交互和最终后端/数据评审仍是待验收项。
 

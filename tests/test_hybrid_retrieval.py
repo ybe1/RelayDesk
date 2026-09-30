@@ -1,6 +1,10 @@
 """Ch04 orchestration contracts; remote calls replaced at their boundaries."""
 
 from types import SimpleNamespace
+import asyncio
+import json
+from threading import Event
+import time
 
 import httpx
 import pytest
@@ -271,3 +275,66 @@ async def test_online_search_uses_configured_collection(monkeypatch, strategy):
     result = await retrieval.search_knowledge_ch04('MH-V10', strategy=strategy, understood_query=prepared)
     assert not result.sufficient
     assert calls[0]['collection_name'] == 'knowledge_ch04_shadow'
+
+
+@pytest.mark.parametrize("fails", [False, True])
+async def test_default_faq_timeout_does_not_block_loop_during_milvus_construction(monkeypatch, fails):
+    from app.core import llm
+    from app.knowledge import hybrid_store
+    from app.services.tool_executor import ToolExecutor
+    from app.tools.business import build_tools
+
+    release, constructed, closed = Event(), Event(), Event()
+    class Client:
+        def close(self): closed.set()
+    def slow_client(**kwargs):
+        try:
+            release.wait(0.35)
+            if fails:
+                raise ConnectionError("slow connection failure")
+            return Client()
+        finally:
+            constructed.set()
+    monkeypatch.setattr(llm, "get_chat_model", lambda **_: object())
+    monkeypatch.setattr(hybrid_store, "MilvusClient", slow_client)
+    ticks = []
+    start = time.monotonic()
+    async def ticker():
+        await asyncio.sleep(0.005)
+        ticks.append(time.monotonic() - start)
+    tick = asyncio.create_task(ticker())
+    tool = build_tools(lambda: None, 42, raw_question="邮费")[3]
+    try:
+        message = await ToolExecutor([tool], timeout_seconds=0.025).execute({
+            "name": "query_faq", "args": {"keyword": "邮费"}, "id": "slow"})
+        elapsed = time.monotonic() - start
+        await tick
+        assert json.loads(message.content)["error"]["code"] == "timeout"
+        assert elapsed < 0.2
+        assert ticks[0] < 0.15
+    finally:
+        release.set()
+        await tick
+        assert await asyncio.to_thread(constructed.wait, 2)
+    if not fails:
+        assert await asyncio.to_thread(closed.wait, 2), "late owned connection must be closed after timeout"
+
+
+async def test_slow_constructor_failure_propagates_without_stalling_other_requests(monkeypatch):
+    from app.core import llm
+    from app.knowledge import hybrid_store
+    monkeypatch.setattr(llm, "get_chat_model", lambda **_: object())
+    def slow_failure(**kwargs):
+        time.sleep(0.2)
+        raise ConnectionError("offline")
+    monkeypatch.setattr(hybrid_store, "MilvusClient", slow_failure)
+    started = time.monotonic()
+    ticks = []
+    async def ticker():
+        await asyncio.sleep(0.005)
+        ticks.append(time.monotonic() - started)
+    tick = asyncio.create_task(ticker())
+    with pytest.raises(ConnectionError, match="offline"):
+        await asyncio.wait_for(retrieval.search_knowledge_ch04("邮费"), 1)
+    await tick
+    assert ticks[0] < 0.15

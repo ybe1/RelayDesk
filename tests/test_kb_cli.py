@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import json
 from types import SimpleNamespace
 
+import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -166,7 +167,8 @@ def test_seed_conv_only_appends_missing_synthetic_conversations(monkeypatch):
     assert second["imported"] == 0
 
 
-def test_reset_requires_confirmation_and_never_touches_ch02_rows(monkeypatch):
+@pytest.mark.parametrize("collection", ["knowledge", "knowledge_ch04"])
+def test_reset_requires_confirmation_and_never_touches_ch02_rows(monkeypatch, capsys, collection):
     from scripts import kb
     database = create_engine("sqlite+pysqlite:///:memory:")
     with database.begin() as connection:
@@ -179,13 +181,23 @@ def test_reset_requires_confirmation_and_never_touches_ch02_rows(monkeypatch):
         session.add(QAExtractionStaging(batch_no="b", question="q", answer="a"))
         from app.db.models import FAQ
         session.add(FAQ(id=77, category="ch02", question="旧 FAQ", answer="必须保留"))
+    collections = {"knowledge": [1], "knowledge_ch04": [1]}
     class Store:
         def __init__(self, **_): self.cleared = None
-        def clear_collection(self, name): self.cleared = name
+        def clear_collection(self, name): collections[name].clear()
     monkeypatch.setattr(kb, "MilvusStore", Store)
-    monkeypatch.setattr(kb, "settings", SimpleNamespace(milvus_uri="test"))
+    monkeypatch.setattr(kb, "settings", SimpleNamespace(milvus_uri="test", milvus_collection=collection))
     assert kb.main(["reset"], session_factory=factory, database_engine=object()) == 1
-    assert kb.main(["reset", "--confirmed"], session_factory=factory, database_engine=object(), lock=lambda _: __import__('contextlib').nullcontext()) == 0
+    code = kb.main(["reset", "--confirmed"], session_factory=factory, database_engine=object(), lock=lambda _: __import__('contextlib').nullcontext())
+    assert code == (1 if collection == "knowledge_ch04" else 0)
     with factory() as session:
-        assert session.scalars(select(KnowledgeChunk)).all() == []
+        assert len(session.scalars(select(KnowledgeChunk)).all()) == (1 if collection == "knowledge_ch04" else 0)
+        assert len(session.scalars(select(QAExtractionStaging)).all()) == (1 if collection == "knowledge_ch04" else 0)
         assert session.get(FAQ, 77).answer == "必须保留"
+    if collection == "knowledge_ch04":
+        assert "kb-reset is disabled" in capsys.readouterr().err
+        assert collections == {"knowledge": [1], "knowledge_ch04": [1]}
+        with pytest.raises(ValueError, match="kb-reset is disabled"):
+            kb.reset_knowledge(factory, Store())
+    else:
+        assert collections == {"knowledge": [], "knowledge_ch04": [1]}

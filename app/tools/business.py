@@ -116,11 +116,12 @@ def build_tools(
         from app.knowledge.retrieval import RetrievalResult
         from app.repositories.low_confidence import insert_low_confidence
 
-        result = await _call(retriever or _production_retriever, keyword)
+        query = raw_question if raw_question is not None else keyword
+        result = await _call(retriever or _production_retriever, query)
         legacy = isinstance(result, list)
         if legacy:
             result = RetrievalResult(
-                QueryUnderstanding(normalized_query=keyword, search_query=keyword),
+                QueryUnderstanding(normalized_query=query, search_query=query),
                 result, bool(result), "retrieval_ok" if result else "no_hits",
             )
         if not isinstance(result, RetrievalResult):
@@ -151,7 +152,7 @@ def build_tools(
                                  "answer": item["answer"], "category": item["category"]}
                                 for item in payload["evidence"]]
                 decision = await _call(evidence_checker or _production_checker,
-                                       raw_question if raw_question is not None else keyword, checked_hits)
+                                       query, checked_hits)
                 decision = EvidenceDecision.model_validate(decision)
                 payload["sufficient"] = decision.useful
                 payload["reason"] = decision.reason[:2048]
@@ -164,7 +165,7 @@ def build_tools(
             try:
                 with session_factory() as session:
                     try:
-                        insert_low_confidence(session, conversation_id, raw_question if raw_question is not None else keyword,
+                        insert_low_confidence(session, conversation_id, query,
                                               source, payload["reason"])
                         session.commit()
                     except Exception:

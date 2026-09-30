@@ -26,6 +26,7 @@ import sys
 import time
 
 from app.evaluation.ch04_metrics import answer_point_coverage, refusal_rate, retrieval_metrics
+from app.evaluation.report_lock import ReportBusy, report_lock
 from app.evaluation.faithfulness import (
     FaithfulnessDecision, GeneratedAnswer, citation_snapshot, generate_answer, judge_faithfulness,
 )
@@ -405,7 +406,7 @@ async def _live(args, cases, resume):
     if args.phase == "generation":
         # Replaying saved evidence has no dependency on Milvus or embedding/rerank.
         return await evaluate(cases, retriever=None, **options)
-    async with RetrievalDependencies.from_settings() as deps:
+    async with await RetrievalDependencies.afrom_settings() as deps:
         # Outer deadlines bound async calls. Sync embedding requests also need their
         # own deadline because cancelling asyncio.to_thread cannot kill a thread.
         deps.embedder.timeout, deps.embedder.max_retries = min(args.timeout, 20), 0
@@ -425,22 +426,28 @@ def main(argv=None):
     parser.add_argument("--fresh", action="store_true")
     args = parser.parse_args(argv)
     try:
-        cases = [json.loads(line) for line in args.data.read_text(encoding="utf-8").splitlines()]
-        errors = validate_records(cases)
-        if errors:
-            raise ValueError("; ".join(errors))
-        resume = json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() and not args.fresh else None
-        report = asyncio.run(_live(args, cases, resume))
+        # One owner from checkpoint read through all remote work and final output.
+        # CLI and every JobRunner process use this same report-path lock.
+        with report_lock(args.report):
+            cases = [json.loads(line) for line in args.data.read_text(encoding="utf-8").splitlines()]
+            errors = validate_records(cases)
+            if errors:
+                raise ValueError("; ".join(errors))
+            resume = json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() and not args.fresh else None
+            report = asyncio.run(_live(args, cases, resume))
+            print(render_text(report), end="")
+            if report["meta"]["retrieval_status"] != "complete":
+                return 1
+            if args.phase != "retrieval" and report["generation"]["status"] != "complete":
+                return 2
+            return 0
+    except ReportBusy:
+        print("Evaluation busy: another run owns this report; retry after it exits.", file=sys.stderr)
+        return 3
     except (OSError, ValueError) as error:
         # Configuration, parse, and local I/O errors are actionable CLI failures.
         print(f"Evaluation could not start or save: {type(error).__name__}", file=sys.stderr)
         return 1
-    print(render_text(report), end="")
-    if report["meta"]["retrieval_status"] != "complete":
-        return 1
-    if args.phase != "retrieval" and report["generation"]["status"] != "complete":
-        return 2
-    return 0
 
 
 if __name__ == "__main__":

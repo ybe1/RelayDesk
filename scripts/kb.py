@@ -15,6 +15,7 @@ from app.knowledge.chunks import parse_markdown
 from app.knowledge.importer import import_chunks
 from app.knowledge.indexer import index_pending
 from app.knowledge.locks import writer_lock
+from app.knowledge.maintenance import require_legacy_reset
 from app.knowledge.sources import SOURCE_TYPES, read_demo_source
 
 # Kept as replaceable module attributes for isolated CLI tests.  Real imports
@@ -172,6 +173,10 @@ def seed_conv(*, session_factory: Callable | None = None) -> dict[str, int]:
 
 def reset_knowledge(session_factory: Callable, store) -> dict[str, int]:
     """Clear only the two Ch03 SQL tables and the derived knowledge collection."""
+    runtime_settings = settings
+    if runtime_settings is None:
+        from app.config import settings as runtime_settings
+    require_legacy_reset(runtime_settings.milvus_collection)
     sql_cleared = False
     vector_cleared = False
     try:
@@ -246,11 +251,12 @@ def main(
         elif args.command == "reset":
             if not args.confirmed:
                 raise RuntimeError("reset requires --confirmed")
-            if database_engine is None:
-                from app.db.session import engine as database_engine
             runtime_settings = settings
             if runtime_settings is None:
                 from app.config import settings as runtime_settings
+            require_legacy_reset(runtime_settings.milvus_collection)
+            if database_engine is None:
+                from app.db.session import engine as database_engine
             store_class = MilvusStore
             if store_class is None:
                 from app.knowledge.vector_store import MilvusStore as store_class

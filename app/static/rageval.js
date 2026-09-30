@@ -201,6 +201,7 @@
     $('job-state').textContent = `eval-rag · ${state}${job?.exit_code == null ? '' : ` · 退出码 ${job.exit_code}`}`;
     $('job-log').textContent = job?.log_tail || '尚无日志。';
     $('eval-start').disabled = state === 'running';
+    $('eval-mode').disabled = state === 'running';
     $('eval-stop').disabled = state !== 'running';
     if (jobTimer) clearTimeout(jobTimer);
     if (state === 'running') jobTimer = setTimeout(loadJob, 4000);
@@ -210,7 +211,13 @@
     catch (error) { $('job-state').textContent = `作业状态读取失败：${error.message}`; }
   }
   async function actJob(action) {
-    if (action === 'start' && !window.confirm('启动完整 RAG 评估？该作业可能调用已配置的模型服务并更新评估报告。')) return;
+    const mode = $('eval-mode').value;
+    const descriptions = {
+      resume: '继续已有断点：保留成功结果，失败项不会重试。',
+      retry: '重试失败项：保留成功结果，并继续未完成部分。',
+      fresh: '新一轮完整评估：重新执行全部检索、生成和裁判，并替换现有报告。'
+    };
+    if (action === 'start' && !window.confirm(`${descriptions[mode]}\n该作业可能调用已配置的模型服务并更新评估报告。确认启动？`)) return;
     const button = action === 'start' ? $('eval-start') : $('eval-stop');
     button.disabled = true;
     try {
@@ -218,7 +225,7 @@
       const options = { method: 'POST' };
       if (action === 'start') {
         options.headers = { 'Content-Type': 'application/json' };
-        options.body = JSON.stringify({ confirmation: 'RUN_EVAL_RAG' });
+        options.body = JSON.stringify({ confirmation: 'RUN_EVAL_RAG', mode });
       }
       renderJob(await jsonRequest(url, options));
       notice(action === 'start' ? '评估任务已启动。' : '已请求停止评估。');

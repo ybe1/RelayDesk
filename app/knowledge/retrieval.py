@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from app.knowledge.hybrid_store import HybridMilvusStore, build_filter
 from app.knowledge.query_understanding import QueryUnderstanding, understand_query
 from app.knowledge.rerank import MAX_DOCUMENT_BYTES, MAX_TOTAL_DOCUMENT_BYTES, RerankClient
+
+_CLEANUP_TASKS: set[asyncio.Task] = set()
+
+
+def _cleanup_finished(task):
+    _CLEANUP_TASKS.discard(task)
+    if not task.cancelled() and (error := task.exception()) is not None:
+        logging.getLogger(__name__).warning("Retrieval cleanup failed: %s", type(error).__name__)
 
 
 class Embedder(Protocol):
@@ -68,12 +77,31 @@ class RetrievalDependencies:
             model=get_chat_model(disable_thinking=True),
             embedder=EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key,
                                      model=settings.embed_model),
-            store=HybridMilvusStore(uri=settings.milvus_uri, collection_name=settings.milvus_collection),
             reranker=RerankClient(base_url=settings.rerank_base_url, api_key=settings.rerank_api_key,
                                   model=settings.rerank_model),
             rerank_min_score=settings.rerank_min_score,
             _owns_store=True,
+            # Open the connection last; earlier constructor errors cannot leak it.
+            store=HybridMilvusStore(uri=settings.milvus_uri, collection_name=settings.milvus_collection),
         )
+
+    @classmethod
+    async def afrom_settings(cls) -> RetrievalDependencies:
+        """Construct off-loop; a timed-out caller still owns late-result cleanup."""
+        initialization = asyncio.create_task(asyncio.to_thread(cls.from_settings))
+        try:
+            return await asyncio.shield(initialization)
+        except asyncio.CancelledError:
+            async def close_late_result():
+                try:
+                    owned = await initialization
+                except Exception:
+                    return  # No dependency was returned; consume the late failure.
+                await owned.aclose()
+            cleanup = asyncio.create_task(close_late_result())
+            _CLEANUP_TASKS.add(cleanup)
+            cleanup.add_done_callback(_cleanup_finished)
+            raise
 
     async def __aenter__(self) -> RetrievalDependencies:
         if self._closed:
@@ -118,7 +146,7 @@ async def search_knowledge_ch04(
     if category is not None and (not isinstance(category, str) or category not in settings.rag_category_allowlist):
         raise ValueError("category is outside the configured allowlist")
     if dependencies is None:
-        async with RetrievalDependencies.from_settings() as owned:
+        async with await RetrievalDependencies.afrom_settings() as owned:
             return await search_knowledge_ch04(query, strategy=strategy, top_k=top_k,
                                                category=category, dependencies=owned,
                                                understood_query=understood_query)

@@ -12,7 +12,7 @@ class FakeRunner:
     def __init__(self):
         self.started = []
     def list(self): return []
-    def start(self, name):
+    def start(self, name, *, mode=None):
         self.started.append(name)
         return {"job_id": "j1", "name": name, "state": "running", "exit_code": None, "log_tail": ""}
     def status(self, name, limit=200): return {"job_id": "j1", "name": name, "state": "succeeded", "exit_code": 0, "log_tail": "done"}
@@ -21,6 +21,8 @@ class FakeRunner:
 
 def test_jobs_whitelist_and_reset_confirmation(monkeypatch):
     from app.api import jobs
+    from app.config import settings
+    monkeypatch.setattr(settings, "milvus_collection", "knowledge")
     runner = FakeRunner()
     monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
     client = TestClient(app)
@@ -30,6 +32,19 @@ def test_jobs_whitelist_and_reset_confirmation(monkeypatch):
     assert runner.started == ["kb-reset"]
     assert client.post("/api/jobs/kb-vectorize").status_code == 202
     assert client.get("/api/jobs/kb-vectorize").json()["log_tail"] == "done"
+
+
+def test_legacy_reset_is_blocked_by_server_after_ch04_cutover(monkeypatch):
+    from app.api import jobs
+    from app.config import settings
+
+    runner = FakeRunner()
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    monkeypatch.setattr(settings, "milvus_collection", "knowledge_ch04")
+    response = TestClient(app).post("/api/jobs/kb-reset", json={"confirmation": "RESET_CH03"})
+    assert response.status_code == 409
+    assert "kb-reset is disabled" in response.json()["detail"]
+    assert runner.started == []
 
 
 def test_job_commands_are_fixed_python_argv_and_never_shell(monkeypatch, tmp_path):
@@ -152,6 +167,85 @@ def test_eval_job_rejects_user_supplied_argv(monkeypatch):
         "confirmation": "RUN_EVAL_RAG", "argv": ["-c", "print('untrusted')"]})
     assert response.status_code == 422
     assert runner.started == []
+
+
+@pytest.mark.parametrize("mode,flags", [("resume", []), ("retry", ["--retry-skipped"]), ("fresh", ["--fresh"])])
+def test_eval_api_maps_modes_to_fixed_commands(monkeypatch, tmp_path, mode, flags):
+    from app.api import jobs
+    from app.core.jobs import JobRunner
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "eval_ch04.py").touch()
+    launched = []
+    class Process:
+        def poll(self): return None
+    runner = JobRunner(project_root=tmp_path, popen=lambda argv, **_: (launched.append(argv), Process())[1])
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    client = TestClient(app)
+    assert client.post("/api/jobs/eval-rag", json={"mode": mode}).status_code == 422
+    response = client.post("/api/jobs/eval-rag", json={"confirmation": "RUN_EVAL_RAG", "mode": mode})
+    assert response.status_code == 202
+    assert launched == [[sys.executable, "-m", "scripts.eval_ch04", *flags]]
+    assert response.json()["mode"] == mode
+    assert client.get("/api/jobs/eval-rag").json()["mode"] == mode
+
+
+@pytest.mark.parametrize("name,mode", [("eval-rag", "--fresh --data private"), ("kb-preview", "fresh")])
+def test_job_modes_cannot_become_arbitrary_arguments(monkeypatch, name, mode):
+    from app.api import jobs
+    runner = FakeRunner()
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    response = TestClient(app).post(f"/api/jobs/{name}", json={"confirmation": "RUN_EVAL_RAG", "mode": mode})
+    assert response.status_code == 422
+    assert runner.started == []
+
+
+def test_eval_modes_reach_real_checkpoint_retry_and_new_run(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from app.api import jobs
+    from app.core.jobs import JobRunner
+    from scripts import eval_ch04
+    from tests.test_eval_ch04_runner import cases, retrieve
+
+    counts = {"retrieval": 0, "generation": 0, "judge": 0}
+    failing = True
+    async def retriever(case, strategy):
+        counts["retrieval"] += 1
+        return await retrieve(case, strategy)
+    async def generator(case, result):
+        counts["generation"] += 1
+        if failing and case["id"] == "A1":
+            raise TimeoutError("upstream temporarily unavailable")
+        return {"answer": "满99元包邮", "refused": case["id"] == "D1"}
+    async def judge(*args):
+        counts["judge"] += 1
+        return {"faithful": True, "reason": "有依据"}
+    async def live(args, rows, resume):
+        return await eval_ch04.evaluate(cases(), retriever=retriever, generator=generator,
+            judge=judge, resume=resume, retry_skipped=args.retry_skipped, report_path=args.report)
+    def popen(argv, **kwargs):
+        code = eval_ch04.main(argv[3:])
+        return SimpleNamespace(poll=lambda: code)
+    monkeypatch.setattr(eval_ch04, "DEFAULT_REPORT", tmp_path / "report.json")
+    monkeypatch.setattr(eval_ch04, "_live", live)
+    monkeypatch.setattr(jobs, "get_job_runner", lambda: runner)
+    runner = JobRunner(log_dir=tmp_path / "logs", popen=popen)
+    client = TestClient(app)
+    def start(mode):
+        counts.update(retrieval=0, generation=0, judge=0)
+        response = client.post("/api/jobs/eval-rag", json={"confirmation": "RUN_EVAL_RAG", "mode": mode})
+        assert response.status_code == 202
+        return response.json()
+    assert start("fresh")["exit_code"] == 2
+    assert counts == {"retrieval": 8, "generation": 8, "judge": 0}
+    failing = False
+    assert start("resume")["exit_code"] == 2
+    assert counts == {"retrieval": 0, "generation": 0, "judge": 0}
+    assert start("retry")["exit_code"] == 0
+    assert counts == {"retrieval": 0, "generation": 4, "judge": 1}
+    assert start("fresh")["exit_code"] == 0
+    assert counts == {"retrieval": 8, "generation": 8, "judge": 1}
+    runner.status("eval-rag")
 
 
 def test_eval_runner_uses_fixed_python_module_and_explicit_availability(tmp_path):

@@ -193,3 +193,43 @@ def test_chat_supplies_raw_question_without_changing_model_arguments():
     assert events[-1] == ("done", None)
     assert received == [raw]
     assert store.rows[1].tool_calls[0]["args"] == {"keyword": "邮费"}
+
+
+@pytest.mark.parametrize("raw,keyword", [
+    ("运费是多少？退货期限又是多少？", "运费"),
+    ("不是 MH-V10 Pro，我问的是 MH-V10 的保修期限。", "MH-V10 Pro 保修期限"),
+    ("它的功率是多少？", "MH-V10 Pro 功率"),
+])
+async def test_chat_query_understanding_only_receives_current_raw_question(structured_transport, raw, keyword):
+    from app.knowledge.retrieval import RetrievalDependencies, search_knowledge_ch04
+    from app.knowledge.rerank import RerankClient
+    from app.services.chat import ChatService
+    from app.services.tool_executor import ToolExecutor
+    from app.tools.business import build_tools
+    from tests.test_hybrid_retrieval import Store, Embedder, hit
+
+    model, requests = structured_transport("QueryUnderstanding", {
+        "normalized_query": raw, "search_query": raw, "category": None,
+    })
+    history = MemoryStore()
+    history.rows = [HumanMessage(content="我想买 MH-V10 Pro"), AIMessage(content="请继续提问")]
+    selection = AIMessage(content="", tool_calls=[{"name": "query_faq", "args": {"keyword": keyword}, "id": "raw"}])
+    deps = RetrievalDependencies(model, Embedder(), Store([hit(17)]),
+                                 RerankClient(base_url="https://local.invalid", api_key="test"))
+    async def retrieve(query):
+        return await search_knowledge_ch04(query, strategy="bm25", dependencies=deps)
+    async def check(query, hits):
+        assert query == raw
+        return {"useful": True, "reason": "有依据"}
+    def factory(cid, *, raw_question=None):
+        return build_tools(lambda: None, cid, retrieve, check, raw_question=raw_question)
+    async with deps:
+        service = ChatService(Model(selection), history, factory, ToolExecutor)
+        events = [event async for event in service.events(ChatRequest(user_id="u", message=raw))]
+    assert events[-1] == ("done", None)
+    assert len(requests) == 1
+    messages = requests[0]["messages"]
+    assert [message["role"] for message in messages] == ["system", "user"]
+    assert json.loads(messages[-1]["content"]) == {"current_question": raw}
+    saved_call = next(row for row in history.rows if isinstance(row, AIMessage) and row.tool_calls)
+    assert saved_call.tool_calls[0]["args"] == {"keyword": keyword}

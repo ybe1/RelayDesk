@@ -59,6 +59,28 @@ def row():
                 category='售后', section_path='', content_type='policy', is_key_clause=True)
 
 
+def test_owned_milvus_client_has_a_finite_connection_and_rpc_timeout(monkeypatch):
+    from app.knowledge import hybrid_store
+    class TimedClient:
+        def __init__(self, *, uri, timeout):
+            self.timeout = timeout
+    monkeypatch.setattr(hybrid_store, "MilvusClient", TimedClient)
+    store = hybrid_store.HybridMilvusStore(uri="http://local.invalid")
+    assert store.client.timeout == 20.0
+
+
+@pytest.mark.parametrize("strategy", ["dense", "bm25", "hybrid"])
+def test_online_search_rpc_has_an_explicit_deadline(strategy):
+    store, client = store_and_client()
+    if strategy == "dense":
+        store.dense_search([0.0] * 1024)
+    elif strategy == "bm25":
+        store.bm25_search("邮费")
+    else:
+        store.hybrid_search([0.0] * 1024, "邮费")
+    assert client.calls[0]["timeout"] == 20.0
+
+
 def test_schema_has_exact_caps_analyzer_bm25_and_both_indexes():
     store, client = store_and_client()
     store.ensure_collection()

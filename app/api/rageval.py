@@ -49,6 +49,25 @@ def _validate_finite_values(value):
             _validate_finite_values(child)
 
 
+def _saved_best(report):
+    best, retrieval = report.get("best"), report.get("retrieval")
+    if not isinstance(best, dict) or not isinstance(retrieval, dict):
+        return None
+    strategy, mrr = best.get("strategy"), best.get("mrr")
+    if strategy not in ("vector", "bm25", "hybrid", "hybrid_rerank"):
+        return None
+    values = retrieval.get(strategy)
+    overall = values.get("overall") if isinstance(values, dict) else None
+    if not isinstance(overall, dict):
+        return None
+    completed, count = overall.get("completed"), overall.get("case_count")
+    if (type(completed) is not int or type(count) is not int or count <= 0 or completed != count
+            or type(mrr) not in (int, float) or not math.isfinite(mrr) or not 0 <= mrr <= 1
+            or type(overall.get("mrr")) not in (int, float) or overall["mrr"] != mrr):
+        return None
+    return {"strategy": strategy, "mrr": mrr}
+
+
 @router.get("/api/rag-eval/overview")
 def overview():
     unavailable = {"report_status": "missing", "report": None, "best_mrr": None}
@@ -61,16 +80,8 @@ def overview():
         return unavailable
     except (OSError, ValueError):
         return {**unavailable, "report_status": "corrupt"}
-    # Select from persisted aggregate values. Never infer metrics from case rows.
-    best = None
-    retrieval = report.get("retrieval", {})
-    if isinstance(retrieval, dict):
-        for strategy, values in retrieval.items():
-            overall = values.get("overall") if isinstance(values, dict) else None
-            mrr = overall.get("mrr") if isinstance(overall, dict) else None
-            if type(mrr) in (int, float) and math.isfinite(mrr) and 0 <= mrr <= 1:
-                if best is None or mrr > best["mrr"]:
-                    best = {"strategy": strategy, "mrr": mrr}
+    # Only expose the persisted winner after validating its complete denominator.
+    best = _saved_best(report)
     generation = report.get("generation", {})
     meta = report.get("meta", {})
     complete = (isinstance(generation, dict) and generation.get("status") == "complete"

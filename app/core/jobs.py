@@ -40,6 +40,7 @@ JOB_MODULES = {
     "eval-rag": Path("scripts/eval_ch04.py"),
 }
 HEAVY_JOBS = frozenset({"kb-reset", "eval-rag"})
+EVAL_MODES = {"resume": (), "retry": ("--retry-skipped",), "fresh": ("--fresh",)}
 
 
 class UnknownJob(LookupError):
@@ -105,10 +106,17 @@ class JobRunner:
         state, code = self._state(record)
         return {"job_id": record["job_id"], "name": record["name"], "state": state,
                 "exit_code": code, "log_tail": self._tail(record["log_path"], limit),
-                "heavy": record["name"] in HEAVY_JOBS}
+                "heavy": record["name"] in HEAVY_JOBS, "mode": record.get("mode")}
 
-    def start(self, name: str) -> dict:
+    def start(self, name: str, *, mode: str | None = None) -> dict:
         self._check_name(name)
+        if name == "eval-rag":
+            mode = "resume" if mode is None else mode
+            if mode not in EVAL_MODES:
+                raise ValueError("unsupported eval-rag mode")
+        elif mode is not None:
+            raise ValueError("mode is only supported for eval-rag")
+        argv = [*JOBS[name], *(EVAL_MODES[mode] if mode else ())]
         with self._start_lock:
             if not self._available(name):
                 raise JobUnavailable(f"{name} is unavailable: required module {JOB_MODULES[name]} is missing")
@@ -123,11 +131,11 @@ class JobRunner:
             else:
                 kwargs["start_new_session"] = True
             try:
-                process = self.popen(JOBS[name], **kwargs)
+                process = self.popen(argv, **kwargs)
             except Exception:
                 log_file.close()
                 raise
-            self._jobs[name] = {"job_id": uuid.uuid4().hex, "name": name, "process": process,
+            self._jobs[name] = {"job_id": uuid.uuid4().hex, "name": name, "mode": mode, "process": process,
                                 "log_path": path, "log_file": log_file, "stop_requested": False}
             return self._payload(self._jobs[name])
 
