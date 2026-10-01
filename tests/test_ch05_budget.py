@@ -101,3 +101,22 @@ async def test_model_timeout_charges_request_and_stops():
         await BudgetedModel(Slow(), budget).ainvoke([HumanMessage(content="问题")])
     assert budget.snapshot()["model_calls"] == 1
     assert budget.snapshot()["tokens"] > 0
+
+
+async def test_large_old_tool_turn_is_trimmed_before_budget_preflight():
+    from app.workflow.budget import TurnBudget, Limits
+    from app.workflow.model import BudgetedModel
+    from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+    class Model:
+        async def ainvoke(self, messages, **kwargs):
+            assert [m.type for m in messages] == ['system', 'human']
+            assert messages[-1].content == 'policy'
+            return AIMessage(content='answer', usage_metadata={'input_tokens':10,'output_tokens':2,'total_tokens':12})
+    messages = [SystemMessage(content='rules'), HumanMessage(content='old'),
+        AIMessage(content='', tool_calls=[{'name':'query_faq','args':{},'id':'old'}]),
+        ToolMessage(content='x'*8000,tool_call_id='old'), AIMessage(content='old answer'),
+        HumanMessage(content='policy')]
+    budget = TurnBudget(Limits(tokens=4000), clock=lambda:0)
+    result = await BudgetedModel(Model(),budget,output_cap=100).ainvoke(messages)
+    assert result.content == 'answer'
+    assert len(messages) == 6

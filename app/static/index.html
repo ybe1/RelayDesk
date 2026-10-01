@@ -497,6 +497,12 @@
       body.textContent = '（小喵走神了：' + err.message + '）';
     } finally {
       if (typing.parentNode) typing.remove();
+      if (toolBadges.size === 0) {
+        trace.textContent = '';
+        trace.className = 'tool-trace';
+      } else {
+        trace.classList.remove('running');
+      }
       if (!content && !failed) body.textContent = '（未收到回复）';
       if (content && !failed) renderAnswer(body, content, citations);
       if (completed && content.trim() && !failed) addFeedback(bubble);

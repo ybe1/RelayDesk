@@ -1,0 +1,33 @@
+{
+  "http_status": 200,
+  "answer": "关于退货政策，为您整理如下：\n\n1. 套装退货需一并寄回主商品和全部配件，随单赠品也需一并寄回[1]。\n2. 退件验收通过后两个工作日内发起退款，到账时间由原支付渠道决定[2]。\n3. 确认属于质量问题时由商家承担退货运费，寄回前需与客服确认寄件方式[3]。\n4. 寄回地址以售后申请审核通过后展示的地址为准，不要直接寄回原发货地址[4]。\n5. 非质量原因退货的寄回运费由买家承担，不接受到付退件[8]。\n6. 在订单详情页选择申请售后，提交退货原因和商品照片[9]。\n7. 签收后七日内可申请退货[10]。\n\n如需查询具体订单的售后情况，请提供订单号。",
+  "summary": {
+    "node_trace": [
+      "resolve",
+      "intent",
+      "retrieval",
+      "confidence_gate",
+      "decision",
+      "final_answer",
+      "log"
+    ],
+    "stop_reason": "answered",
+    "usage": {
+      "model_calls": 4,
+      "tool_steps": 0,
+      "tokens": 3894,
+      "estimated": false,
+      "elapsed": 5.562000000001717,
+      "external_usage": {
+        "embedding": {
+          "calls": 1,
+          "seconds": 0.3440000000009604
+        },
+        "rerank": {
+          "calls": 1,
+          "seconds": 0.6870000000017171
+        }
+      }
+    }
+  }
+}

@@ -26,10 +26,23 @@ class BudgetedModel:
         if isinstance(bound_kwargs, dict) and bound_kwargs.get("tools"):
             inputs += len(json.dumps(bound_kwargs["tools"], ensure_ascii=False).encode("utf-8"))
         cap = min(kwargs.pop("max_tokens", self.output_cap), self.output_cap)
+        # The existing approximate history limit can retain a large old tool
+        # result. Fit complete prior user turns to this request's actual
+        # conservative preflight; never split a tool request/result pair or
+        # remove the current turn/system instructions.
+        while self.budget.tokens + inputs + cap > self.budget.limits.tokens:
+            starts = [i for i, message in enumerate(messages) if message.type == "human"]
+            if len(starts) < 2:
+                break
+            first, next_turn = starts[:2]
+            removed = messages[first:next_turn]
+            inputs -= sum(len(str(m.model_dump()).encode("utf-8")) for m in removed)
+            del messages[first:next_turn]
         self.budget.reserve_llm(inputs, cap)
         return cap
 
     async def ainvoke(self, messages, **kwargs):
+        messages = list(messages)
         cap = self._reserve(messages, kwargs)
         usage = None
         try:
@@ -48,6 +61,7 @@ class BudgetedModel:
             self.budget.settle_llm(usage)
 
     async def astream(self, messages, **kwargs):
+        messages = list(messages)
         cap = self._reserve(messages, kwargs)
         usage = None
         try:
