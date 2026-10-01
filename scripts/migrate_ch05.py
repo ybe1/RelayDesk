@@ -29,6 +29,17 @@ def migrate(apply=False):
                 conn.commit()
         if not operations:
             print("Ch05 messages schema is current")
+        from app.db.models import ChatActionOffer
+        if not inspect(conn).has_table("chat_action_offers"):
+            print(("APPLY: " if apply else "PENDING: ") + "CREATE TABLE chat_action_offers")
+            operations.append("CREATE TABLE chat_action_offers")
+            if apply:
+                ChatActionOffer.__table__.create(conn)
+                conn.commit()
+        else:
+            fields = {c["name"] for c in inspect(conn).get_columns("chat_action_offers")}
+            if fields != set(ChatActionOffer.__table__.c.keys()):
+                raise RuntimeError("chat_action_offers schema mismatch; review required")
         return operations
 
 

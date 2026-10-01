@@ -85,6 +85,7 @@ def build_tools(
     raw_question: str | None = None,
     budget=None,
     model=None,
+    ticket_session=None,
 ):
     """Bind persistence and trusted conversation identity to model-visible tools."""
     if budget is not None:
@@ -193,6 +194,10 @@ def build_tools(
         """为当前客服会话创建人工工单。会话身份由服务端确定。"""
         from app.repositories.tickets import create_ticket as save_ticket
 
+        if ticket_session is not None:
+            ticket = save_ticket(ticket_session, conversation_id, description, ticket_type)
+            return json.dumps({"ticket_no": ticket.ticket_no, "conversation_id": conversation_id,
+                               "status": "待处理"}, ensure_ascii=False)
         with session_factory() as session:
             try:
                 ticket = save_ticket(session, conversation_id, description, ticket_type)

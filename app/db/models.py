@@ -34,6 +34,20 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 
+class ChatActionOffer(Base):
+    __tablename__ = "chat_action_offers"
+    __table_args__ = (Index("uk_offer_turn_action", "conversation_id", "turn_id", "action", unique=True),
+                      {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4"})
+    offer_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), ForeignKey("conversations.id"), nullable=False)
+    turn_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[str] = mapped_column(mysql.ENUM("handoff", "ticket"), nullable=False)
+    defaults: Mapped[dict] = mapped_column(JSON, nullable=False)
+    confirmed_params: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    ticket_no: Mapped[str | None] = mapped_column(String(32), ForeignKey("tickets.ticket_no"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+
+
 class FAQ(Base):
     __tablename__ = "faq"
     __table_args__ = (Index("idx_category", "category"), {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4"})
