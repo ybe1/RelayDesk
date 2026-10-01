@@ -7,6 +7,9 @@ class BudgetedModel:
     def __init__(self, model, budget, output_cap=1024):
         self.model, self.budget, self.output_cap = model, budget, output_cap
 
+    def with_structured_output(self, schema, **kwargs):
+        return BudgetedModel(self.model.with_structured_output(schema, **kwargs), self.budget, self.output_cap)
+
     def _reserve(self, messages, kwargs):
         # UTF-8 bytes deliberately overestimate ordinary text tokens. Include
         # message envelopes/tool requests rather than just visible content.

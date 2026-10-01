@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     agent_max_model_calls: int = 6
     agent_max_tokens: int = 12000
     agent_timeout_seconds: float = 120
+    workflow_gate_threshold: float = 0.032755612017354
+    workflow_checkpoint_path: str = "data/runtime/ch05-checkpoints.sqlite"
     database_url: str = "mysql+pymysql://mewhelp:mewhelp_local@127.0.0.1:3307/mewhelp?charset=utf8mb4"
     embed_base_url: str = "https://api.siliconflow.cn/v1"
     embed_model: str = "BAAI/bge-m3"

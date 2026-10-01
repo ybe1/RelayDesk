@@ -83,8 +83,20 @@ def build_tools(
     evidence_checker: Callable | None = None,
     *,
     raw_question: str | None = None,
+    budget=None,
+    model=None,
 ):
     """Bind persistence and trusted conversation identity to model-visible tools."""
+    if budget is not None:
+        from app.workflow.retrieval import retrieve_for_turn, check_for_turn
+        if retriever is None:
+            async def retriever(query):
+                return await retrieve_for_turn(query, budget)
+        if evidence_checker is None:
+            async def evidence_checker(query, hits):
+                if model is None:
+                    raise ValueError("budgeted FAQ requires a model")
+                return await check_for_turn(query, hits, model, budget)
 
     @tool(args_schema=OrderArgs)
     def query_order(order_id: str) -> str:
