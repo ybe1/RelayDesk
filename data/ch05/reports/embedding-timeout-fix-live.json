@@ -1,0 +1,47 @@
+{
+  "attempts": [
+    {
+      "port": 8001,
+      "conversation_id": 39,
+      "http_status": 200,
+      "answer": "您好，关于退货政策，为您整理如下本次查询已达到处理上限，请补充问题后重试。",
+      "summary": {
+        "node_trace": [
+          "resolve",
+          "intent",
+          "retrieval",
+          "confidence_gate",
+          "decision",
+          "final_answer",
+          "log"
+        ],
+        "stop_reason": "deadline",
+        "usage": {
+          "model_calls": 4,
+          "tool_steps": 0,
+          "tokens": 9925,
+          "estimated": true,
+          "elapsed": 120.03200000000288,
+          "external_usage": {
+            "embedding": {
+              "calls": 1,
+              "seconds": 20.7029999999977
+            },
+            "rerank": {
+              "calls": 1,
+              "seconds": 0.5780000000013388
+            }
+          }
+        }
+      }
+    },
+    {
+      "port": 8001,
+      "conversation_id": 39,
+      "http_status": 200,
+      "answer": "",
+      "summary": {},
+      "seconds": 15.2970000000023
+    }
+  ]
+}

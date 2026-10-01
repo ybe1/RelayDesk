@@ -69,7 +69,15 @@ class EmbeddingClient:
 
         with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
             for attempt in range(self.max_retries + 1):
-                response = client.post(f"{self.base_url}/embeddings", headers=headers, json=payload)
+                try:
+                    response = client.post(f"{self.base_url}/embeddings", headers=headers, json=payload)
+                except httpx.ReadTimeout:
+                    # Embedding is read-only. A slow provider response may be
+                    # retried within the existing bounded attempt count.
+                    if attempt == self.max_retries:
+                        raise
+                    self.sleep(0.25 * (2**attempt))
+                    continue
                 if response.status_code in _RETRYABLE_STATUS_CODES and attempt < self.max_retries:
                     self.sleep(0.25 * (2**attempt))
                     continue

@@ -136,3 +136,22 @@ def test_embed_does_not_retry_a_transport_error():
     with pytest.raises(httpx.ConnectError):
         client.embed(["hello"])
     assert attempts == 1
+
+
+@pytest.mark.parametrize('recover', [True, False])
+def test_embedding_read_timeout_uses_bounded_retries(recover):
+    from app.knowledge.embedding import EmbeddingClient
+    requests, sleeps = [], []
+    def handler(request):
+        requests.append(request)
+        if not recover or len(requests) == 1:
+            raise httpx.ReadTimeout('temporary slow response', request=request)
+        return httpx.Response(200, json={'data':[{'index':0,'embedding':_vector()}]})
+    client = EmbeddingClient(base_url='https://example.test',api_key='key',
+        transport=httpx.MockTransport(handler),max_retries=2,sleep=sleeps.append)
+    if recover:
+        assert client.embed(['policy']) == [_vector()]
+        assert len(requests) == 2 and sleeps == [0.25]
+    else:
+        with pytest.raises(httpx.ReadTimeout): client.embed(['policy'])
+        assert len(requests) == 3 and sleeps == [0.25,0.5]
