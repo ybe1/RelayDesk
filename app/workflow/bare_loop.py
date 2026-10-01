@@ -33,9 +33,8 @@ async def run_bare_loop(messages, deps, budget):
                 messages.append(tool_error(call, "user_confirmation_required"))
             else:
                 try:
-                    budget.reserve_tool()
                     async with asyncio.timeout(budget.remaining_seconds()):
-                        observation = await deps.executor.execute(call)
+                        observation = await deps.executor.execute(call, before_attempt=budget.reserve_tool)
                     messages.append(observation)
                 except (BudgetExceeded, TimeoutError) as exc:
                     stopped = str(exc) if isinstance(exc, BudgetExceeded) else "deadline"

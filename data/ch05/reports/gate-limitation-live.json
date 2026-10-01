@@ -1,0 +1,24 @@
+{
+  "query": "火星移民签证的退款周期是多少",
+  "conversation_id": 308,
+  "node_trace": [
+    "resolve",
+    "intent",
+    "retrieval",
+    "confidence_gate",
+    "decision",
+    "tools",
+    "decision",
+    "stop",
+    "log"
+  ],
+  "answer": "本次查询已达到处理上限，请补充问题后重试。",
+  "pool": [
+    {
+      "raw_question": "火星移民签证的退款周期是多少",
+      "source": "self_check",
+      "reason": "问题询问\"火星移民签证\"的退款周期，但证据均为退货政策、运费说明、售后手册等通用演示数据，未涉及\"火星移民签证\"这一对象，型号/对象不匹配，无法回答该具体业务的退款周期。"
+    }
+  ],
+  "passed": false
+}

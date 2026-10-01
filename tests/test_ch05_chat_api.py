@@ -107,3 +107,27 @@ async def test_policy_service_citations_precede_child_answer():
     events = [event async for event in service.events(ChatRequest(user_id="ch05-child-policy", message="邮费是多少"))]
     kinds = [kind for kind, _ in events]
     assert kinds.index("citations") < kinds.index("delta")
+
+
+async def test_policy_then_business_round_resets_checkpoint_evidence(tmp_path):
+    from app.workflow.runtime import checkpoint_runtime
+    from app.workflow.service import WorkflowChatService
+    from app.workflow.graph import build_workflow
+    from langchain_core.messages import AIMessage
+    from tests.test_ch05_gate import result
+    from tests.test_ch05_agent_graph import tools_decision
+    models = iter([
+        GraphModel([AIMessage(content='{"intent":"退款退货"}'), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}]),
+        GraphModel([AIMessage(content='{"intent":"物流"}'), tools_decision("query_logistics"), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])])
+    async def retrieve(query, budget): return result()
+    async with checkpoint_runtime(tmp_path / "rounds.sqlite") as saver:
+        graph = build_workflow(checkpointer=saver)
+        service = WorkflowChatService(graph, DatabaseChatStore(SessionLocal), model_factory=lambda: next(models), retriever=retrieve)
+        events = [e async for e in service.events(ChatRequest(user_id="ch05-rounds", message="退货政策"))]
+        cid = events[0][1]["conversation_id"]
+        events = [e async for e in service.events(ChatRequest(user_id="ch05-rounds", conversation_id=cid, message="订单1001物流"))]
+        assert not any(kind == "citations" for kind, _ in events)
+        state = (await graph.aget_state({"configurable": {"thread_id": f"conversation:{cid}"}})).values
+        assert state["evidence"] == state["citations"] == state["actions"] == []
+        assert "retrieval" not in state["node_trace"]
+        assert state["budget_usage"]["model_calls"] == 4

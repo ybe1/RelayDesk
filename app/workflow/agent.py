@@ -89,10 +89,9 @@ def build_agent_graph(deps=None):
                 observation = tool_error(call, "user_confirmation_required")
             else:
                 try:
-                    context.budget.reserve_tool()
                     get_stream_writer()(("tool_status", {"tool": call["name"], "status": "running", "tool_call_id": call["id"]}))
                     async with asyncio.timeout(context.budget.remaining_seconds()):
-                        observation = await selected.executor.execute(call)
+                        observation = await selected.executor.execute(call, before_attempt=context.budget.reserve_tool)
                 except (BudgetExceeded, TimeoutError) as exc:
                     stopped = str(exc) if isinstance(exc, BudgetExceeded) else "deadline"
                     observation = tool_error(call, stopped)

@@ -36,6 +36,7 @@ async def chat(req: ChatRequest, service: ChatService = Depends(get_chat_service
         except RuntimeError as exc:
             raise HTTPException(409, "此会话正在处理，请等待本轮完成") from exc
     async def event_stream() -> AsyncIterator[str]:
+        events = None
         try:
             events = service.events(req, prepared=prepared) if prepared else service.events(req)
             async for kind, data in events:
@@ -57,6 +58,8 @@ async def chat(req: ChatRequest, service: ChatService = Depends(get_chat_service
             yield "event: error\n"
             yield f"data: {json.dumps({'message': '服务暂时不可用，请稍后重试'}, ensure_ascii=False)}\n\n"
         finally:
+            if events is not None:
+                await events.aclose()
             if prepared is not None:
                 service.release(prepared)
 

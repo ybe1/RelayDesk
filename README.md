@@ -177,3 +177,7 @@ uv run pytest -q
 检查点默认 `data/runtime/ch05-checkpoints.sqlite`，仅支持本机单实例，不能使用多worker/多副本共同处理同一会话。MySQL为聊天/工单账本，SQLite为图状态；跨库不承诺原子提交。断线后停止本轮并闭合已落账工具申请，下一消息开始新轮，不自动重放写动作或续传旧token。匿名user_id沿用现有演示身份约定，不代表已完成生产登录鉴权。
 
 开发过程：`dev-notes/ch05.md`；设计与计划：`docs/superpowers/specs/2026-10-02-ch05-workflow-agent-design.md`、`docs/superpowers/plans/2026-10-02-ch05-workflow-agent.md`。
+
+最终回归：548项通过；真实五题验收5/5、意图标注28/28、浏览器交互7/7。工具重试每次实际调用计入5次执行上限；断连清理等待已开始的数据库写入完成，随后闭合工具申请并释放会话占用。
+
+本章置信度闸仅按小样本校准的重排分数判断。“平台提供火星移民签证吗”实测在闸前拒绝并入池，见`data/ch05/reports/low-confidence-live.json`；“火星移民签证的退款周期是多少”可能因退款词误放行，后续自评虽入池但受预算停止，见`gate-limitation-live.json`。阈值不能替代正式语义充分性检查。另有一个延后的小项：`tool_status`运行与完成帧使用不同字段命名，当前聊天页兼容两者，严格使用旧契约的其他客户端需要适配。

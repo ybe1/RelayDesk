@@ -74,16 +74,25 @@ class WorkflowChatService:
         budget = TurnBudget(Limits(model_calls=settings.agent_max_model_calls, tools=settings.agent_max_tool_steps,
                                    tokens=settings.agent_max_tokens, seconds=settings.agent_timeout_seconds))
         interruption = None
+        pending_writes = set()
+        async def write(function, *args):
+            task = asyncio.create_task(asyncio.to_thread(function, *args))
+            pending_writes.add(task)
+            try:
+                return await asyncio.shield(task)
+            finally:
+                if task.done():
+                    pending_writes.discard(task)
         try:
             await asyncio.to_thread(self._close_pending, cid)
             history = await asyncio.to_thread(self.store.load_history, cid)
             message = HumanMessage(content=req.message, id=f"{turn_id}:user")
-            await asyncio.to_thread(self._save, cid, turn_id, message)
+            await write(self._save, cid, turn_id, message)
             model = self.model_factory()
             tools = self.tools_factory(self.store.session_factory, cid, raw_question=req.message, budget=budget, model=model)
-            async def save(msg): await asyncio.to_thread(self._save, cid, turn_id, msg)
-            async def pool(raw, reason): await asyncio.to_thread(self._pool, cid, raw, reason)
-            async def offers(actions): return await asyncio.to_thread(self._offers, cid, turn_id, req.message, actions)
+            async def save(msg): await write(self._save, cid, turn_id, msg)
+            async def pool(raw, reason): await write(self._pool, cid, raw, reason)
+            async def offers(actions): return await write(self._offers, cid, turn_id, req.message, actions)
             context = TurnContext(AgentDependencies(model, tools, ToolExecutor(tools)), budget, save,
                                   retrieve=self.retriever, record_low_confidence=pool, issue_actions=offers)
             state = make_turn_input(req.message, cid, req.user_id, turn_id,
@@ -101,11 +110,25 @@ class WorkflowChatService:
         finally:
             # Persisted tool requests are closed even if stream/model cancellation
             # happens between its request and observation checkpoints.
-            try:
-                await asyncio.shield(asyncio.to_thread(self._close_pending, cid))
+            async def cleanup():
+                if pending_writes:
+                    await asyncio.shield(asyncio.gather(*pending_writes, return_exceptions=True))
+                await asyncio.to_thread(self._close_pending, cid)
                 if interruption and hasattr(self.graph, "aupdate_state"):
-                    await asyncio.shield(self.graph.aupdate_state({"configurable": {"thread_id": f"conversation:{cid}"}},
-                        {"stop_reason": interruption, "budget_usage": budget.snapshot(), "actions": []}, as_node="log"))
+                    await self.graph.aupdate_state({"configurable": {"thread_id": f"conversation:{cid}"}},
+                        {"stop_reason": interruption, "budget_usage": budget.snapshot(), "actions": []}, as_node="log")
+            cleanup_task = asyncio.create_task(cleanup())
+            cancelled_during_cleanup = False
+            try:
+                while not cleanup_task.done():
+                    try:
+                        await asyncio.shield(cleanup_task)
+                    except asyncio.CancelledError:
+                        cancelled_during_cleanup = True
+                cleanup_task.result()
             except Exception:
                 LOGGER.exception("Unable to close interrupted tools conversation_id=%s", cid)
-            self.release(prepared)
+            finally:
+                self.release(prepared)
+            if cancelled_during_cleanup:
+                raise asyncio.CancelledError

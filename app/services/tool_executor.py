@@ -20,7 +20,7 @@ class ToolExecutor:
         self.timeout_seconds = timeout_seconds
         self.backoff_seconds = backoff_seconds
 
-    async def execute(self, tool_call: dict) -> ToolMessage:
+    async def execute(self, tool_call: dict, *, before_attempt=None) -> ToolMessage:
         name = tool_call.get("name", "")
         call_id = tool_call.get("id", "")
         selected = self.registry.get(name)
@@ -33,6 +33,10 @@ class ToolExecutor:
 
         attempts = 3 if name in RETRY_SAFE_TOOLS else 1
         for attempt in range(attempts):
+            # Charge every actual invocation, including retries. Budget failures
+            # must propagate rather than becoming ordinary execution errors.
+            if before_attempt is not None:
+                before_attempt()
             try:
                 timeout = self.timeout_seconds if self.timeout_seconds is not None else (120 if name == "query_faq" else 5)
                 result = await asyncio.wait_for(selected.ainvoke(args), timeout=timeout)

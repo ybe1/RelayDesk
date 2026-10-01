@@ -1,0 +1,21 @@
+{
+  "query": "平台提供火星移民签证吗",
+  "conversation_id": 316,
+  "node_trace": [
+    "resolve",
+    "intent",
+    "retrieval",
+    "confidence_gate",
+    "fallback",
+    "log"
+  ],
+  "answer": "知识库证据不足，暂时无法确认，请补充信息或人工核实。",
+  "pool": [
+    {
+      "raw_question": "平台提供火星移民签证吗",
+      "source": "retrieval_low_conf",
+      "reason": "evidence_below_threshold"
+    }
+  ],
+  "passed": true
+}
