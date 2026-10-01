@@ -1,0 +1,78 @@
+import json
+import pytest
+from langchain_core.messages import AIMessageChunk, HumanMessage, ToolMessage
+from app.workflow.budget import TurnBudget, Limits
+from app.workflow.contracts import AgentDependencies
+from app.tools.business import build_tools
+from app.services.tool_executor import ToolExecutor
+
+
+class GraphModel:
+    def __init__(self, decisions):
+        self.decisions = iter(decisions)
+        self.calls = 0
+        self.streams = 0
+    def with_structured_output(self, schema, **kwargs): return self
+    async def ainvoke(self, messages, **kwargs):
+        self.calls += 1
+        return next(self.decisions)
+    async def astream(self, messages, **kwargs):
+        self.streams += 1
+        yield AIMessageChunk(content="演示")
+        yield AIMessageChunk(content="物流结果", usage_metadata={"input_tokens": 100, "output_tokens": 5, "total_tokens": 105})
+
+
+def tools_decision(name, id="call"):
+    return {"kind": "tools", "tool_calls": [{"name": name, "args": {"order_id": "1001"}, "id": id}], "actions": [], "reason": "需查询"}
+
+
+async def scenario(decisions, limits=None):
+    from app.workflow.agent import build_agent_graph
+    from app.workflow.contracts import TurnContext
+    model = GraphModel(decisions)
+    tools = build_tools(lambda: None, 1)
+    deps = AgentDependencies(model, tools, ToolExecutor(tools))
+    budget = TurnBudget(limits or Limits(tokens=100000))
+    context = TurnContext(agent=deps, budget=budget)
+    graph = build_agent_graph()
+    events = []
+    async for event in graph.astream({"messages": [HumanMessage(content="订单1001物流")],
+            "turn_id": "test", "node_trace": [], "citations": [], "evidence": [], "actions": []},
+            context=context, stream_mode=["custom", "updates"]):
+        events.append(event)
+    return events, model, budget
+
+
+async def test_final_stream_hides_decisions_and_multi_step_tools():
+    events, model, budget = await scenario([tools_decision("query_order", "a"), tools_decision("query_logistics", "b"),
+        {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])
+    deltas = [v for mode, v in events if mode == "custom" and v[0] == "delta"]
+    assert [v[1]["delta"] for v in deltas] == ["演示", "物流结果"]
+    assert all(v[1]["node"] == "final_answer" for v in deltas)
+    assert model.calls == 3 and model.streams == 1
+    assert budget.snapshot()["tool_steps"] == 2
+
+
+async def test_tool_budget_stops_without_extra_generation():
+    events, model, budget = await scenario([tools_decision("query_order")], Limits(tools=0, tokens=100000))
+    assert model.calls == 1 and model.streams == 0
+    updates = [v for mode, v in events if mode == "updates"]
+    results = [m for v in updates for d in v.values() for m in d.get("messages", []) if isinstance(m, ToolMessage)]
+    assert json.loads(results[0].content)["error"]["code"] == "tool_steps"
+
+
+async def test_ticket_is_not_executed_and_clarify_streams_only_final_node():
+    events, model, budget = await scenario([tools_decision("create_ticket"),
+        {"kind": "clarify", "tool_calls": [], "actions": ["ticket"], "reason": "缺订单号"}])
+    results = [m for mode, v in events if mode == "updates" for d in v.values()
+               for m in d.get("messages", []) if isinstance(m, ToolMessage)]
+    assert json.loads(results[0].content)["error"]["code"] == "user_confirmation_required"
+    assert budget.snapshot()["tool_steps"] == 0
+
+
+async def test_unknown_tool_returns_observation_and_model_limit_ends_loop():
+    events, model, budget = await scenario([tools_decision("unknown")], Limits(model_calls=1, tokens=100000))
+    results = [m for mode, v in events if mode == "updates" for d in v.values()
+               for m in d.get("messages", []) if isinstance(m, ToolMessage)]
+    assert json.loads(results[0].content)["error"]["code"] == "unknown_tool"
+    assert model.calls == 1 and model.streams == 0

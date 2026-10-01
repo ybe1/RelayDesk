@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 .pytest_cache/
+data/runtime/
 volumes/
 log/acceptance/
 log/acceptance/task-5-report.json
