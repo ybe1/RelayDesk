@@ -4,6 +4,7 @@ __pycache__/
 .env
 .pytest_cache/
 data/runtime/
+data/ch05/reports/*.sqlite*
 volumes/
 log/acceptance/
 log/acceptance/task-5-report.json

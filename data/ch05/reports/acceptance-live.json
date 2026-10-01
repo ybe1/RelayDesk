@@ -1,0 +1,151 @@
+{
+  "mode": "live",
+  "cases": [
+    {
+      "case": "policy",
+      "query": "退货政策是什么",
+      "conversation_id": 279,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 4033,
+        "estimated": false,
+        "elapsed": 10.156000000000859,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.31199999999989814
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5470000000004802
+          }
+        }
+      },
+      "stop_reason": "answered",
+      "answer": "退货政策要点如下：\n\n- 套装退货需一并寄回主商品和全部配件，随单赠品也需一并寄回[1]。\n- 商品需保持完好并附带原包装[7]。\n- 签收后七日内可申请退货[10]。\n- 在订单详情页选择申请售后，提交退货原因和商品照片[9]。\n- 寄回地址以售后申请审核通过后展示的地址为准，不要直接寄回原发货地址[4]。\n- 质量问题的退货运费由商家承担，寄回前需与客服确认寄件方式[3]；非质量原因退货的寄回运费由买家承担，不接受到付退件[8]。\n- 退件验收通过后两个工作日内发起退款，到账时间由原支付渠道决定[2]。\n\n以上为演示数据，不代表真实平台承诺。",
+      "error": null
+    },
+    {
+      "case": "logistics",
+      "query": "订单1001的物流到哪了",
+      "conversation_id": 280,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [
+        "query_logistics"
+      ],
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 1,
+        "tokens": 2722,
+        "estimated": false,
+        "elapsed": 5.061999999999898,
+        "external_usage": {}
+      },
+      "stop_reason": "answered",
+      "answer": "订单1001的物流状态为：已揽收，当前在杭州转运中心（演示数据）。",
+      "error": null
+    },
+    {
+      "case": "complaint",
+      "query": "我要投诉",
+      "conversation_id": 281,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "complaint",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 199,
+        "estimated": false,
+        "elapsed": 1.0,
+        "external_usage": {}
+      },
+      "stop_reason": "complaint",
+      "answer": "抱歉给您带来不好的体验。您可以分别选择转人工或创建工单，也可以继续告诉我具体问题。",
+      "error": null
+    },
+    {
+      "case": "smalltalk",
+      "query": "你好",
+      "conversation_id": 282,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "smalltalk",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 0,
+        "tool_steps": 0,
+        "tokens": 0,
+        "estimated": false,
+        "elapsed": 0.06300000000010186,
+        "external_usage": {}
+      },
+      "stop_reason": "smalltalk",
+      "answer": "您好，我是小喵，商品、订单、物流和售后问题都可以问我。",
+      "error": null
+    },
+    {
+      "case": "multi_step",
+      "query": "请先查订单1001的状态，再根据订单结果查物流，两步都需要",
+      "conversation_id": 283,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [
+        "query_order",
+        "query_logistics"
+      ],
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 4082,
+        "estimated": false,
+        "elapsed": 5.79700000000048,
+        "external_usage": {}
+      },
+      "stop_reason": "answered",
+      "answer": "订单1001状态为已完成（演示数据）。物流显示运输中，当前位置在本地配送站（演示数据）。",
+      "error": null
+    }
+  ],
+  "passed": true
+}

@@ -79,3 +79,31 @@ async def test_structured_raw_usage_is_counted_instead_of_full_reservation():
     budget = TurnBudget()
     await BudgetedModel(Structured(), budget).ainvoke([HumanMessage(content="x")])
     assert budget.snapshot()["tokens"] == 5
+
+
+async def test_embedding_and_rerank_are_recorded_separately(monkeypatch):
+    from app.workflow.retrieval import retrieve_for_turn
+    from app.workflow.budget import TurnBudget
+    from app.knowledge.retrieval import RetrievalDependencies
+    class Embed:
+        def embed(self, texts): return [[1.0]]
+    class Rerank:
+        async def rerank(self, *args, **kwargs): return [(0, 0.9)]
+        async def aclose(self): pass
+    class Owned:
+        model = object()
+        embedder = Embed()
+        reranker = Rerank()
+        async def aclose(self): await self.reranker.aclose()
+    async def factory(**kwargs): return Owned()
+    async def search(query, *, dependencies):
+        dependencies.embedder.embed([query])
+        await dependencies.reranker.rerank(query, ["doc"])
+        return result()
+    monkeypatch.setattr(RetrievalDependencies, "afrom_settings", factory)
+    monkeypatch.setattr("app.knowledge.retrieval.search_knowledge_ch04", search)
+    budget = TurnBudget()
+    await retrieve_for_turn("运费", budget)
+    assert budget.snapshot()["external_usage"]["embedding"]["calls"] == 1
+    assert budget.snapshot()["external_usage"]["rerank"]["calls"] == 1
+    assert budget.snapshot()["model_calls"] == 0

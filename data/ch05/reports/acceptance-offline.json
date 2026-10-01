@@ -1,0 +1,137 @@
+{
+  "mode": "offline",
+  "cases": [
+    {
+      "case": "policy",
+      "query": "退货政策是什么",
+      "conversation_id": 257,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 3,
+        "tool_steps": 0,
+        "tokens": 1615,
+        "estimated": true,
+        "elapsed": 0.125
+      },
+      "stop_reason": "answered",
+      "answer": "演示物流结果",
+      "error": null
+    },
+    {
+      "case": "logistics",
+      "query": "订单1001的物流到哪了",
+      "conversation_id": 258,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [
+        "query_logistics"
+      ],
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 1,
+        "tokens": 1752,
+        "estimated": true,
+        "elapsed": 0.15600000000085856
+      },
+      "stop_reason": "answered",
+      "answer": "演示物流结果",
+      "error": null
+    },
+    {
+      "case": "complaint",
+      "query": "我要投诉",
+      "conversation_id": 259,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "complaint",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 1371,
+        "estimated": true,
+        "elapsed": 0.10900000000037835
+      },
+      "stop_reason": "complaint",
+      "answer": "抱歉给您带来不好的体验。您可以分别选择转人工或创建工单，也可以继续告诉我具体问题。",
+      "error": null
+    },
+    {
+      "case": "smalltalk",
+      "query": "你好",
+      "conversation_id": 260,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "smalltalk",
+        "log"
+      ],
+      "tool_calls": [],
+      "usage": {
+        "model_calls": 0,
+        "tool_steps": 0,
+        "tokens": 0,
+        "estimated": false,
+        "elapsed": 0.06300000000010186
+      },
+      "stop_reason": "smalltalk",
+      "answer": "您好，我是小喵，商品、订单、物流和售后问题都可以问我。",
+      "error": null
+    },
+    {
+      "case": "multi_step",
+      "query": "请先查订单1001的状态，再根据订单结果查物流，两步都需要",
+      "conversation_id": 261,
+      "passed": true,
+      "node_trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "tool_calls": [
+        "query_order",
+        "query_logistics"
+      ],
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 1933,
+        "estimated": true,
+        "elapsed": 0.2029999999995198
+      },
+      "stop_reason": "answered",
+      "answer": "演示物流结果",
+      "error": null
+    }
+  ],
+  "passed": true
+}

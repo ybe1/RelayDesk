@@ -136,3 +136,44 @@ uv run python -m scripts.eval_ch03 mining
 ```
 
 两个评测均先检查 Docker Compose、MySQL、Milvus 和所需密钥；门槛不满足时输出 JSON 报告并以退出码 2 结束，不会把离线测试当作真实验收。检索样本位于 `tests/data/ch03_retrieval_samples.json`，报告 schema 为 `ch03-eval/v1`：包含 `gates`、逐条 `results` 和 `summary`。检索要求至少 4/5 通过，并且“邮费是多少”和无关天文问题必须通过。
+
+## Ch05：Workflow 与多步 Agent
+
+当前 `/api/chat` 已升级为本章Workflow。知识问题强制检索并先过置信度闸，物流/订单/售后直接进入Agent；投诉展示两个独立选项，明确问候不调用模型。订单、商品、物流仍为随机演示数据。
+
+在 VS Code 的 PowerShell 终端、项目根目录运行：
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin\docker.exe" compose -f compose.yaml -f compose.milvus.yaml up -d
+uv sync
+uv run python -m scripts.migrate_ch05 --check
+# 首次有PENDING时执行；不清除历史数据
+uv run python -m scripts.migrate_ch05 --apply
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+浏览器打开 http://127.0.0.1:8000/，依次问：
+
+- `退货政策是什么`：终端日志含 retrieval → confidence_gate → decision → final_answer。
+- `订单1001的物流到哪了`：Agent调用query_logistics，回答标明演示数据。
+- `我要投诉`：独立的转人工/建工单按钮；转人工只模拟问候，工单需编辑并确认才写库。取消或忽略不写工单。
+- `你好`：固定话术、model_calls=0。
+- `请先查订单1001的状态，再根据订单结果查物流，两步都需要`：两项工具徽章和多步节点日志。
+
+另开终端运行：
+
+```powershell
+uv run python -m scripts.demo_agent_loop --offline
+uv run python -m scripts.eval_ch05 --offline
+uv run python -m scripts.eval_ch05 --live
+uv run python -m scripts.eval_ch05_intent --offline
+uv run pytest -q
+```
+
+`--offline`仍需要本机MySQL/Milvus容器中的MySQL和官方SQLite持久化；聊天模型与检索在该脚本中替换成标明的模拟结果，不发云端请求。`--live`仅跑本章5条演示问题，调用现有CHAT/EMBED/RERANK上游，不运行第四章300题。报告为 `data/ch05/reports/acceptance-offline.json`、`acceptance-live.json`；意图与阈值标注结果位于 `data/ch05/intent_report.json` 和 `gate_report.json`，浏览器交互记录为 `data/ch05/reports/browser.json`。
+
+预算默认每轮5工具执行、6模型调用、12,000累计输入/输出token、120秒；包括意图和检索Query理解。嵌入、重排另记次数和耗时。模型未返回usage时保守估算并标estimated；达到预算用固定话术停止，不额外调用模型总结。配置见 `.env.example` 的 `AGENT_*`、`WORKFLOW_*`。
+
+检查点默认 `data/runtime/ch05-checkpoints.sqlite`，仅支持本机单实例，不能使用多worker/多副本共同处理同一会话。MySQL为聊天/工单账本，SQLite为图状态；跨库不承诺原子提交。断线后停止本轮并闭合已落账工具申请，下一消息开始新轮，不自动重放写动作或续传旧token。匿名user_id沿用现有演示身份约定，不代表已完成生产登录鉴权。
+
+开发过程：`dev-notes/ch05.md`；设计与计划：`docs/superpowers/specs/2026-10-02-ch05-workflow-agent-design.md`、`docs/superpowers/plans/2026-10-02-ch05-workflow-agent.md`。

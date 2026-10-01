@@ -1,0 +1,11 @@
+{
+  "twoIndependentButtons": true,
+  "handoffGreeting": true,
+  "handoffDoesNotSubmitTicket": true,
+  "cancelDoesNotSubmit": true,
+  "confirmOnce": true,
+  "continueAfterActions": true,
+  "citationOriginal": true,
+  "conversationId": 262,
+  "passed": true
+}

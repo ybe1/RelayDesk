@@ -1,6 +1,7 @@
 """Reuse chapter 4 retrieval with a shared turn budget and a pre-Agent gate."""
 import asyncio
 import math
+from time import monotonic
 from dataclasses import dataclass
 from .model import BudgetedModel
 
@@ -44,13 +45,38 @@ class CitationRegistry:
 
 async def retrieve_for_turn(query, budget):
     from app.knowledge.retrieval import RetrievalDependencies, search_knowledge_ch04
-    owned = await RetrievalDependencies.afrom_settings(max_retries=0)
+    owned = None
     try:
+        budget.check_deadline()
+        async with asyncio.timeout(budget.remaining_seconds()):
+            owned = await RetrievalDependencies.afrom_settings(max_retries=0)
         owned.model = BudgetedModel(owned.model, budget, output_cap=256)
+        if hasattr(owned, "embedder"):
+            owned.embedder = MeasuredEmbedder(owned.embedder, budget)
+        if hasattr(owned, "reranker"):
+            owned.reranker = MeasuredReranker(owned.reranker, budget)
         async with asyncio.timeout(budget.remaining_seconds()):
             return await search_knowledge_ch04(query, dependencies=owned)
     finally:
-        await owned.aclose()
+        if owned is not None:
+            await owned.aclose()
+
+
+class MeasuredEmbedder:
+    def __init__(self, inner, budget): self.inner, self.budget = inner, budget
+    def embed(self, texts):
+        started = monotonic()
+        try: return self.inner.embed(texts)
+        finally: self.budget.record_external("embedding", monotonic()-started)
+
+
+class MeasuredReranker:
+    def __init__(self, inner, budget): self.inner, self.budget = inner, budget
+    async def rerank(self, *args, **kwargs):
+        started = monotonic()
+        try: return await self.inner.rerank(*args, **kwargs)
+        finally: self.budget.record_external("rerank", monotonic()-started)
+    async def aclose(self): await self.inner.aclose()
 
 
 async def check_for_turn(query, hits, model, budget):

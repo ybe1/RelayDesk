@@ -26,6 +26,7 @@ class TurnBudget:
         self.tool_steps = usage.get("tool_steps", 0)
         self.tokens = usage.get("tokens", 0)
         self.estimated = usage.get("estimated", False)
+        self.external_usage = {name: dict(value) for name, value in usage.get("external_usage", {}).items()}
         self.reservation = 0
 
     def remaining_seconds(self):
@@ -63,4 +64,10 @@ class TurnBudget:
     def snapshot(self):
         return {"model_calls": self.model_calls, "tool_steps": self.tool_steps,
                 "tokens": self.tokens + self.reservation, "estimated": self.estimated,
-                "elapsed": self.elapsed + self.clock() - self.started}
+                "elapsed": self.elapsed + self.clock() - self.started,
+                "external_usage": {name: dict(value) for name, value in self.external_usage.items()}}
+
+    def record_external(self, name, seconds):
+        entry = self.external_usage.setdefault(name, {"calls": 0, "seconds": 0.0})
+        entry["calls"] += 1
+        entry["seconds"] += max(0, seconds)

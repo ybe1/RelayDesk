@@ -14,12 +14,14 @@ class BudgetedModel:
             kwargs["include_raw"] = True
         result = BudgetedModel(self.model.with_structured_output(schema, **kwargs), self.budget, self.output_cap)
         result.structured = True
+        result.schema_overhead = len(json.dumps(schema.model_json_schema(), ensure_ascii=False).encode("utf-8")) if hasattr(schema, "model_json_schema") else 0
         return result
 
     def _reserve(self, messages, kwargs):
         # UTF-8 bytes deliberately overestimate ordinary text tokens. Include
         # message envelopes/tool requests rather than just visible content.
         inputs = sum(len(str(m.model_dump()).encode("utf-8")) for m in messages) + 128
+        inputs += getattr(self, "schema_overhead", 0)
         bound_kwargs = getattr(self.model, "kwargs", {})
         if isinstance(bound_kwargs, dict) and bound_kwargs.get("tools"):
             inputs += len(json.dumps(bound_kwargs["tools"], ensure_ascii=False).encode("utf-8"))
