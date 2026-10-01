@@ -95,7 +95,8 @@ async def test_model_timeout_charges_request_and_stops():
     class Slow:
         async def ainvoke(self, messages, **kwargs):
             await asyncio.sleep(1)
-    budget = TurnBudget(Limits(seconds=0.01))
+    # Isolate request timeout from Windows scheduling delays before invocation.
+    budget = TurnBudget(Limits(seconds=0.01), clock=lambda: 0)
     with pytest.raises(BudgetExceeded, match="deadline"):
         await BudgetedModel(Slow(), budget).ainvoke([HumanMessage(content="问题")])
     assert budget.snapshot()["model_calls"] == 1
