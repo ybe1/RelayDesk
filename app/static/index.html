@@ -100,6 +100,14 @@
   .feedback button { padding: 3px 7px; border: 1px solid var(--border); border-radius: 7px; background: #fff; cursor: pointer; }
   .feedback button.selected { color: #9a3412; border-color: var(--accent); background: var(--accent-soft); }
   .feedback button:disabled:not(.selected) { opacity: .45; }
+  .chat-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chat-actions button, .ticket-confirm { border: 1px solid var(--accent); color: #9a3412; background: var(--accent-soft); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  .chat-actions button:disabled { opacity: .6; cursor: default; }
+  .action-note { display: block; width: 100%; font-size: 12px; color: var(--text-dim); }
+  .ticket-dialog { border: 1px solid var(--border); border-radius: 14px; padding: 22px; width: min(420px, 90vw); }
+  .ticket-dialog::backdrop { background: #0005; }
+  .ticket-dialog label { display: block; margin: 12px 0; }
+  .ticket-dialog textarea, .ticket-dialog select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 7px; }
   #citation-dialog { width: min(620px, calc(100% - 32px)); max-height: 85vh; margin: auto; padding: 22px; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 60px #11182740; color: var(--text); }
   #citation-dialog::backdrop { background: #11182780; }
   .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -329,8 +337,72 @@
     if (eventType === 'conversation') return { type: 'conversation', conversationId: data.conversation_id };
     if (eventType === 'tool_status') return { type: 'tool_status', ...data };
     if (eventType === 'citations') return { type: 'citations', citations: data.citations };
+    if (eventType === 'actions') return { type: 'actions', ...data };
+    if (eventType === 'workflow_status') return { type: 'workflow_status', ...data };
     if (data.delta) return { type: 'delta', delta: data.delta };
     return { type: 'ignore' };
+  }
+
+  function addActions(bubble, actions, cid) {
+    const bar = document.createElement('div');
+    bar.className = 'chat-actions';
+    for (const offer of actions) {
+      if (!['handoff', 'ticket'].includes(offer.action)) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = offer.action === 'handoff' ? '转人工' : '建工单';
+      button.addEventListener('click', () => {
+        if (button.disabled) return;
+        if (offer.action === 'handoff') {
+          button.disabled = true;
+          button.textContent = '已转接人工客服';
+          addBubble('assistant', '您好，我是客服小猫，请问有什么可以帮您的');
+          return;
+        }
+        button.disabled = true;
+        const dialog = document.createElement('dialog');
+        dialog.className = 'ticket-dialog';
+        const title = document.createElement('h3'); title.textContent = '确认创建工单';
+        const label = document.createElement('label'); label.textContent = '问题描述';
+        const description = document.createElement('textarea');
+        description.rows = 5; description.maxLength = 4000;
+        description.value = offer.defaults?.description || '';
+        label.appendChild(description);
+        const typeLabel = document.createElement('label'); typeLabel.textContent = '工单类型';
+        const select = document.createElement('select');
+        for (const value of ['售后', '投诉', '咨询']) {
+          const option = document.createElement('option'); option.value = value; option.textContent = value; select.appendChild(option);
+        }
+        select.value = offer.defaults?.ticket_type || '咨询'; typeLabel.appendChild(select);
+        const error = document.createElement('p'); error.setAttribute('role', 'alert');
+        const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '取消';
+        const confirm = document.createElement('button'); confirm.type = 'button'; confirm.className = 'ticket-confirm'; confirm.textContent = '确认创建';
+        let submitted = false, pending = false;
+        cancel.addEventListener('click', () => { if (!pending) dialog.close(); });
+        dialog.addEventListener('cancel', event => { if (pending) event.preventDefault(); });
+        dialog.addEventListener('close', () => { if (!submitted) button.disabled = false; dialog.remove(); });
+        confirm.addEventListener('click', async () => {
+          if (pending) return;
+          const text = description.value.trim();
+          if (!text) { error.textContent = '请填写问题描述'; return; }
+          pending = true; confirm.disabled = cancel.disabled = true;
+          try {
+            const response = await fetch('/api/chat/actions/ticket', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: userId, conversation_id: cid, offer_id: offer.offer_id, description: text, ticket_type: select.value }) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || '创建失败，请重试');
+            submitted = true; button.textContent = '工单已创建';
+            const note = document.createElement('span'); note.className = 'action-note'; note.textContent = '工单号：' + data.ticket_no;
+            bar.appendChild(note); dialog.close();
+          } catch (err) { error.textContent = err.message; }
+          finally { pending = false; confirm.disabled = cancel.disabled = false; }
+        });
+        dialog.append(title, label, typeLabel, error, cancel, confirm);
+        document.body.appendChild(dialog); dialog.showModal(); description.focus();
+      });
+      bar.appendChild(button);
+    }
+    if (bar.children.length) bubble.appendChild(bar);
   }
 
   async function send() {
@@ -348,6 +420,7 @@
     let failed = false;
     let completed = false;
     const citations = new Map();
+    const toolBadges = new Map();
     try {
       const resp = await fetch('/api/chat', {
         method: 'POST',
@@ -388,13 +461,28 @@
               localStorage.setItem('mewhelp_conversation_id', String(id));
             }
           } else if (res.type === 'tool_status') {
-            const name = res.tool_name || res.name || '工具';
+            const name = res.tool_name || res.tool || res.name || '工具';
             const phase = res.phase || res.status || '执行中';
             trace.className = 'tool-trace visible ' +
               (phase === '成功' || phase === 'success' ? 'success' :
                phase === '失败' || phase === 'failed' || phase === 'error' ? 'failed' : 'running');
-            trace.textContent = name + ' · ' + (res.message || phase);
+            const key = res.tool_call_id || name;
+            let badge = toolBadges.get(key);
+            if (!badge) {
+              badge = document.createElement('span');
+              badge.style.marginRight = '8px';
+              toolBadges.set(key, badge);
+            }
+            badge.textContent = name + ' · ' + (res.message || phase);
+            trace.replaceChildren(...toolBadges.values());
             scrollToBottom();
+          } else if (res.type === 'actions') {
+            if (Array.isArray(res.actions)) addActions(bubble, res.actions, res.conversation_id);
+          } else if (res.type === 'workflow_status') {
+            if (!trace.textContent) {
+              trace.className = 'tool-trace visible running';
+              trace.textContent = '正在处理您的问题…';
+            }
           } else if (res.type === 'error') {
             throw new Error(res.message);
           } else if (res.type === 'done') {

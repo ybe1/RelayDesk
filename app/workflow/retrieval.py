@@ -44,10 +44,8 @@ class CitationRegistry:
 
 async def retrieve_for_turn(query, budget):
     from app.knowledge.retrieval import RetrievalDependencies, search_knowledge_ch04
-    owned = await RetrievalDependencies.afrom_settings()
+    owned = await RetrievalDependencies.afrom_settings(max_retries=0)
     try:
-        if hasattr(owned.model, "model_copy"):
-            owned.model = owned.model.model_copy(update={"max_retries": 0})
         owned.model = BudgetedModel(owned.model, budget, output_cap=256)
         async with asyncio.timeout(budget.remaining_seconds()):
             return await search_knowledge_ch04(query, dependencies=owned)

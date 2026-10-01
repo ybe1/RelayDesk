@@ -43,7 +43,7 @@ async def test_retrieval_budget_shared_and_dependencies_closed_on_failure(monkey
         closed = False
         async def aclose(self): self.closed = True
     owned = Owned()
-    async def factory(): return owned
+    async def factory(**kwargs): return owned
     monkeypatch.setattr(RetrievalDependencies, "afrom_settings", factory)
     async def search(query, *, dependencies):
         assert dependencies.model.budget is budget
@@ -66,3 +66,16 @@ async def test_structured_model_is_budgeted():
     assert result == {"value": 1}
     assert budget.snapshot()["model_calls"] == 1
     assert budget.snapshot()["estimated"]
+
+
+async def test_structured_raw_usage_is_counted_instead_of_full_reservation():
+    from app.workflow.model import BudgetedModel
+    from app.workflow.budget import TurnBudget
+    from langchain_core.messages import HumanMessage, AIMessage
+    class Structured:
+        async def ainvoke(self, messages, **kwargs):
+            return {"raw": AIMessage(content="", usage_metadata={"input_tokens": 3, "output_tokens": 2, "total_tokens": 5}),
+                    "parsed": {"value": 1}, "parsing_error": None}
+    budget = TurnBudget()
+    await BudgetedModel(Structured(), budget).ainvoke([HumanMessage(content="x")])
+    assert budget.snapshot()["tokens"] == 5

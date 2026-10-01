@@ -68,13 +68,13 @@ class RetrievalDependencies:
     _closed: bool = field(default=False, init=False, repr=False)
 
     @classmethod
-    def from_settings(cls) -> RetrievalDependencies:
+    def from_settings(cls, *, max_retries=None) -> RetrievalDependencies:
         from app.config import settings
         from app.core.llm import get_chat_model
         from app.knowledge.embedding import EmbeddingClient
 
         return cls(
-            model=get_chat_model(disable_thinking=True),
+            model=get_chat_model(disable_thinking=True, max_retries=max_retries),
             embedder=EmbeddingClient(base_url=settings.embed_base_url, api_key=settings.embed_api_key,
                                      model=settings.embed_model),
             reranker=RerankClient(base_url=settings.rerank_base_url, api_key=settings.rerank_api_key,
@@ -86,9 +86,9 @@ class RetrievalDependencies:
         )
 
     @classmethod
-    async def afrom_settings(cls) -> RetrievalDependencies:
+    async def afrom_settings(cls, *, max_retries=None) -> RetrievalDependencies:
         """Construct off-loop; a timed-out caller still owns late-result cleanup."""
-        initialization = asyncio.create_task(asyncio.to_thread(cls.from_settings))
+        initialization = asyncio.create_task(asyncio.to_thread(cls.from_settings, **({"max_retries": max_retries} if max_retries is not None else {})))
         try:
             return await asyncio.shield(initialization)
         except asyncio.CancelledError:
