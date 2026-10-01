@@ -159,7 +159,7 @@ def test_seed_conv_only_appends_missing_synthetic_conversations(monkeypatch):
     database = create_engine("sqlite+pysqlite:///:memory:")
     with database.begin() as connection:
         connection.exec_driver_sql("CREATE TABLE conversations (id INTEGER PRIMARY KEY, user_id VARCHAR(64) NOT NULL, status VARCHAR NOT NULL DEFAULT '进行中', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
-        connection.exec_driver_sql("CREATE TABLE messages (id INTEGER PRIMARY KEY, conversation_id INTEGER NOT NULL, role VARCHAR NOT NULL, content TEXT, tool_calls JSON, tool_call_id VARCHAR(64), created_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+        connection.exec_driver_sql("CREATE TABLE messages (id INTEGER PRIMARY KEY, conversation_id INTEGER NOT NULL, role VARCHAR NOT NULL, content TEXT, tool_calls JSON, tool_call_id VARCHAR(64), message_key VARCHAR(128) UNIQUE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
     factory = sessionmaker(bind=database, expire_on_commit=False)
     first = kb.seed_conv(session_factory=factory)
     second = kb.seed_conv(session_factory=factory)

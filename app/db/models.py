@@ -22,7 +22,7 @@ class Conversation(Base):
 
 class Message(Base):
     __tablename__ = "messages"
-    __table_args__ = (Index("idx_conversation_id", "conversation_id"), {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4"})
+    __table_args__ = (Index("idx_conversation_id", "conversation_id"), Index("uk_message_key", "message_key", unique=True), {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4"})
 
     id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), primary_key=True, autoincrement=True)
     conversation_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), ForeignKey("conversations.id", name="fk_messages_conversation"), nullable=False)
@@ -30,6 +30,7 @@ class Message(Base):
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     tool_calls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tool_call_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    message_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 

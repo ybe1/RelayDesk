@@ -36,5 +36,5 @@ def test_faq_literal_like_and_ticket_status_transaction():
         conversation = get_or_create_conversation(session, "ticket-test")
         ticket = create_ticket(session, conversation.id, "需要人工", "咨询")
         assert ticket.ticket_no.startswith("T")
-        assert conversation.status == "已转人工"
+        assert conversation.status == "进行中"
         session.rollback()

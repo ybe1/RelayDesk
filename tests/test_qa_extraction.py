@@ -25,7 +25,7 @@ def session_factory():
             CREATE TABLE messages (
                 id INTEGER PRIMARY KEY, conversation_id INTEGER NOT NULL,
                 role VARCHAR NOT NULL, content TEXT, tool_calls JSON,
-                tool_call_id VARCHAR(64), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                tool_call_id VARCHAR(64), message_key VARCHAR(128) UNIQUE, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
         connection.exec_driver_sql("""
