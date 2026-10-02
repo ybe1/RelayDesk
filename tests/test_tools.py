@@ -18,6 +18,28 @@ def test_mock_queries_return_requested_identity_and_mock_marker():
         assert result[key] == value
 
 
+def test_order_and_logistics_share_stable_consistent_mock_snapshot():
+    snapshots = []
+    for _ in range(2):
+        tools = {t.name:t for t in build_tools(lambda:None,42)}
+        rows = []
+        for order_id in map(str, range(1000,1030)):
+            logistics = json.loads(tools['query_logistics'].invoke({'order_id':order_id}))
+            order = json.loads(tools['query_order'].invoke({'order_id':order_id}))
+            if order['status'] == '待发货':
+                assert logistics['status'] == '暂无物流'
+                assert logistics['location'] is None
+            elif order['status'] == '已完成':
+                assert logistics['status'] == '已签收'
+            else:
+                assert order['status'] == '运输中'
+                assert logistics['status'] in ['已揽收','运输中','派送中']
+            rows.append((order,logistics))
+        snapshots.append(rows)
+    assert snapshots[0] == snapshots[1]
+    assert {row[0]['status'] for row in snapshots[0]} == {'待发货','运输中','已完成'}
+
+
 def test_ticket_schema_excludes_model_supplied_conversation_id():
     tools = {tool.name: tool for tool in build_tools(lambda: None, 42)}
     schema = tools["create_ticket"].args_schema.model_json_schema()

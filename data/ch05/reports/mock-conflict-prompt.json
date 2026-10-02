@@ -1,0 +1,5 @@
+{
+  "case": "pending_order_and_out_for_delivery",
+  "answer": "订单1001的订单状态显示“待发货”，但物流状态显示“派送中”，两者不一致，需要进一步核实。目前无法确认包裹实际是否已发出或何时送达。",
+  "passed": true
+}

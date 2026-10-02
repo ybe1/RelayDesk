@@ -28,6 +28,20 @@ class TicketArgs(BaseModel):
     ticket_type: Literal["售后", "投诉", "咨询"] = Field(description="工单类型")
 
 
+def _mock_order_snapshot(order_id: str) -> dict:
+    """One reproducible synthetic shipment lifecycle per order; no storage."""
+    rng = random.Random(order_id)
+    order_status, logistics_status, location = rng.choice([
+        ("待发货", "暂无物流", None),
+        ("运输中", "已揽收", "上海分拨中心"),
+        ("运输中", "运输中", "杭州转运中心"),
+        ("运输中", "派送中", "本地配送站"),
+        ("已完成", "已签收", "收货地址"),
+    ])
+    return {"status": order_status, "amount": round(rng.uniform(29, 399), 2),
+            "logistics_status": logistics_status, "location": location}
+
+
 async def _production_retriever(query: str):
     """Create and close hybrid retrieval dependencies for this invocation."""
     from app.knowledge.retrieval import search_knowledge_ch04
@@ -102,9 +116,9 @@ def build_tools(
     @tool(args_schema=OrderArgs)
     def query_order(order_id: str) -> str:
         """查询订单演示信息。订单数据为随机模拟，不能代表真实订单状态。"""
+        snapshot = _mock_order_snapshot(order_id)
         return json.dumps({"mock": True, "order_id": order_id,
-                           "status": random.choice(["待发货", "运输中", "已完成"]),
-                           "amount": round(random.uniform(29, 399), 2)}, ensure_ascii=False)
+                           "status": snapshot["status"], "amount": snapshot["amount"]}, ensure_ascii=False)
 
     @tool(args_schema=ProductArgs)
     def query_product(product_name: str) -> str:
@@ -116,9 +130,9 @@ def build_tools(
     @tool(args_schema=OrderArgs)
     def query_logistics(order_id: str) -> str:
         """查询指定订单的物流演示信息。物流轨迹为随机模拟。"""
+        snapshot = _mock_order_snapshot(order_id)
         return json.dumps({"mock": True, "order_id": order_id,
-                           "status": random.choice(["已揽收", "运输中", "派送中", "已签收"]),
-                           "location": random.choice(["上海分拨中心", "杭州转运中心", "本地配送站"])},
+                           "status": snapshot["logistics_status"], "location": snapshot["location"]},
                           ensure_ascii=False)
 
     @tool(args_schema=FaqArgs)
