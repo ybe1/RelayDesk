@@ -2,8 +2,8 @@
   "mode": "offline inventory",
   "inventory": {
     "intent": 40,
-    "dialogues": 6,
-    "dialogue_turns": 24,
+    "dialogues": 7,
+    "dialogue_turns": 28,
     "expansion": 8,
     "assessment": 3
   },

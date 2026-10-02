@@ -2,11 +2,21 @@ import json
 from pathlib import Path
 
 
+async def test_needs_review_cannot_keep_model_suggested_refund_action():
+    from scripts.eval_ch06 import evaluate_assessment
+    from tests.ch06_fakes import JSONSequenceModel
+    case={'id':'R-review','intent':'退款退货','facts':{'days_since_receipt':2},'policy':'商品与包装完好才可退','expected_status':'needs_review'}
+    model=JSONSequenceModel([{'kind':'answer','reason':'需核实','actions':['refund'],
+        'refund_assessment':{'status':'needs_review','reason':'完好情况未知','evidence_numbers':[1]}}])
+    result=await evaluate_assessment(model,case)
+    assert result['passed'] and 'refund' not in result['actions']
+
+
 def test_inventory_requires_all_labels_and_four_user_turns_per_dialogue():
     from scripts.eval_ch06 import load_cases,inventory
     cases=load_cases(Path('data/ch06'))
     counts=inventory(cases)
-    assert counts['intent']==40 and counts['dialogues']==6 and counts['dialogue_turns']>=24
+    assert counts['intent']==40 and counts['dialogues']>=6 and counts['dialogue_turns']>=24
     assert counts['expansion']>=8 and counts['assessment']>=3
 
 

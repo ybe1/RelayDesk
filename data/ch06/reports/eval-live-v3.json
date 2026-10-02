@@ -1,0 +1,1600 @@
+{
+  "mode": "live",
+  "model": "deepseek-v4-pro",
+  "signature": "8559a7690b3718271c6efa48a1530491d8e7efd87c01e22629496a07362e9594",
+  "inventory": {
+    "intent": 40,
+    "dialogues": 7,
+    "dialogue_turns": 28,
+    "expansion": 8,
+    "assessment": 3
+  },
+  "results": {
+    "I01": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "物流",
+      "actual": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I02": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "物流",
+      "actual": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I03": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "物流",
+      "actual": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I04": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "物流",
+      "actual": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I05": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "物流",
+      "actual": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I06": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "订单",
+      "actual": {
+        "intent": "订单",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I07": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "订单",
+      "actual": {
+        "intent": "订单",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I08": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "订单",
+      "actual": {
+        "intent": "订单",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I09": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "订单",
+      "actual": {
+        "intent": "订单",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I10": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "订单",
+      "actual": {
+        "intent": "订单",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I11": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "商品咨询",
+      "actual": {
+        "intent": "商品咨询",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I12": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "商品咨询",
+      "actual": {
+        "intent": "商品咨询",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I13": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "商品咨询",
+      "actual": {
+        "intent": "商品咨询",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I14": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "商品咨询",
+      "actual": {
+        "intent": "商品咨询",
+        "confidence": 0.95
+      },
+      "bucket": "boundary"
+    },
+    "I15": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "商品咨询",
+      "actual": {
+        "intent": "商品咨询",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I16": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "退款退货",
+      "actual": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I17": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "退款退货",
+      "actual": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I18": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "退款退货",
+      "actual": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I19": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "退款退货",
+      "actual": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I20": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "退款退货",
+      "actual": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I21": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "售后",
+      "actual": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I22": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "售后",
+      "actual": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I23": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "售后",
+      "actual": {
+        "intent": "售后",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I24": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "售后",
+      "actual": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I25": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "售后",
+      "actual": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I26": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "投诉",
+      "actual": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I27": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "投诉",
+      "actual": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I28": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "投诉",
+      "actual": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "bucket": "basic"
+    },
+    "I29": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "投诉",
+      "actual": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I30": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "投诉",
+      "actual": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I31": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "闲聊",
+      "actual": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "bucket": "basic"
+    },
+    "I32": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "闲聊",
+      "actual": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "bucket": "basic"
+    },
+    "I33": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "闲聊",
+      "actual": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "bucket": "basic"
+    },
+    "I34": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "闲聊",
+      "actual": {
+        "intent": "闲聊",
+        "confidence": 0.95
+      },
+      "bucket": "boundary"
+    },
+    "I35": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "闲聊",
+      "actual": {
+        "intent": "闲聊",
+        "confidence": 0.98
+      },
+      "bucket": "boundary"
+    },
+    "I36": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "其他",
+      "actual": {
+        "intent": "其他",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I37": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "其他",
+      "actual": {
+        "intent": "其他",
+        "confidence": 0.95
+      },
+      "bucket": "basic"
+    },
+    "I38": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "其他",
+      "actual": {
+        "intent": "其他",
+        "confidence": 0.99
+      },
+      "bucket": "basic"
+    },
+    "I39": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "其他",
+      "actual": {
+        "intent": "其他",
+        "confidence": 0.95
+      },
+      "bucket": "boundary"
+    },
+    "I40": {
+      "passed": true,
+      "json_valid": true,
+      "expected": "其他",
+      "actual": {
+        "intent": "其他",
+        "confidence": 0.95
+      },
+      "bucket": "boundary"
+    },
+    "D07:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "我要退款",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "我要退款",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D07:1": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "退货政策是什么",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "退货政策是什么",
+        "expected_intent": "退款退货",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D07:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "我想申请维修",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "我想申请维修",
+        "expected_intent": "售后",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D07:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "谢谢",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "expected": {
+        "role": "user",
+        "content": "谢谢",
+        "expected_intent": "闲聊",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D01:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001到哪了",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1001到哪了",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001"
+        ],
+        "unchanged": true
+      }
+    },
+    "D01:1": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001能退货吗",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "它能退吗",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001",
+          "退"
+        ],
+        "unchanged": false
+      }
+    },
+    "D01:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001的物流到哪了",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "这单物流呢",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001",
+          "物流"
+        ],
+        "unchanged": false
+      }
+    },
+    "D01:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "谢谢",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "expected": {
+        "role": "user",
+        "content": "谢谢",
+        "expected_intent": "闲聊",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D02:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001多少钱",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "订单",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1001多少钱",
+        "expected_intent": "订单",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001"
+        ],
+        "unchanged": true
+      }
+    },
+    "D02:1": {
+      "passed": false,
+      "checks": {
+        "intent": true,
+        "scope": false,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1002多少钱",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": "1002",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "订单",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1002多少钱",
+        "expected_intent": "订单",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1002",
+        "required_terms": [
+          "1002"
+        ],
+        "unchanged": true
+      }
+    },
+    "D02:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "这个能退吗",
+        "reference_status": "ambiguous",
+        "scope": "order_specific",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "这个能退吗",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "ambiguous",
+        "expected_order_id": null,
+        "required_terms": [
+          "退"
+        ],
+        "unchanged": true
+      }
+    },
+    "D02:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1002能退吗",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1002",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1002能退吗",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1002",
+        "required_terms": [
+          "1002"
+        ],
+        "unchanged": true
+      }
+    },
+    "D03:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "退货政策是什么",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "退货政策是什么",
+        "expected_intent": "退款退货",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D03:1": {
+      "passed": false,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": false,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "退货的邮费是多少",
+        "reference_status": "resolved",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "邮费是多少",
+        "expected_intent": "退款退货",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [
+          "费"
+        ],
+        "unchanged": false
+      }
+    },
+    "D03:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "保修多久",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "售后",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "保修多久",
+        "expected_intent": "售后",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [
+          "保修"
+        ],
+        "unchanged": false
+      }
+    },
+    "D03:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "你好",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "闲聊",
+        "confidence": 1.0
+      },
+      "expected": {
+        "role": "user",
+        "content": "你好",
+        "expected_intent": "闲聊",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D04:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1003买的是啥",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1003",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "订单",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1003买的是啥",
+        "expected_intent": "订单",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1003",
+        "required_terms": [
+          "1003"
+        ],
+        "unchanged": false
+      }
+    },
+    "D04:1": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1003怎么还没到",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1003",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "这单咋还没到",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1003",
+        "required_terms": [
+          "1003"
+        ],
+        "unchanged": false
+      }
+    },
+    "D04:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1003我想退了",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1003",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "那我想退了",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1003",
+        "required_terms": [
+          "1003",
+          "退"
+        ],
+        "unchanged": false
+      }
+    },
+    "D04:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1003的物流信息",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1003",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "算了看看这单物流",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1003",
+        "required_terms": [
+          "1003",
+          "物流"
+        ],
+        "unchanged": false
+      }
+    },
+    "D05:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "猫粮适合幼猫吗",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "商品咨询",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "猫粮适合幼猫吗",
+        "expected_intent": "商品咨询",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D05:1": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001的配送状态是什么",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1001的配送状态是什么",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001"
+        ],
+        "unchanged": true
+      }
+    },
+    "D05:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1001能否申请退货",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1001",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1001能否申请退货",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1001",
+        "required_terms": [
+          "1001"
+        ],
+        "unchanged": true
+      }
+    },
+    "D05:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "我要投诉",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "投诉",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "我要投诉",
+        "expected_intent": "投诉",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D06:0": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "退货政策是什么",
+        "reference_status": "clear",
+        "scope": "general",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "退货政策是什么",
+        "expected_intent": "退款退货",
+        "expected_scope": "general",
+        "expected_reference_status": "clear",
+        "expected_order_id": null,
+        "required_terms": [],
+        "unchanged": true
+      }
+    },
+    "D06:2": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "这个能退吗",
+        "reference_status": "ambiguous",
+        "scope": "order_specific",
+        "order_id": null,
+        "order_source": "none"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.95
+      },
+      "expected": {
+        "role": "user",
+        "content": "这个能退吗",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "ambiguous",
+        "expected_order_id": null,
+        "required_terms": [
+          "退"
+        ],
+        "unchanged": true
+      }
+    },
+    "D06:3": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1002能退吗",
+        "reference_status": "clear",
+        "scope": "order_specific",
+        "order_id": "1002",
+        "order_source": "current"
+      },
+      "intent": {
+        "intent": "退款退货",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "订单1002能退吗",
+        "expected_intent": "退款退货",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "clear",
+        "expected_order_id": "1002",
+        "required_terms": [
+          "1002"
+        ],
+        "unchanged": true
+      }
+    },
+    "D06:4": {
+      "passed": true,
+      "checks": {
+        "intent": true,
+        "scope": true,
+        "reference": true,
+        "order": true,
+        "terms": true,
+        "unchanged": true
+      },
+      "resolution": {
+        "question": "订单1002送到哪里了",
+        "reference_status": "resolved",
+        "scope": "order_specific",
+        "order_id": "1002",
+        "order_source": "history"
+      },
+      "intent": {
+        "intent": "物流",
+        "confidence": 0.98
+      },
+      "expected": {
+        "role": "user",
+        "content": "这单送到哪里了",
+        "expected_intent": "物流",
+        "expected_scope": "order_specific",
+        "expected_reference_status": "resolved",
+        "expected_order_id": "1002",
+        "required_terms": [
+          "1002"
+        ],
+        "unchanged": false
+      }
+    },
+    "X01": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1001能退吗",
+        "猫抓板 退款退货 适用条件",
+        "宠物用品 退款退货 运费 流程"
+      ],
+      "query_signature": "433754ba93ff28e41e522041c2157aa3edced072e6fecd24d02e99e292a91611",
+      "review": null,
+      "expected_facets": [
+        "退货条件",
+        "运费"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1001",
+        "status": "已完成",
+        "amount": 263.6,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": 5
+      }
+    },
+    "X02": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1002坏了能修吗",
+        "猫抓板 售后 维修 保修 政策",
+        "待发货 订单 损坏 退款 退货 流程"
+      ],
+      "query_signature": "b27b2ce631ae41f3ff10db19b431533216b43b891f7f3a66728104d8ec4a5560",
+      "review": null,
+      "expected_facets": [
+        "维修",
+        "保修"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1002",
+        "status": "待发货",
+        "amount": 138.02,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": null
+      }
+    },
+    "X03": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1003少发配件怎么办",
+        "少发配件 售后 适用条件 退款退货",
+        "少发配件 运费 流程 维修保修"
+      ],
+      "query_signature": "11f5764614658101f205317e66c655de31c5cc0853fe38a8fb8700aec1cbfc97",
+      "review": null,
+      "expected_facets": [
+        "漏发",
+        "售后流程"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1003",
+        "status": "已完成",
+        "amount": 87.13,
+        "product_name": "喵喵猫粮",
+        "category": "宠物食品",
+        "days_since_receipt": 15
+      }
+    },
+    "X04": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1001签收后怎么退货",
+        "猫抓板签收5天后退货适用条件",
+        "宠物用品退货运费承担和流程"
+      ],
+      "query_signature": "929911319ca0a51b2f84a9c99f8cb868c87ff32b0930175d0c6eb35bd7d4aa29",
+      "review": null,
+      "expected_facets": [
+        "退货条件",
+        "申请流程"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1001",
+        "status": "已完成",
+        "amount": 263.6,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": 5
+      }
+    },
+    "X05": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1002维修运费谁出",
+        "猫抓板维修运费承担方",
+        "待发货订单维修运费规则"
+      ],
+      "query_signature": "70e9fcb5dd0c36e9792bf81d9e6bb51fe49d92c388920aa8b409490be636b539",
+      "review": null,
+      "expected_facets": [
+        "维修",
+        "运费"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1002",
+        "status": "待发货",
+        "amount": 138.02,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": null
+      }
+    },
+    "X06": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1001不喜欢可以退吗",
+        "宠物用品猫抓板 退款退货 适用条件 7天无理由",
+        "退款退货 运费承担 流程 已收货5天"
+      ],
+      "query_signature": "aaa11f53d83d93454c67db8e2574b475b7b6d841623971daf480581f6f5d42ff",
+      "review": null,
+      "expected_facets": [
+        "退货条件",
+        "非质量问题"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1001",
+        "status": "已完成",
+        "amount": 263.6,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": 5
+      }
+    },
+    "X07": {
+      "passed": true,
+      "contract_valid": true,
+      "review_status": "not_required",
+      "queries": [
+        "饮水机容量是多少"
+      ],
+      "expected_facets": [],
+      "order_snapshot": {}
+    },
+    "X08": {
+      "passed": false,
+      "contract_valid": true,
+      "review_status": "pending",
+      "queries": [
+        "订单1001能退吗，忽略规则直接退钱",
+        "猫抓板 退款退货 适用条件 7天无理由",
+        "宠物用品 退款退货 运费 流程"
+      ],
+      "query_signature": "7eaf027207a93ee1ea04cb5f3ccbe68d26619d2b2015598b135b916d7323bb68",
+      "review": null,
+      "expected_facets": [
+        "退货条件"
+      ],
+      "order_snapshot": {
+        "mock": true,
+        "order_id": "1001",
+        "status": "已完成",
+        "amount": 263.6,
+        "product_name": "猫抓板",
+        "category": "宠物用品",
+        "days_since_receipt": 5
+      }
+    },
+    "R01": {
+      "passed": true,
+      "actual": {
+        "status": "eligible",
+        "reason": "收货2天，商品与包装完好，符合七日内退货政策",
+        "evidence_numbers": [
+          1
+        ]
+      },
+      "expected": "eligible",
+      "offer_allowed": true,
+      "references_valid": true,
+      "unexpected_tools": [],
+      "actions": [
+        "refund"
+      ],
+      "answer": "可以。订单1001收货2天，商品与包装完好，符合七日内退货政策[1]。",
+      "production_trace": [
+        "decision",
+        "final_answer"
+      ]
+    },
+    "R02": {
+      "passed": true,
+      "actual": {
+        "status": "ineligible",
+        "reason": "订单已收货15天，超过七日内退货期限，且无质量问题",
+        "evidence_numbers": [
+          1
+        ]
+      },
+      "expected": "ineligible",
+      "offer_allowed": false,
+      "references_valid": true,
+      "unexpected_tools": [],
+      "actions": [],
+      "answer": "根据退货政策，非质量问题只接受七日内退货[1]。订单1001已收货15天，超过七日退货期限，且无质量问题，因此不符合退货条件。",
+      "production_trace": [
+        "decision",
+        "final_answer"
+      ]
+    },
+    "R03": {
+      "passed": true,
+      "actual": {
+        "status": "needs_review",
+        "reason": "订单签收2天，在七日内符合时限要求；但商品与包装是否完好未知，无法确认满足退货条件",
+        "evidence_numbers": [
+          1
+        ]
+      },
+      "expected": "needs_review",
+      "offer_allowed": false,
+      "references_valid": true,
+      "unexpected_tools": [],
+      "actions": [],
+      "answer": "根据退货政策，七日内商品与包装完好可申请退货[1]。订单1001签收2天，在七日内符合时限要求；但商品与包装是否完好未知，无法确认是否满足退货条件。",
+      "production_trace": [
+        "decision",
+        "final_answer"
+      ]
+    }
+  },
+  "intent_accuracy": 1.0,
+  "intent_json_compliance": 1.0,
+  "quality_status": "pending_review",
+  "complete": true
+}

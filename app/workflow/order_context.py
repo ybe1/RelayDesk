@@ -51,6 +51,11 @@ def validate_resolution(result,raw,history):
     if introduced and introduced!={result.order_id}:
         return Resolution(question=raw,reference_status='ambiguous',scope=result.scope,order_source='none')
     if result.order_id is None:
+        if len(sources['current'])==1:
+            # The user's explicit identifier is authoritative even when the
+            # model omits the slot. Preserve its normalized wording.
+            return result.model_copy(update={'order_id':next(iter(sources['current'])),
+                'order_source':'current','scope':'order_specific'})
         return result
     valid = result.order_id in sources.get(result.order_source,set())
     # A clear current reference wins; an ambiguous historical set must not be
@@ -60,7 +65,7 @@ def validate_resolution(result,raw,history):
     if result.order_source=='current' and len(sources['current'])!=1:
         valid = False
     if valid:
-        return result
+        return result.model_copy(update={'scope':'order_specific'})
     return Resolution(question=raw,reference_status='ambiguous',scope=result.scope,
                       order_id=None,order_source='none')
 

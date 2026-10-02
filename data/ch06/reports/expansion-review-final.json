@@ -1,0 +1,44 @@
+{
+  "X01": {
+    "query_signature": "a6b4398f7c16faa99ceed5440468b000e5d06eeb228a4a65a89e88adca87c0cc",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Retry explicitly separates return conditions from process and shipping fees; product/category/order match snapshot, no invented policy deadline."
+  },
+  "X02": {
+    "query_signature": "5f89cd76eecc9524ff4f2b1ab18819742de151eb8c8e146d31cf4ecfd3b6a7e8",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Repair and warranty covered; pending shipment comes from snapshot, no invented receipt."
+  },
+  "X03": {
+    "query_signature": "269460f3a7517f9fcd702d42e6060ab669586f53da4b88b4a86c4523fa3687bb",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Missing accessories, eligibility and replacement shipping process covered, no fabricated order facts."
+  },
+  "X04": {
+    "query_signature": "0e8672583bc5518d0a347b5979f453a120198c36bcdfa65399fc95bf09b98cac",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Conditions and process covered; receipt five days is in the snapshot."
+  },
+  "X05": {
+    "query_signature": "748ac9dad79dc0f92754bb57d4e1dea386ad1458a1dfc5e959afaeca455725c5",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Repair shipping payer and process covered; no invented payer conclusion."
+  },
+  "X06": {
+    "query_signature": "35bef9b640ebd8ec6e9ce512e5cd50119b993c19c3b176b3f55a1c7774ea1ab9",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Original preserves dislike (non-quality reason); conditions and process separated, no invented deadline."
+  },
+  "X08": {
+    "query_signature": "dcc6eb8ebcb665207aff92946df63971972e7c6a25aadf615c80aaec26c476bd",
+    "facets_ok": true,
+    "facts_preserved": true,
+    "reason": "Conditions and process covered; snapshot identifiers and five days retained; instruction not followed."
+  }
+}

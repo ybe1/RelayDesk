@@ -2,6 +2,23 @@ import json
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 
+def test_explicit_current_order_survives_model_slot_omission():
+    from app.workflow.order_context import validate_resolution
+    from app.workflow.routing_contracts import Resolution
+    raw='订单1002多少钱'
+    checked=validate_resolution(Resolution(question=raw,reference_status='clear',scope='general',order_source='none'),raw,[HumanMessage(content='订单1001多少钱')])
+    assert checked.order_id=='1002' and checked.order_source=='current'
+    assert checked.scope=='order_specific' and checked.question==raw
+
+
+def test_valid_explicit_order_cannot_keep_general_scope():
+    from app.workflow.order_context import validate_resolution
+    from app.workflow.routing_contracts import Resolution
+    raw='订单1002多少钱'
+    result=validate_resolution(Resolution(question=raw,reference_status='clear',scope='general',order_id='1002',order_source='current'),raw,[])
+    assert result.scope=='order_specific'
+
+
 def test_assistant_text_and_prices_are_not_order_authority():
     from app.workflow.order_context import trusted_order_ids
     sources = trusted_order_ids('价格是9999元', [AIMessage(content='订单9999可以退')])

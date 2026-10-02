@@ -1,0 +1,9 @@
+{
+  "X01":{"query_signature":"173cb067bec203e400d3d0189f4559a707788408dcef85cd672b3414037a0985","facets_ok":true,"facts_preserved":true,"reason":"条件与运费流程分别覆盖；猫抓板和宠物用品来自快照，无新增退款承诺。"},
+  "X02":{"query_signature":"995e29d63bb6b6c94fbe1f11ba563eb6eddf102b50cab79c7a7851af5c3a8d05","facets_ok":true,"facts_preserved":true,"reason":"维修保修与损坏售后流程分别覆盖；待发货来自快照，未臆造签收事实。"},
+  "X03":{"query_signature":"2829fa6669f4b6adeb02a986a67d37e7329edd1d63c7a69e63fa81ab5a266d5c","facets_ok":true,"facts_preserved":true,"reason":"少发配件保持原问题，扩展适用条件和补发运费流程，无新增订单事实。"},
+  "X04":{"query_signature":"9ebd406088147c4de4e5bde2880c77fccebb8c2c1dc63366369946ca59567979","facets_ok":true,"facts_preserved":true,"reason":"退货条件与办理流程分开查询；签收5天与订单快照一致。"},
+  "X05":{"query_signature":"632a308952a8dd4e4524a9fdb6090b08771deffac12a83073f290425d8203cfa","facets_ok":true,"facts_preserved":true,"reason":"维修运费承担条件与流程规则分别覆盖，没有给出未经检索的承担方结论。"},
+  "X06":{"query_signature":"c66814ef19136585a6d3950e166a504551148592bc681ea708ee343785ac3721","facets_ok":true,"facts_preserved":true,"reason":"原查询保留不喜欢这一非质量原因，补充退货条件和运费流程；商品类别与快照一致。"},
+  "X08":{"query_signature":"66c1d741f4bd748b687372f8b1aae9ec09b5da06f84a8c6540a62041e72b95f2","facets_ok":true,"facts_preserved":true,"reason":"原句保留便于追溯，补充查询没有执行忽略规则的指令，检索侧聚焦条件与流程。"}
+}

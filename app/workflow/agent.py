@@ -20,6 +20,7 @@ ANSWER_SYSTEM = """你是喵喵优选客服小喵。简洁中文回答。仅根�
 缺订单号等必要信息请追问。预先提供知识证据后不必重复调用query_faq。
 退款原因不要追问，只在用户提交退款表单时选择。订单级退款/售后已预查订单并检索政策，只判断这一单是否满足条件。
 相同订单已提供快照时不要重复查订单；未知商品完好/包装等条件不能假定满足。
+本轮refund_assessment是最终资格结论：needs_review时必须明确“目前不能确认能否退货”，说明或询问缺失条件，禁止说可以办理退款/符合全部退货条件；ineligible时明确不符合当前政策；eligible才可说可以申请。不能把只满足时间期限说成整体资格通过。
 同一订单的工具结果若出现待发货但物流已揽收/派送/签收等冲突，明确说明订单与物流状态不一致、需要核实；不要当成正常一致的状态，也不要自行选择其中一个是真实状态。
 """
 
@@ -63,6 +64,9 @@ def build_agent_graph(deps=None):
                 raise ValueError("empty tools decision")
             if choice.kind != "tools" and choice.tool_calls:
                 raise ValueError("non-tool decision contains tool calls")
+            if 'refund' in choice.actions and (state.get('intent')!='退款退货'
+                    or not choice.refund_assessment or choice.refund_assessment.status!='eligible'):
+                choice=choice.model_copy(update={'actions':[action for action in choice.actions if action!='refund']})
             update = {"decision": choice.model_dump(), "actions": list(dict.fromkeys(choice.actions)),
                       "refund_assessment":choice.refund_assessment.model_dump() if choice.refund_assessment else {},
                       "node_trace": state.get("node_trace", []) + ["decision"]}

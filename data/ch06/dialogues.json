@@ -1,4 +1,9 @@
 [
+  {"id":"D07","turns":[
+    {"role":"user","content":"我要退款","expected_intent":"退款退货","expected_scope":"order_specific","expected_reference_status":"clear","expected_order_id":null,"required_terms":[],"unchanged":true},
+    {"role":"user","content":"退货政策是什么","expected_intent":"退款退货","expected_scope":"general","expected_reference_status":"clear","expected_order_id":null,"required_terms":[],"unchanged":true},
+    {"role":"user","content":"我想申请维修","expected_intent":"售后","expected_scope":"order_specific","expected_reference_status":"clear","expected_order_id":null,"required_terms":[],"unchanged":true},
+    {"role":"user","content":"谢谢","expected_intent":"闲聊","expected_scope":"general","expected_reference_status":"clear","expected_order_id":null,"required_terms":[],"unchanged":true}]},
   {"id":"D01","turns":[
     {"role":"user","content":"订单1001到哪了","expected_intent":"物流","expected_scope":"order_specific","expected_reference_status":"clear","expected_order_id":"1001","required_terms":["1001"],"unchanged":true},
     {"role":"user","content":"它能退吗","expected_intent":"退款退货","expected_scope":"order_specific","expected_reference_status":"resolved","expected_order_id":"1001","required_terms":["1001","退"],"unchanged":false},
