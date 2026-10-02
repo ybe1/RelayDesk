@@ -47,6 +47,9 @@ def trusted_order_ids(raw,history):
 
 def validate_resolution(result,raw,history):
     sources = trusted_order_ids(raw,history)
+    introduced=_explicit_orders(result.question)-sources['current']
+    if introduced and introduced!={result.order_id}:
+        return Resolution(question=raw,reference_status='ambiguous',scope=result.scope,order_source='none')
     if result.order_id is None:
         return result
     valid = result.order_id in sources.get(result.order_source,set())

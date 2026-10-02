@@ -63,3 +63,9 @@ def test_demo_cards_share_tool_snapshot_and_receipt_facts():
         assert order == json.loads(tools['query_order'].invoke({'order_id':order_id}))
         assert order['mock'] is True and order['product_name'] and order['category']
         assert (order['days_since_receipt'] is not None) == (order['status']=='已完成')
+def test_rewritten_question_cannot_smuggle_order_when_slot_is_empty():
+    from app.workflow.routing_contracts import Resolution
+    from app.workflow.order_context import validate_resolution
+    result=Resolution(question='订单9999能退吗',reference_status='resolved',scope='order_specific',order_source='none')
+    checked=validate_resolution(result,'这个能退吗',[])
+    assert checked.question=='这个能退吗' and checked.reference_status=='ambiguous'

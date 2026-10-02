@@ -1,0 +1,13 @@
+{
+  "mode": "offline inventory",
+  "inventory": {
+    "intent": 40,
+    "dialogues": 6,
+    "dialogue_turns": 24,
+    "expansion": 8,
+    "assessment": 3
+  },
+  "quality_status": "not_run",
+  "complete": false,
+  "reason": "No model invoked; dataset validation is not accuracy evaluation."
+}
