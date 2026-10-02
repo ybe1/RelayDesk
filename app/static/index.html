@@ -103,6 +103,12 @@
   .chat-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .chat-actions button, .ticket-confirm { border: 1px solid var(--accent); color: #9a3412; background: var(--accent-soft); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
   .chat-actions button:disabled { opacity: .6; cursor: default; }
+  .order-cards { display: grid; gap: 8px; margin-top: 12px; }
+  .order-card { text-align: left; border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 12px; cursor: pointer; color: var(--text); }
+  .order-card:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  .order-card strong, .order-card small { display: block; }
+  .order-card small { margin-top: 5px; color: var(--text-dim); }
+  .order-card:disabled { opacity: .55; cursor: default; }
   .action-note { display: block; width: 100%; font-size: 12px; color: var(--text-dim); }
   .ticket-dialog { border: 1px solid var(--border); border-radius: 14px; padding: 22px; width: min(420px, 90vw); }
   .ticket-dialog::backdrop { background: #0005; }
@@ -339,6 +345,7 @@
     if (eventType === 'citations') return { type: 'citations', citations: data.citations };
     if (eventType === 'actions') return { type: 'actions', ...data };
     if (eventType === 'workflow_status') return { type: 'workflow_status', ...data };
+    if (eventType === 'order_selection') return { type: 'order_selection', ...data };
     if (data.delta) return { type: 'delta', delta: data.delta };
     return { type: 'ignore' };
   }
@@ -347,12 +354,13 @@
     const bar = document.createElement('div');
     bar.className = 'chat-actions';
     for (const offer of actions) {
-      if (!['handoff', 'ticket'].includes(offer.action)) continue;
+      if (!['handoff', 'ticket', 'refund'].includes(offer.action)) continue;
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = offer.action === 'handoff' ? '转人工' : '建工单';
+      button.textContent = offer.action === 'handoff' ? '转人工' : offer.action === 'refund' ? '提交退款申请' : '建工单';
       button.addEventListener('click', () => {
         if (button.disabled) return;
+        if (offer.action === 'refund') { showRefundForm(button, bar, offer, cid); return; }
         if (offer.action === 'handoff') {
           button.disabled = true;
           button.textContent = '已转接人工客服';
@@ -405,6 +413,85 @@
     if (bar.children.length) bubble.appendChild(bar);
   }
 
+  function showRefundForm(button, bar, offer, cid) {
+    button.disabled = true;
+    const dialog = document.createElement('dialog'); dialog.className = 'ticket-dialog';
+    const title = document.createElement('h3'); title.textContent = '确认演示退款申请';
+    const note = document.createElement('p'); note.textContent = '订单 ' + (offer.defaults?.order_id || '') + ' · 只保存申请，不执行实际退款。';
+    const label = document.createElement('label'); label.textContent = '退款原因';
+    const reason = document.createElement('select');
+    for (const value of ['不喜欢/不需要', '商品质量问题', '商品与描述不符', '错发/漏发', '其他']) {
+      const option = document.createElement('option'); option.value = option.textContent = value; reason.appendChild(option);
+    }
+    label.appendChild(reason);
+    const error = document.createElement('p'); error.setAttribute('role', 'alert');
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '取消';
+    const submit = document.createElement('button'); submit.type = 'button'; submit.className = 'ticket-confirm'; submit.textContent = '确认提交';
+    let pending = false, submitted = false;
+    cancel.addEventListener('click', () => { if (!pending) dialog.close(); });
+    dialog.addEventListener('cancel', event => { if (pending) event.preventDefault(); });
+    dialog.addEventListener('close', () => { if (!submitted) button.disabled = false; dialog.remove(); });
+    submit.addEventListener('click', async () => {
+      if (pending) return;
+      pending = true; submit.disabled = cancel.disabled = reason.disabled = true;
+      try {
+        const response = await fetch('/api/chat/actions/refund', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, conversation_id: cid, offer_id: offer.offer_id, reason: reason.value }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || '提交失败，请重试');
+        submitted = true; button.textContent = '演示申请已提交';
+        const receipt = document.createElement('span'); receipt.className = 'action-note'; receipt.textContent = '申请号：' + data.application_no;
+        bar.appendChild(receipt); dialog.close();
+      } catch (err) { error.textContent = err.message; }
+      finally { pending = false; submit.disabled = cancel.disabled = reason.disabled = false; }
+    });
+    dialog.append(title, note, label, error, cancel, submit); document.body.appendChild(dialog); dialog.showModal(); reason.focus();
+  }
+
+  let pendingOrderCard = null;
+  function invalidateOrderCard() {
+    if (!pendingOrderCard) return;
+    for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = true;
+    pendingOrderCard.note.textContent = '这组选单已结束，可继续发送问题。';
+    pendingOrderCard = null;
+  }
+  function addOrderSelection(bubble, selection) {
+    if (pendingOrderCard?.selection.selection_id === selection.selection_id) return;
+    invalidateOrderCard();
+    const cards = document.createElement('div'); cards.className = 'order-cards';
+    const note = document.createElement('small'); note.textContent = '请选择要处理的订单（演示数据），也可以直接继续聊天。'; cards.appendChild(note);
+    for (const order of selection.options || []) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'order-card';
+      const title = document.createElement('strong'); title.textContent = '订单 ' + order.order_id + ' · ' + (order.product_name || '商品');
+      const details = document.createElement('small'); details.textContent = (order.status || '') + ' · ¥' + order.amount;
+      button.append(title, details);
+      button.addEventListener('click', async () => {
+        if (sendBtn.disabled || button.disabled || pendingOrderCard?.selection.selection_id !== selection.selection_id) return;
+        for (const item of cards.querySelectorAll('button')) item.disabled = true;
+        addBubble('user', '选择订单 ' + order.order_id);
+        await runChat('/api/chat/selection', { user_id: userId, conversation_id: selection.conversation_id,
+          turn_id: selection.turn_id, selection_id: selection.selection_id, order_id: order.order_id });
+        await recoverOrderSelection();
+      });
+      cards.appendChild(button);
+    }
+    bubble.appendChild(cards); pendingOrderCard = { element: cards, note, selection }; scrollToBottom();
+  }
+  async function recoverOrderSelection() {
+    if (!conversationId) return;
+    try {
+      const response = await fetch(`/api/chat/${conversationId}/pending?user_id=${encodeURIComponent(userId)}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data.pending) { invalidateOrderCard(); return; }
+      if (pendingOrderCard?.selection.selection_id === data.pending.selection_id) {
+        for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = false;
+        return;
+      }
+      const { bubble } = addBubble('assistant', '请选择需要处理的订单。'); addOrderSelection(bubble, data.pending);
+    } catch (_) { /* 刷新恢复失败时仍可正常发送新消息。 */ }
+  }
+
   async function send() {
     const text = inputEl.value.trim();
     if (!text || sendBtn.disabled) return;
@@ -412,6 +499,10 @@
     inputEl.style.height = 'auto';
 
     addBubble('user', text);
+    await runChat('/api/chat', { user_id: userId, conversation_id: conversationId, message: text });
+  }
+
+  async function runChat(url, payload) {
     const { bubble, body, trace } = addBubble('assistant', '');
     const typing = showTyping(body);
     setSending(true);
@@ -419,15 +510,17 @@
     let content = '';
     let failed = false;
     let completed = false;
+    let waiting = false;
     const citations = new Map();
     const toolBadges = new Map();
     try {
-      const resp = await fetch('/api/chat', {
+      const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, conversation_id: conversationId, message: text }),
+        body: JSON.stringify(payload),
       });
       if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+      invalidateOrderCard();
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -478,6 +571,10 @@
             scrollToBottom();
           } else if (res.type === 'actions') {
             if (Array.isArray(res.actions)) addActions(bubble, res.actions, res.conversation_id);
+          } else if (res.type === 'order_selection') {
+            waiting = true;
+            body.textContent = '请选择需要处理的订单。';
+            addOrderSelection(bubble, res);
           } else if (res.type === 'workflow_status') {
             if (!trace.textContent) {
               trace.className = 'tool-trace visible running';
@@ -503,7 +600,7 @@
       } else {
         trace.classList.remove('running');
       }
-      if (!content && !failed) body.textContent = '（未收到回复）';
+      if (!content && !failed && !waiting) body.textContent = '（未收到回复）';
       if (content && !failed) renderAnswer(body, content, citations);
       if (completed && content.trim() && !failed) addFeedback(bubble);
       setSending(false);
@@ -518,6 +615,7 @@
     }
   });
   sendBtn.addEventListener('click', send);
+  recoverOrderSelection();
 
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';

@@ -1,0 +1,11 @@
+{
+  "mode": "real Edge, mocked HTTP, frontend verification only",
+  "cards": true,
+  "refresh_recovery": true,
+  "resume": true,
+  "refund_reason_only_at_submit": true,
+  "one_submit_locked": true,
+  "new_message_invalidates": true,
+  "waiting_no_feedback": true,
+  "page_errors": []
+}
