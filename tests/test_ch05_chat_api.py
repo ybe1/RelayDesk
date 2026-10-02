@@ -3,6 +3,7 @@ from app.schemas.chat import ChatRequest
 from app.services.chat import DatabaseChatStore
 from app.db.session import SessionLocal
 from tests.test_ch05_agent_graph import GraphModel
+from tests.ch06_fakes import resolution_message
 
 
 async def test_prepare_rejects_concurrent_request_and_wrong_owner():
@@ -88,7 +89,7 @@ async def test_business_service_streams_child_graph_deltas():
     from app.workflow.graph import build_workflow
     from langchain_core.messages import AIMessage
     from tests.test_ch05_agent_graph import tools_decision
-    model = GraphModel([AIMessage(content='{"confidence":0.95,"intent":"物流"}'), tools_decision("query_logistics"),
+    model = GraphModel([resolution_message('订单1001物流','1001'),AIMessage(content='{"confidence":0.95,"intent":"物流"}'), tools_decision("query_logistics"),
                         {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])
     service = WorkflowChatService(build_workflow(), DatabaseChatStore(SessionLocal), model_factory=lambda: model)
     events = [event async for event in service.events(ChatRequest(user_id="ch05-child-stream", message="订单1001物流"))]
@@ -100,7 +101,7 @@ async def test_policy_service_citations_precede_child_answer():
     from app.workflow.graph import build_workflow
     from langchain_core.messages import AIMessage
     from tests.test_ch05_gate import result
-    model = GraphModel([AIMessage(content='{"confidence":0.95,"intent":"退款退货"}'),
+    model = GraphModel([resolution_message('邮费是多少'),AIMessage(content='{"confidence":0.95,"intent":"退款退货"}'),
                         {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])
     async def retrieve(query, budget): return result()
     service = WorkflowChatService(build_workflow(), DatabaseChatStore(SessionLocal), model_factory=lambda: model, retriever=retrieve)
@@ -117,8 +118,8 @@ async def test_policy_then_business_round_resets_checkpoint_evidence(tmp_path):
     from tests.test_ch05_gate import result
     from tests.test_ch05_agent_graph import tools_decision
     models = iter([
-        GraphModel([AIMessage(content='{"confidence":0.95,"intent":"退款退货"}'), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}]),
-        GraphModel([AIMessage(content='{"confidence":0.95,"intent":"物流"}'), tools_decision("query_logistics"), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])])
+        GraphModel([resolution_message('退货政策'),AIMessage(content='{"confidence":0.95,"intent":"退款退货"}'), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}]),
+        GraphModel([resolution_message('订单1001物流','1001'),AIMessage(content='{"confidence":0.95,"intent":"物流"}'), tools_decision("query_logistics"), {"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])])
     async def retrieve(query, budget): return result()
     async with checkpoint_runtime(tmp_path / "rounds.sqlite") as saver:
         graph = build_workflow(checkpointer=saver)
@@ -130,4 +131,4 @@ async def test_policy_then_business_round_resets_checkpoint_evidence(tmp_path):
         state = (await graph.aget_state({"configurable": {"thread_id": f"conversation:{cid}"}})).values
         assert state["evidence"] == state["citations"] == state["actions"] == []
         assert "retrieval" not in state["node_trace"]
-        assert state["budget_usage"]["model_calls"] == 4
+        assert state["budget_usage"]["model_calls"] == 5

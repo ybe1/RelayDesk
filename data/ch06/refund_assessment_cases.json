@@ -1,0 +1,5 @@
+[
+  {"id":"R01","intent":"退款退货","facts":{"days_since_receipt":2,"item_intact":true,"packaging_intact":true},"policy":"七日内商品与包装完好可申请退货","expected_status":"eligible"},
+  {"id":"R02","intent":"退款退货","facts":{"days_since_receipt":15,"quality_issue":false},"policy":"非质量问题只接受七日内退货","expected_status":"ineligible"},
+  {"id":"R03","intent":"退款退货","facts":{"days_since_receipt":2},"policy":"七日内商品与包装完好可申请退货","expected_status":"needs_review"}
+]

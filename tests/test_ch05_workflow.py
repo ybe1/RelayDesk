@@ -6,11 +6,12 @@ from app.tools.business import build_tools
 from app.services.tool_executor import ToolExecutor
 from tests.test_ch05_agent_graph import GraphModel
 from tests.test_ch05_gate import result
+from tests.ch06_fakes import resolution_message
 
 
 async def run_case(query, intent=None, score=0.8, pool_fails=False):
     from app.workflow.graph import build_workflow, make_turn_input
-    responses = ([AIMessage(content='{"confidence":0.95,"intent":"'+intent+'"}')] if intent else [])
+    responses = ([resolution_message(query),AIMessage(content='{"confidence":0.95,"intent":"'+intent+'"}')] if intent else [])
     responses += [{"kind": "answer", "tool_calls": [], "actions": [], "reason": "证据够"}]
     model = GraphModel(responses)
     retrieved, pooled, offers = [], [], []
@@ -34,7 +35,7 @@ async def run_case(query, intent=None, score=0.8, pool_fails=False):
 async def test_policy_cannot_skip_gate():
     state, model, retrieved, pooled, _ = await run_case("退货政策是什么", "退款退货", score=0.1)
     assert state["node_trace"] == ["resolve", "intent", "retrieval", "confidence_gate", "fallback", "log"]
-    assert model.calls == 1 and model.streams == 0
+    assert model.calls == 2 and model.streams == 0
     assert retrieved == pooled == ["退货政策是什么"]
 
 
@@ -48,7 +49,7 @@ async def test_business_has_no_pre_retrieval():
 async def test_complaint_offers_independent_actions_and_smalltalk_zero_calls():
     state, model, retrieved, _, offers = await run_case("我要投诉", "投诉")
     assert offers == ["handoff", "ticket"]
-    assert model.calls == 1 and model.streams == 0 and not retrieved
+    assert model.calls == 2 and model.streams == 0 and not retrieved
     state, model, retrieved, pooled, offers = await run_case("你好")
     assert state["intent"] == "闲聊"
     assert model.calls == model.streams == 0

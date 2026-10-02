@@ -1,7 +1,7 @@
 """Bounded ReAct subgraph; decisions remain private, only final output streams."""
 import asyncio
 import json
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage,ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.runtime import Runtime
 from langgraph.config import get_stream_writer
@@ -18,6 +18,8 @@ ANSWER_SYSTEM = """你是喵喵优选客服小喵。简洁中文回答。仅根�
 查询订单、商品、物流必须依据工具，mock=true明确标注演示数据。
 禁止承诺退款到账时间、赔偿或处理时限。不得称已转人工或已建工单，用户需自己点按钮确认。
 缺订单号等必要信息请追问。预先提供知识证据后不必重复调用query_faq。
+退款原因不要追问，只在用户提交退款表单时选择。订单级退款/售后已预查订单并检索政策，只判断这一单是否满足条件。
+相同订单已提供快照时不要重复查订单；未知商品完好/包装等条件不能假定满足。
 同一订单的工具结果若出现待发货但物流已揽收/派送/签收等冲突，明确说明订单与物流状态不一致、需要核实；不要当成正常一致的状态，也不要自行选择其中一个是真实状态。
 """
 
@@ -43,8 +45,8 @@ def build_agent_graph(deps=None):
         context = runtime.context
         selected = deps or context.agent
         read_tools = [t for t in selected.tools if t.name != "create_ticket"]
-        prompt = ANSWER_SYSTEM + "\n这是私有决策节点，不写最终答案。需要数据时调用已注册业务工具。准备回答/追问/停止时调用AgentDecision函数，kind分别answer/clarify/stop、tool_calls为空；actions仅建议handoff/ticket，不执行。简单查询有结果就answer；只有明确还需另一工具时继续；用户明确要求先查订单再查物流则按此顺序。"
-        messages = [SystemMessage(content=prompt + "\n本轮知识证据:" + evidence_text(state)), *state["messages"]]
+        prompt = ANSWER_SYSTEM + "\n这是私有决策节点，不写最终答案。需要数据时调用已注册业务工具。准备回答/追问/停止时调用AgentDecision函数，kind分别answer/clarify/stop、tool_calls为空；actions仅建议handoff/ticket/refund，不执行。退款或售后给refund_assessment={status:eligible/ineligible/needs_review,reason:原因,evidence_numbers:政策编号}；仅退款且政策与事实明确支持eligible时建议refund。未知条件归needs_review。维修不提供退款表单。简单查询有结果就answer；只有明确还需另一工具时继续；用户明确要求先查订单再查物流则按此顺序。"
+        messages = [SystemMessage(content=prompt + "\n本轮订单快照:"+json.dumps(state.get('order_snapshot',{}),ensure_ascii=False)+"\n本轮知识证据:" + evidence_text(state)), *state["messages"]]
         try:
             raw = await BudgetedModel(selected.model.bind_tools([*read_tools, AgentDecision]), context.budget, output_cap=384).ainvoke(messages)
             finish = [call for call in raw.tool_calls if call["name"] == "AgentDecision"]
@@ -62,6 +64,7 @@ def build_agent_graph(deps=None):
             if choice.kind != "tools" and choice.tool_calls:
                 raise ValueError("non-tool decision contains tool calls")
             update = {"decision": choice.model_dump(), "actions": list(dict.fromkeys(choice.actions)),
+                      "refund_assessment":choice.refund_assessment.model_dump() if choice.refund_assessment else {},
                       "node_trace": state.get("node_trace", []) + ["decision"]}
             if choice.kind == "tools":
                 calls = [call.model_dump() for call in choice.tool_calls]
@@ -88,6 +91,9 @@ def build_agent_graph(deps=None):
                 observation = tool_error(call, stopped)
             elif call["name"] == "create_ticket":
                 observation = tool_error(call, "user_confirmation_required")
+            elif (call['name']=='query_order' and state.get('order_snapshot')
+                  and call['args'].get('order_id')==state['order_snapshot'].get('order_id')):
+                observation=ToolMessage(content=json.dumps({'result':json.dumps(state['order_snapshot'],ensure_ascii=False)},ensure_ascii=False),tool_call_id=call['id'])
             else:
                 try:
                     get_stream_writer()(("tool_status", {"tool": call["name"], "status": "running", "tool_call_id": call["id"]}))
@@ -123,7 +129,7 @@ def build_agent_graph(deps=None):
             writer(("citations", {"citations": state["citations"]}))
         mode = state["decision"]["kind"]
         instruction = "\n只追问缺失信息。" if mode == "clarify" else "\n组织最终回答。"
-        messages = [SystemMessage(content=ANSWER_SYSTEM + instruction + "\n本轮知识证据:" + evidence_text(state)), *state["messages"]]
+        messages = [SystemMessage(content=ANSWER_SYSTEM + instruction + "\n本轮订单及资格判断:"+json.dumps({'order':state.get('order_snapshot',{}),'assessment':state.get('refund_assessment',{})},ensure_ascii=False)+"\n本轮知识证据:" + evidence_text(state)), *state["messages"]]
         content, reason = "", "clarify" if mode == "clarify" else "answered"
         try:
             async for chunk in BudgetedModel(selected.model, context.budget).astream(messages):

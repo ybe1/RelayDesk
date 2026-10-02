@@ -73,3 +73,5 @@ class TurnContext:
     retrieve: Any = None
     record_low_confidence: Any = None
     issue_actions: Any = None
+    retrieve_queries: Any = None
+    intent_small_model: Any = None

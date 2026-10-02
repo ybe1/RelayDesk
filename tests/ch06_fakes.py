@@ -31,3 +31,10 @@ class JSONSequenceModel:
     async def astream(self,messages,**kwargs):
         self.requests.append((list(messages),dict(kwargs)))
         yield AIMessageChunk(content='演示回答[1]',usage_metadata={'input_tokens':100,'output_tokens':5,'total_tokens':105})
+def resolution_message(question,order_id=None):
+    from langchain_core.messages import AIMessage
+    import json
+    return AIMessage(content=json.dumps({'question':question,'reference_status':'clear',
+        'scope':'order_specific' if order_id else 'general','order_id':order_id,
+        'order_source':'current' if order_id else 'none'},ensure_ascii=False))
+
