@@ -15,6 +15,7 @@ from .model import BudgetedModel
 from .budget import BudgetExceeded
 from .retrieval import gate_result, CitationRegistry, retrieve_for_turn
 from .agent import build_agent_graph, persist
+from app.context.compile import understanding_history
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,9 +45,14 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
             if detect_smalltalk(state['raw_question']):
                 resolution=Resolution(question=state['raw_question'],reference_status='clear',scope='general',order_source='none')
             else:
-                history=list(state['messages'])
-                if history and history[-1].type=='human' and history[-1].content==state['raw_question']: history=history[:-1]
-                resolution=await resolve_question(context.agent.model,state['raw_question'],history,context.budget)
+                if context.history_projection is not None:
+                    from app.context.compile import understanding_history
+                    history=understanding_history(context.history_projection)
+                else:
+                    history=list(state['messages'])
+                    if history and history[-1].type=='human' and history[-1].content==state['raw_question']: history=history[:-1]
+                resolution=await resolve_question(context.agent.model,state['raw_question'],history,context.budget,
+                    shared_history=context.history_projection is not None)
             update.update(question=resolution.question,resolution=resolution.model_dump(),order_id=resolution.order_id)
         except Exception as exc:
             update.update(resolution={},gate_reason='resolution_unavailable:'+type(exc).__name__)
@@ -59,7 +65,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
         try:
             if not state.get('resolution'): raise ValueError('resolution unavailable')
             run = await classify_with_escalation(context.agent.model,context.intent_small_model,state['question'],context.budget,
-                                                settings.intent_confidence_threshold)
+                                                settings.intent_confidence_threshold,
+                                                history=understanding_history(context.history_projection) if context.history_projection is not None else None)
             decision=run.decision
             route=route_intent(decision.intent)
             if decision.intent in {'退款退货','售后'}:
@@ -121,6 +128,9 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
             actions = await runtime.context.issue_actions(suggestions)
             update["actions"] = actions
             get_stream_writer()(("actions", {"actions": actions, "conversation_id": state["conversation_id"]}))
+            final=next((m for m in reversed(state.get('messages',[])) if m.id==f"{state['turn_id']}:final"),None)
+            if final is not None:
+                update['messages']=[final.model_copy(update={'additional_kwargs':{**final.additional_kwargs,'actions':actions}})]
         update["budget_usage"] = runtime.context.budget.snapshot()
         if runtime.context.message_db_ids is not None:
             update['message_db_ids']=dict(runtime.context.message_db_ids)

@@ -2,7 +2,7 @@
 import asyncio
 import json
 from uuid import uuid4
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage,HumanMessage
 from langgraph.graph import StateGraph,START,END
 from langgraph.types import interrupt
 from langgraph.runtime import Runtime
@@ -40,7 +40,8 @@ def build_after_sales_graph(gate_threshold=None):
             raise ValueError('stale selection')
         order_id=selected.get('order_id')
         if order_id not in {item['order_id'] for item in state['selection']['options']}: raise ValueError('invalid selection')
-        return {**trace(state,'select_order'),'order_id':order_id,'selection':{}}
+        return {**trace(state,'select_order'),'order_id':order_id,'selection':{},'messages':[
+            HumanMessage(content='选择订单'+order_id,id=f"{state['turn_id']}:selection:{state['selection']['selection_id']}")]}
     async def fetch_order(state,runtime:Runtime[TurnContext]):
         context=runtime.context
         update=trace(state,'fetch_order')

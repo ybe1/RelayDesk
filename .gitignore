@@ -8,3 +8,5 @@ data/ch05/reports/*.sqlite*
 volumes/
 log/acceptance/
 log/acceptance/task-5-report.json
+log/app.log
+data/ch07/reports/*.sqlite*

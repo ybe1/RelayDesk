@@ -24,7 +24,8 @@ class PreparedTurn:
 
 
 class WorkflowChatService:
-    def __init__(self, graph, store, model_factory=None, tools_factory=build_tools, retriever=None,policy_retriever=None):
+    def __init__(self, graph, store, model_factory=None, tools_factory=build_tools, retriever=None,policy_retriever=None,
+                 context_config=None,summary_repository=None,summary_worker=None):
         self.graph, self.store = graph, store
         if model_factory is None:
             from app.core.llm import get_chat_model
@@ -32,6 +33,16 @@ class WorkflowChatService:
         self.model_factory, self.tools_factory, self.retriever = model_factory, tools_factory, retriever
         self.policy_retriever=policy_retriever
         self.active = set()
+        from app.context.budget import config_from_settings
+        self.context_config=context_config or config_from_settings(settings)
+        if summary_repository is None and callable(getattr(store,'session_factory',None)):
+            from app.repositories.summaries import SummaryRepository
+            summary_repository=SummaryRepository(store.session_factory)
+        self.summary_repository=summary_repository
+        if summary_worker is None and summary_repository is not None:
+            from app.services.summarizer import SummaryWorker
+            summary_worker=SummaryWorker(summary_repository,self.model_factory,self.context_config,LOGGER)
+        self.summary_worker=summary_worker
 
     async def prepare(self, req):
         cid = await asyncio.to_thread(self.store.start_or_load, req.user_id, req.conversation_id)
@@ -133,9 +144,14 @@ class WorkflowChatService:
     async def events(self, req, prepared=None):
         prepared = prepared or await self.prepare(req)
         cid, turn_id = prepared.conversation_id, prepared.turn_id
-        budget = TurnBudget(Limits(model_calls=settings.agent_max_model_calls, tools=settings.agent_max_tool_steps,
-                                   tokens=settings.agent_max_tokens, seconds=settings.agent_timeout_seconds),
+        from app.context.budget import cumulative_token_limit,calculate_budget
+        from app.context.tokens import estimate_text
+        cfg=self.context_config
+        calls=max(settings.agent_max_model_calls,cfg.steps+5)
+        budget = TurnBudget(Limits(model_calls=calls, tools=cfg.steps,
+                                   tokens=cumulative_token_limit(cfg,calls), seconds=settings.agent_timeout_seconds),
                             usage=(prepared.resume_state or {}).get('budget_usage'))
+        budget.context_config=cfg
         interruption = None
         pending_writes = set()
         saved_messages=[]
@@ -151,8 +167,10 @@ class WorkflowChatService:
         try:
             await asyncio.to_thread(self._close_pending, cid)
             if prepared.resume_value:
+                history=list(prepared.resume_state.get('messages',[]))
                 confirmation=HumanMessage(content='选择订单'+prepared.resume_value['order_id'],id=f'{turn_id}:selection:{prepared.resume_value["selection_id"]}')
-                await write(self._save,cid,turn_id,confirmation)
+                message_db_ids[confirmation.id]=await write(self._save,cid,turn_id,confirmation)
+                saved_messages.append(confirmation)
             else:
                 database = await asyncio.to_thread(self.store.load_history, cid)
                 checkpoint=[]
@@ -169,6 +187,28 @@ class WorkflowChatService:
                 message = HumanMessage(content=req.message, id=f"{turn_id}:user")
                 message_db_ids[message.id]=await write(self._save, cid, turn_id, message)
                 saved_messages.append(message)
+            if estimate_text(req.message)>cfg.user_input:
+                raise ValueError('用户输入超出上下文额度，请缩短后重试')
+            from app.context.contracts import LayerAnchors,HistoryProjection
+            from app.context.layers import history_records,project_history,prepare_summary_batch
+            from app.context.logging import record_history
+            prior=[m for m in history if not (m.id or '').startswith(turn_id+':')]
+            records=history_records(prior,message_db_ids)
+            anchors,segments=await asyncio.to_thread(self.summary_repository.load,cid) if self.summary_repository else (LayerAnchors(),[])
+            summary='\n'.join(s.content for s in segments)
+            breakdown=calculate_budget(cfg,estimate_text(summary))
+            if breakdown.history<breakdown.steady:
+                raise ValueError(f'上下文预算不足: history={breakdown.history} steady={breakdown.steady}')
+            projection=project_history(records,anchors,breakdown,summary)
+            if self.summary_repository and projection.anchors.layer1_from!=anchors.layer1_from:
+                moved=await asyncio.to_thread(self.summary_repository.advance_layer1,cid,anchors.layer1_from,projection.anchors.layer1_from)
+                if not moved: raise RuntimeError('context anchors changed concurrently')
+                LOGGER.info('layer1 demote conversation_id=%s %s→%s budget=%s',cid,anchors.layer1_from,projection.anchors.layer1_from,breakdown.layer1)
+            record_history(cid,turn_id,projection,breakdown)
+            if self.summary_worker and projection.layer2_tokens>breakdown.layer2:
+                batch=prepare_summary_batch(cid,records,projection.anchors,segments)
+                LOGGER.info('summary trigger conversation_id=%s from=%s upto=%s layer2=%s > budget=%s',cid,anchors.summary_upto+1,batch.upto_msg_id,projection.layer2_tokens,breakdown.layer2)
+                self.summary_worker.submit(batch)
             model = self.model_factory()
             tools = self.tools_factory(self.store.session_factory, cid, raw_question=req.message, budget=budget, model=model)
             async def save(msg):
@@ -186,9 +226,12 @@ class WorkflowChatService:
                                   retrieve=self.retriever, record_low_confidence=pool, issue_actions=offers,
                                   retrieve_queries=self.policy_retriever,intent_small_model=small_model,
                                   message_db_ids=message_db_ids)
+            context.history_projection=projection
+            context.context_config=cfg
             state = Command(resume=prepared.resume_value) if prepared.resume_value else make_turn_input(req.message, cid, req.user_id, turn_id,
                                     [*history,message])
             if isinstance(state,dict): state['message_db_ids']=dict(message_db_ids)
+            if isinstance(state,dict): state['context_anchors']={'summary_upto':projection.anchors.summary_upto,'layer1_from':projection.anchors.layer1_from}
             yield "conversation", {"conversation_id": cid}
             async for namespace, event in self.graph.astream(state, {"configurable": {"thread_id": f"conversation:{cid}"}, "recursion_limit": 50},
                                                   context=context, stream_mode="custom", subgraphs=True):

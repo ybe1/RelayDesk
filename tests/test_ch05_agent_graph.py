@@ -52,7 +52,7 @@ async def test_pretrieved_policy_cannot_repeat_external_faq_search():
         'turn_id':'cached-faq','gate_allowed':True,'node_trace':[],
         'evidence':[{'n':1,'id':1,'answer':'商品完好可退'}],'citations':[]},context=context)
     assert executor.calls==0 and budget.tool_steps==0
-    assert 'query_faq' not in model.advertised
+    assert 'query_faq' in model.advertised  # Ch07 fixed schemas; execution still caches.
     assert result['stop_reason']=='answered'
 
 

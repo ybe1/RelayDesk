@@ -18,10 +18,11 @@ def route_intent(intent: str) -> str:
             "投诉": "complaint", "闲聊": "smalltalk", "其他": "fallback"}[intent]
 
 
-async def classify_intent(model, raw_question: str) -> IntentDecision:
+async def classify_intent(model, raw_question: str,history=None) -> IntentDecision:
     if detect_smalltalk(raw_question):
         return IntentDecision(intent="闲聊", confidence=1.0)
-    response = await model.ainvoke([SystemMessage(content=INTENT_PROMPT), HumanMessage(content=raw_question)],
+    payload=raw_question if history is None else json.dumps({'history':[m.model_dump() for m in history],'current_question':raw_question},ensure_ascii=False)
+    response = await model.ainvoke([SystemMessage(content=INTENT_PROMPT), HumanMessage(content=payload)],
                                   max_tokens=128,response_format={"type":"json_object"},
                                   extra_body={"thinking":{"type":"disabled"}})
     try:
@@ -30,19 +31,19 @@ async def classify_intent(model, raw_question: str) -> IntentDecision:
         raise ValueError("invalid intent JSON") from exc
 
 
-async def classify_with_escalation(large_model, small_model, question, budget, threshold=0.75):
+async def classify_with_escalation(large_model, small_model, question, budget, threshold=0.75,history=None):
     if detect_smalltalk(question):
         return IntentRun(IntentDecision(intent='闲聊',confidence=1.0),'rule',False)
     upgraded=False
     if small_model is not None:
         try:
-            decision=await classify_intent(BudgetedModel(small_model,budget,128),question)
+            decision=await classify_intent(BudgetedModel(small_model,budget,128),question,history)
         except ValueError:
             decision=None
         if decision is not None and decision.confidence>=threshold:
             return IntentRun(decision,'small',False)
         upgraded=True
-    decision=await classify_intent(BudgetedModel(large_model,budget,128),question)
+    decision=await classify_intent(BudgetedModel(large_model,budget,128),question,history)
     if decision.confidence<threshold:
         decision=IntentDecision(intent='其他',confidence=decision.confidence)
     return IntentRun(decision,'large',upgraded)
