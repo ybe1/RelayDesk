@@ -20,6 +20,8 @@ class AgentResult:
 
 class WorkflowState(TypedDict, total=False):
     messages: Annotated[list, add_messages]
+    message_db_ids: dict[str,int]
+    context_anchors: dict
     conversation_id: int
     user_id: str
     turn_id: str
@@ -76,3 +78,6 @@ class TurnContext:
     retrieve_queries: Any = None
     intent_small_model: Any = None
     refund_defaults: Any = None
+    message_db_ids: Any = None
+    history_projection: Any = None
+    context_config: Any = None

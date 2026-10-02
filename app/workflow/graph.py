@@ -21,7 +21,7 @@ LOGGER = logging.getLogger(__name__)
 
 def make_turn_input(question, conversation_id, user_id, turn_id, messages):
     return {"raw_question": question, "question": question, "conversation_id": conversation_id,
-            "user_id": user_id, "turn_id": turn_id, "messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), *messages],
+            "user_id": user_id, "turn_id": turn_id, "messages": messages,
             "evidence": [], "citations": [], "actions": [], "decision": {}, "final_text": "",
             "stop_reason": "", "budget_usage": {}, "tool_steps": 0, "node_trace": [],
             "intent": "", "route": "", "gate_allowed": False, "gate_reason": "",
@@ -122,6 +122,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
             update["actions"] = actions
             get_stream_writer()(("actions", {"actions": actions, "conversation_id": state["conversation_id"]}))
         update["budget_usage"] = runtime.context.budget.snapshot()
+        if runtime.context.message_db_ids is not None:
+            update['message_db_ids']=dict(runtime.context.message_db_ids)
         LOGGER.info("workflow conversation_id=%s turn_id=%s intent=%s trace=%s stop=%s usage=%s",
                     state["conversation_id"], state["turn_id"], state.get("intent"), update["node_trace"],
                     state.get("stop_reason"), update["budget_usage"])

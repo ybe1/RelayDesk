@@ -63,8 +63,10 @@ async def test_cancel_closes_persisted_tool_and_releases_lock(caplog):
     assert "workflow interrupted" in caplog.text
     with SessionLocal() as session:
         rows = load_messages(session, prepared.conversation_id)
-        assert rows[-1].role == "tool"
-        assert rows[-1].tool_call_id == "cancel-call"
+        # Ch07 persists observations only in checkpoint, including recovery.
+        assert rows[-1].role == "assistant"
+        assert rows[-1].tool_calls[0]['id'] == 'cancel-call'
+        assert not any(row.role=='tool' for row in rows)
 
 
 def test_lifespan_opens_and_closes_checkpointer_and_api_statuses():

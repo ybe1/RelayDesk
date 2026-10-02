@@ -98,16 +98,17 @@ class WorkflowChatService:
         self.active.discard(prepared.conversation_id)
 
     def _close_pending(self, cid):
-        from app.repositories.messages import close_pending_tools
-        with self.store.session_factory() as session:
-            close_pending_tools(session, cid)
-            session.commit()
+        # Compatibility hook: actual closing now uses checkpoint + saved writes
+        # in events.cleanup. No tool observations are ever inserted in SQL here.
+        return None
 
     def _save(self, cid, turn_id, message):
+        if message.type=='tool': return None
         from app.repositories.messages import append_once
         with self.store.session_factory() as session:
-            append_once(session, cid, message.id or f"{turn_id}:{message.type}", message)
+            row=append_once(session, cid, message.id or f"{turn_id}:{message.type}", message)
             session.commit()
+            return row.id
 
     def _pool(self, cid, raw, reason):
         from app.repositories.low_confidence import insert_low_confidence
@@ -137,6 +138,8 @@ class WorkflowChatService:
                             usage=(prepared.resume_state or {}).get('budget_usage'))
         interruption = None
         pending_writes = set()
+        saved_messages=[]
+        message_db_ids=dict((prepared.resume_state or {}).get('message_db_ids',{}))
         async def write(function, *args):
             task = asyncio.create_task(asyncio.to_thread(function, *args))
             pending_writes.add(task)
@@ -151,12 +154,28 @@ class WorkflowChatService:
                 confirmation=HumanMessage(content='选择订单'+prepared.resume_value['order_id'],id=f'{turn_id}:selection:{prepared.resume_value["selection_id"]}')
                 await write(self._save,cid,turn_id,confirmation)
             else:
-                history = await asyncio.to_thread(self.store.load_history, cid)
+                database = await asyncio.to_thread(self.store.load_history, cid)
+                checkpoint=[]
+                if getattr(self.graph,'checkpointer',None):
+                    snapshot=await self.graph.aget_state(self._config(cid))
+                    checkpoint=list(snapshot.values.get('messages',[]))
+                    message_db_ids.update(snapshot.values.get('message_db_ids',{}))
+                from .history import merge_history,close_missing_results
+                history=merge_history(checkpoint,database)
+                history.extend(close_missing_results(history))
+                for old in database:
+                    if old.additional_kwargs.get('db_id'):
+                        message_db_ids[old.id]=old.additional_kwargs['db_id']
                 message = HumanMessage(content=req.message, id=f"{turn_id}:user")
-                await write(self._save, cid, turn_id, message)
+                message_db_ids[message.id]=await write(self._save, cid, turn_id, message)
+                saved_messages.append(message)
             model = self.model_factory()
             tools = self.tools_factory(self.store.session_factory, cid, raw_question=req.message, budget=budget, model=model)
-            async def save(msg): await write(self._save, cid, turn_id, msg)
+            async def save(msg):
+                saved_messages.append(msg)
+                db_id=await write(self._save, cid, turn_id, msg)
+                if db_id is not None: message_db_ids[msg.id]=db_id
+                return db_id
             async def pool(raw, reason): await write(self._pool, cid, raw, reason)
             async def offers(actions): return await write(self._offers, cid, turn_id, req.message, actions,context.refund_defaults)
             small_model=None
@@ -165,9 +184,11 @@ class WorkflowChatService:
                 small_model=get_chat_model(model_name=settings.intent_small_model,disable_thinking=True,max_retries=0)
             context = TurnContext(AgentDependencies(model, tools, ToolExecutor(tools)), budget, save,
                                   retrieve=self.retriever, record_low_confidence=pool, issue_actions=offers,
-                                  retrieve_queries=self.policy_retriever,intent_small_model=small_model)
+                                  retrieve_queries=self.policy_retriever,intent_small_model=small_model,
+                                  message_db_ids=message_db_ids)
             state = Command(resume=prepared.resume_value) if prepared.resume_value else make_turn_input(req.message, cid, req.user_id, turn_id,
-                                    trim_turns([*history, message], settings.token_budget))
+                                    [*history,message])
+            if isinstance(state,dict): state['message_db_ids']=dict(message_db_ids)
             yield "conversation", {"conversation_id": cid}
             async for namespace, event in self.graph.astream(state, {"configurable": {"thread_id": f"conversation:{cid}"}, "recursion_limit": 50},
                                                   context=context, stream_mode="custom", subgraphs=True):
@@ -191,6 +212,13 @@ class WorkflowChatService:
                     await asyncio.shield(asyncio.gather(*pending_writes, return_exceptions=True))
                 await asyncio.to_thread(self._close_pending, cid)
                 waiting=await self._pending(cid)
+                if not waiting and getattr(self.graph,'checkpointer',None):
+                    from .history import merge_history,close_missing_results
+                    snapshot=await self.graph.aget_state(self._config(cid))
+                    messages=merge_history(snapshot.values.get('messages',[]),saved_messages)
+                    messages.extend(close_missing_results(messages))
+                    await self.graph.aupdate_state(self._config(cid),{'messages':messages,
+                        'message_db_ids':dict(message_db_ids)},as_node='log')
                 if interruption and not waiting and hasattr(self.graph, "aupdate_state"):
                     await self.graph.aupdate_state({"configurable": {"thread_id": f"conversation:{cid}"}},
                         {"stop_reason": interruption, "budget_usage": budget.snapshot(), "actions": []}, as_node="log")

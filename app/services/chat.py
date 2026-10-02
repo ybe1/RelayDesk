@@ -94,12 +94,14 @@ class DatabaseChatStore:
             rows = load_messages(session, conversation_id)
             history = []
             for row in rows:
+                metadata={'db_id':row.id}
+                stable_id=row.message_key or f'legacy:{conversation_id}:{row.id}'
                 if row.role == "user":
-                    history.append(HumanMessage(content=row.content or ""))
+                    history.append(HumanMessage(content=row.content or "",id=stable_id,additional_kwargs=metadata))
                 elif row.role == "assistant":
-                    history.append(AIMessage(content=row.content or "", tool_calls=row.tool_calls or []))
+                    history.append(AIMessage(content=row.content or "", tool_calls=row.tool_calls or [],id=stable_id,additional_kwargs=metadata))
                 else:
-                    history.append(ToolMessage(content=row.content or "", tool_call_id=row.tool_call_id))
+                    history.append(ToolMessage(content=row.content or "", tool_call_id=row.tool_call_id,id=stable_id,additional_kwargs=metadata))
             return history
 
 
