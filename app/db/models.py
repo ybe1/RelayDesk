@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, Text, text
+from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -16,8 +16,25 @@ class Conversation(Base):
     id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(mysql.ENUM("进行中", "已转人工", "已结束"), nullable=False, server_default=text("'进行中'"))
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True, comment='最近几段梗概拼成的投影,拼装时跟证据一起挂在用户那句之后')
+    summary_upto_msg_id: Mapped[int | None] = mapped_column(mysql.BIGINT(unsigned=True),nullable=True,comment='摘要已覆盖到哪条消息,滑窗从其后接原文')
+    layer1_from_msg_id: Mapped[int | None] = mapped_column(mysql.BIGINT(unsigned=True),nullable=True,comment='层1(原文)起点;此 id 之后原样,之前渲染成半压形态')
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+
+
+class ConversationSummary(Base):
+    __tablename__ = 'conversation_summaries'
+    __table_args__ = (UniqueConstraint('conversation_id','seq',name='uk_conv_seq'),
+        Index('idx_conv_upto','conversation_id','upto_msg_id'),
+        {'mysql_engine':'InnoDB','mysql_charset':'utf8mb4','comment':'分段摘要,一段一行只追加'})
+    id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),primary_key=True,autoincrement=True)
+    conversation_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),nullable=False)
+    seq: Mapped[int] = mapped_column(mysql.INTEGER,nullable=False,comment='第几段,从 1 开始')
+    from_msg_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),nullable=False,comment='这段覆盖的消息区间,闭区间')
+    upto_msg_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),nullable=False)
+    content: Mapped[str] = mapped_column(Text,nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime,nullable=False,server_default=text('CURRENT_TIMESTAMP'))
 
 
 class Message(Base):

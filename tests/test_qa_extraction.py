@@ -17,6 +17,7 @@ def session_factory():
             CREATE TABLE conversations (
                 id INTEGER PRIMARY KEY, user_id VARCHAR(64) NOT NULL,
                 status VARCHAR NOT NULL DEFAULT '进行中',
+                summary TEXT, summary_upto_msg_id INTEGER, layer1_from_msg_id INTEGER,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
