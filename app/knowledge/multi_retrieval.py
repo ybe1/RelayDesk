@@ -25,7 +25,8 @@ def merge_candidate_lists(lists,limit=50):
 
 
 async def search_multi_queries(question,queries,dependencies,category=None):
-    if not 1<=len(queries)<=3 or any(not isinstance(q,str) or not q.strip() or len(q)>512 for q in queries):
+    if not 1<=len(queries)<=3 or any(not isinstance(q,str) or not q.strip()
+        or len(q)>(4096 if i==0 and q==question else 512) for i,q in enumerate(queries)):
         raise ValueError('invalid expanded queries')
     if category is not None and category not in settings.rag_category_allowlist: raise ValueError('invalid category')
     if dependencies._closed: raise RuntimeError('retrieval dependencies are closed')

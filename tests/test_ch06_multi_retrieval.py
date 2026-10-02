@@ -27,6 +27,20 @@ async def test_one_embedding_batch_and_one_rerank_without_understanding():
     assert [c[0] for c in calls]==['embed','search','search','rerank']
 
 
+async def test_long_original_question_is_valid_retrieval_input():
+    from app.knowledge.multi_retrieval import search_multi_queries
+    from app.knowledge.retrieval import RetrievalDependencies
+    question='退货说明'+('商品包装完好。'*80)
+    class Embed:
+        def embed(self,texts):
+            assert texts[0]==question
+            return [[0.1]*1024 for _ in texts]
+    class Store:
+        def hybrid_search(self,*args,**kwargs): return []
+    result=await search_multi_queries(question,[question,'退货条件'],RetrievalDependencies(None,Embed(),Store(),None))
+    assert result.reason=='no_hits'
+
+
 async def test_incomplete_vector_batch_fails():
     from app.knowledge.multi_retrieval import search_multi_queries
     deps=SimpleNamespace(_closed=False,embedder=SimpleNamespace(embed=lambda texts:[]))

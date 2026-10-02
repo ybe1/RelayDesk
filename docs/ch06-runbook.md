@@ -37,11 +37,21 @@ uv run python -m scripts.eval_ch06
 uv run python -m scripts.eval_ch06 --live
 # 只重跑失败题，已成功题跳过：
 uv run python -m scripts.eval_ch06 --live --retry-failed
+# 扩写内容核对完成后，导入人工复核；复用已保存输出，不重新发模型请求：
+uv run python -m scripts.eval_ch06 --live --expansion-review data/ch06/reports/expansion-review.json
 ```
 
 本地eval命令只验证40条意图标注、6组×4轮对话、8条扩写与3条资格判断样例的完整性；`quality_status=not_run`不代表模型准确率通过。
 
-真实评估逐题写data/ch06/reports/eval-live.json，网络/额度失败立即停止后续请求；同输入同模型重跑跳过已有结果。输入或模型变更必须用新的`--output`保留旧证据。可用`--section intent/dialogues/expansion/assessment`分段执行；最终all检查整套门槛。意图JSON合规率100%、准确率至少95%，指定多轮指代/切换全部正确才达标。扩写报告保留预期侧重点及实际查询供核对。
+真实评估逐题写data/ch06/reports/eval-live.json，网络/额度失败立即停止后续请求；同输入同模型重跑跳过已有结果。数据、被测生产实现、评估器、库版本或非敏感判断配置变更必须用新的`--output`保留旧证据。可用`--section intent/dialogues/expansion/assessment`分段执行；最终all检查整套门槛。意图JSON合规率100%、准确率至少95%，指定多轮指代/切换全部正确才达标。退款样例运行实际Agent图及refund offer资格校验，引用必须来自提供的政策证据。
+
+扩写数量/格式通过不等于内容通过。核心扩写初次输出标为pending_review；逐条对照expected_facets核对侧重点和事实保持后，写人工复核文件，例如：
+
+```json
+{"X01":{"query_signature":"复制报告中的64位query_signature","facets_ok":true,"facts_preserved":true,"reason":"核对退货条件与运费两个侧重点，未添加订单事实"}}
+```
+
+每个需要扩写的样例均需复核；结果按实际queries的指纹绑定，输出变化后旧审批不复用。未复核不允许quality_status=passed。通用FAQ原样不扩写，无需扩写内容复核。规范原问第一条最多4096字符，补充检索问每条512字符；不截断用户的合法详细说明。累计调用/token/活动时间上限保持不变。
 
 前端证据：data/ch06/reports/browser-local.json、browser-local.png，真实Edge、HTTP演示替身，7项交互通过；不能替代真实模型端到端验收。
 
