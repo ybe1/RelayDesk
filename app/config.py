@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -14,6 +15,8 @@ class Settings(BaseSettings):
     agent_timeout_seconds: float = 120
     workflow_gate_threshold: float = 0.032755612017354
     workflow_checkpoint_path: str = "data/runtime/ch05-checkpoints.sqlite"
+    intent_small_model: str = ""
+    intent_confidence_threshold: float = Field(default=0.75,gt=0,le=1,allow_inf_nan=False)
     database_url: str = "mysql+pymysql://mewhelp:mewhelp_local@127.0.0.1:3307/mewhelp?charset=utf8mb4"
     embed_base_url: str = "https://api.siliconflow.cn/v1"
     embed_model: str = "BAAI/bge-m3"

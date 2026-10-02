@@ -1,16 +1,10 @@
 import json
 import re
-from typing import Literal
-from pydantic import BaseModel, ConfigDict
 from langchain_core.messages import SystemMessage, HumanMessage
 from app.core.workflow_prompts import INTENT_PROMPT
 
-Intent = Literal["物流", "订单", "商品咨询", "退款退货", "售后", "投诉", "闲聊"]
-
-
-class IntentDecision(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    intent: Intent
+from .routing_contracts import IntentDecision, IntentRun
+from .model import BudgetedModel
 
 
 def detect_smalltalk(raw_question: str) -> bool:
@@ -18,17 +12,37 @@ def detect_smalltalk(raw_question: str) -> bool:
     return normalized in {"你好", "您好", "嗨", "hello", "hi", "谢谢", "谢谢你", "感谢", "多谢", "再见", "拜拜", "晚安"}
 
 
-def route_intent(intent: Intent) -> str:
+def route_intent(intent: str) -> str:
     return {"商品咨询": "knowledge", "退款退货": "knowledge",
             "物流": "business", "订单": "business", "售后": "business",
-            "投诉": "complaint", "闲聊": "smalltalk"}[intent]
+            "投诉": "complaint", "闲聊": "smalltalk", "其他": "fallback"}[intent]
 
 
 async def classify_intent(model, raw_question: str) -> IntentDecision:
     if detect_smalltalk(raw_question):
-        return IntentDecision(intent="闲聊")
-    response = await model.ainvoke([SystemMessage(content=INTENT_PROMPT), HumanMessage(content=raw_question)], max_tokens=128)
+        return IntentDecision(intent="闲聊", confidence=1.0)
+    response = await model.ainvoke([SystemMessage(content=INTENT_PROMPT), HumanMessage(content=raw_question)],
+                                  max_tokens=128,response_format={"type":"json_object"},
+                                  extra_body={"thinking":{"type":"disabled"}})
     try:
         return IntentDecision.model_validate(json.loads(response.content))
     except (TypeError, ValueError) as exc:
         raise ValueError("invalid intent JSON") from exc
+
+
+async def classify_with_escalation(large_model, small_model, question, budget, threshold=0.75):
+    if detect_smalltalk(question):
+        return IntentRun(IntentDecision(intent='闲聊',confidence=1.0),'rule',False)
+    upgraded=False
+    if small_model is not None:
+        try:
+            decision=await classify_intent(BudgetedModel(small_model,budget,128),question)
+        except ValueError:
+            decision=None
+        if decision is not None and decision.confidence>=threshold:
+            return IntentRun(decision,'small',False)
+        upgraded=True
+    decision=await classify_intent(BudgetedModel(large_model,budget,128),question)
+    if decision.confidence<threshold:
+        decision=IntentDecision(intent='其他',confidence=decision.confidence)
+    return IntentRun(decision,'large',upgraded)

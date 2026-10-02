@@ -10,7 +10,7 @@ from tests.test_ch05_gate import result
 
 async def run_case(query, intent=None, score=0.8, pool_fails=False):
     from app.workflow.graph import build_workflow, make_turn_input
-    responses = ([AIMessage(content='{"intent":"'+intent+'"}')] if intent else [])
+    responses = ([AIMessage(content='{"confidence":0.95,"intent":"'+intent+'"}')] if intent else [])
     responses += [{"kind": "answer", "tool_calls": [], "actions": [], "reason": "证据够"}]
     model = GraphModel(responses)
     retrieved, pooled, offers = [], [], []
