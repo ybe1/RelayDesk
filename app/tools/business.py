@@ -38,8 +38,12 @@ def _mock_order_snapshot(order_id: str) -> dict:
         ("运输中", "派送中", "本地配送站"),
         ("已完成", "已签收", "收货地址"),
     ])
-    return {"status": order_status, "amount": round(rng.uniform(29, 399), 2),
-            "logistics_status": logistics_status, "location": location}
+    amount = round(rng.uniform(29,399),2)
+    product_name,category = rng.choice([('喵喵猫粮','宠物食品'),('智能饮水机','宠物用品'),('猫抓板','宠物用品')])
+    return {"status": order_status, "amount": amount,
+            "logistics_status": logistics_status, "location": location,
+            "product_name":product_name,"category":category,
+            "days_since_receipt":rng.choice([2,5,15]) if order_status=='已完成' else None}
 
 
 async def _production_retriever(query: str):
@@ -116,9 +120,8 @@ def build_tools(
     @tool(args_schema=OrderArgs)
     def query_order(order_id: str) -> str:
         """查询订单演示信息。订单数据为随机模拟，不能代表真实订单状态。"""
-        snapshot = _mock_order_snapshot(order_id)
-        return json.dumps({"mock": True, "order_id": order_id,
-                           "status": snapshot["status"], "amount": snapshot["amount"]}, ensure_ascii=False)
+        from app.workflow.order_context import demo_order
+        return json.dumps(demo_order(order_id),ensure_ascii=False)
 
     @tool(args_schema=ProductArgs)
     def query_product(product_name: str) -> str:

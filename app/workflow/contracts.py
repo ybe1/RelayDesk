@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Annotated, TypedDict, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from langgraph.graph.message import add_messages
+from .routing_contracts import RefundAssessment
 
 
 @dataclass
@@ -37,6 +38,15 @@ class WorkflowState(TypedDict, total=False):
     node_trace: list
     gate_allowed: bool
     gate_reason: str
+    resolution: dict
+    intent_confidence: float
+    intent_model_tier: str
+    intent_upgraded: bool
+    order_id: str | None
+    order_snapshot: dict
+    selection: dict
+    expanded_queries: list[str]
+    refund_assessment: dict
 
 
 class ToolRequest(BaseModel):
@@ -50,8 +60,9 @@ class AgentDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["tools", "answer", "clarify", "stop"]
     tool_calls: list[ToolRequest] = Field(default_factory=list, max_length=5)
-    actions: list[Literal["handoff", "ticket"]] = Field(default_factory=list, max_length=2)
+    actions: list[Literal["handoff", "ticket", "refund"]] = Field(default_factory=list, max_length=3)
     reason: str = Field(min_length=1, max_length=300)
+    refund_assessment: RefundAssessment | None = None
 
 
 @dataclass
