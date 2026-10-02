@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     chat_base_url: str
     chat_api_key: str
     token_budget: int = 2000
+    model_context_window: int = Field(default=1_000_000,gt=0)
+    max_output_tokens: int = Field(default=4000,gt=0)
+    max_user_input_tokens: int = Field(default=4000,gt=0)
+    max_agent_steps: int = Field(default=5,gt=0)
+    tool_result_max_tokens: int = Field(default=2400,gt=0)
+    context_desired_turns: int = Field(default=40,gt=0)
     agent_max_tool_steps: int = 5
     agent_max_model_calls: int = 6
     agent_max_tokens: int = 12000
