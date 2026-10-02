@@ -33,3 +33,9 @@ def test_no_facts_advances_without_empty_segment(repo):
 def test_cannot_cover_unsummarized_recent_history(repo):
     assert repo.append(1,0,5,'订单1001') is None
     assert repo.load(1)[0].summary_upto==0
+
+
+def test_segment_start_is_actual_source_id_not_global_anchor_successor(repo):
+    repo.advance_layer1(1,0,2184)
+    row=repo.append(1,0,2184,'用户报告订单1001物流未到，请求核实。',from_msg_id=2180)
+    assert row.from_msg_id==2180

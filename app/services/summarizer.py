@@ -41,8 +41,7 @@ class SummaryWorker:
 
     def _parts(self,batch):
         # Only new full turns become sources. Prior immutable segments remain
-        # background. Deterministic tool projection is permitted if a full turn
-        # exceeds the summary request capacity; user text is never truncated.
+        # background. Never advance coverage over source facts that did not fit.
         limit=self.config.window-self.config.output-max(450,(self.config.window+49)//50)
         current=[]; expected=batch.expected_summary_upto; parts=[]
         for turn in group_turns(batch.source):
@@ -53,9 +52,7 @@ class SummaryWorker:
                 parts.append(part); expected=part.upto_msg_id; current=[]
                 candidate=replace(batch,expected_summary_upto=expected,source=turn,upto_msg_id=max(r.owner_msg_id for r in turn))
             if estimate_messages(summary_messages(candidate))>limit:
-                turn=tuple(replace(r,message=cap_tool_result(r.message,self.config.tool_result)) for r in turn)
-                candidate=replace(candidate,source=turn)
-                if estimate_messages(summary_messages(candidate))>limit: raise ValueError('summary turn exceeds window')
+                raise ValueError('summary turn exceeds window; source retained, coverage unchanged')
             current.extend(turn)
         if current:
             parts.append(replace(batch,expected_summary_upto=expected,source=tuple(current),upto_msg_id=max(r.owner_msg_id for r in current)))
@@ -78,7 +75,8 @@ class SummaryWorker:
                     parsed=json.loads(response.content)
                     if not isinstance(parsed,dict) or set(parsed)!={'summary'}: raise ValueError('invalid summary JSON')
                     content=validate_summary(parsed['summary'],part)
-                    row=await asyncio.to_thread(self.repository.append,cid,part.expected_summary_upto,part.upto_msg_id,content)
+                    row=await asyncio.to_thread(self.repository.append,cid,part.expected_summary_upto,part.upto_msg_id,content,
+                        from_msg_id=min(r.owner_msg_id for r in part.source))
                     updated,_=await asyncio.to_thread(self.repository.load,cid)
                     committed=updated.summary_upto==part.upto_msg_id
                     self.logger.info('summary %s conversation_id=%s from=%s upto=%s seq=%s reason=%s seconds=%.3f usage=%s',

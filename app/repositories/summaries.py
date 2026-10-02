@@ -25,18 +25,20 @@ class SummaryRepository:
             conv.layer1_from_msg_id=target
             return True
 
-    def append(self,cid,expected_summary_upto,upto,content):
+    def append(self,cid,expected_summary_upto,upto,content,from_msg_id=None):
         with self.session_factory() as session,session.begin():
             conv=session.scalar(select(Conversation).where(Conversation.id==cid).with_for_update())
             if conv is None or (conv.summary_upto_msg_id or 0)!=expected_summary_upto:
                 return None
             if upto<=expected_summary_upto or upto>(conv.layer1_from_msg_id or 0): return None
+            first=expected_summary_upto+1 if from_msg_id is None else from_msg_id
+            if not expected_summary_upto<first<=upto: return None
             rows=list(session.scalars(select(ConversationSummary).where(
                 ConversationSummary.conversation_id==cid).order_by(ConversationSummary.seq)))
             segment=None
             if content:
                 row=ConversationSummary(conversation_id=cid,seq=max((r.seq for r in rows),default=0)+1,
-                    from_msg_id=expected_summary_upto+1,upto_msg_id=upto,content=content)
+                    from_msg_id=first,upto_msg_id=upto,content=content)
                 session.add(row)
                 rows.append(row)
                 segment=self._segment(row)

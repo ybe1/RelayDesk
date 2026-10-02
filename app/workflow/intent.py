@@ -5,6 +5,7 @@ from app.core.workflow_prompts import INTENT_PROMPT
 
 from .routing_contracts import IntentDecision, IntentRun
 from .model import BudgetedModel
+from .history import understanding_payload
 
 
 def detect_smalltalk(raw_question: str) -> bool:
@@ -21,7 +22,7 @@ def route_intent(intent: str) -> str:
 async def classify_intent(model, raw_question: str,history=None) -> IntentDecision:
     if detect_smalltalk(raw_question):
         return IntentDecision(intent="闲聊", confidence=1.0)
-    payload=raw_question if history is None else json.dumps({'history':[m.model_dump() for m in history],'current_question':raw_question},ensure_ascii=False)
+    payload=raw_question if history is None else json.dumps({'history':understanding_payload(history),'current_question':raw_question},ensure_ascii=False)
     response = await model.ainvoke([SystemMessage(content=INTENT_PROMPT), HumanMessage(content=payload)],
                                   max_tokens=128,response_format={"type":"json_object"},
                                   extra_body={"thinking":{"type":"disabled"}})

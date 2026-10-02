@@ -13,6 +13,7 @@ from app.schemas.chat import ChatRequest,SelectionRequest
 from app.services.chat import ChatService, DatabaseChatStore
 from app.services.tool_executor import ToolExecutor
 from app.tools.business import build_tools
+from app.context.budget import ContextCapacityError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,6 +58,9 @@ def stream_chat(req,service,prepared,selection=False):
         except LookupError:
             yield "event: error\n"
             yield f"data: {json.dumps({'message': '会话不存在'}, ensure_ascii=False)}\n\n"
+        except ContextCapacityError as exc:
+            yield "event: error\n"
+            yield f"data: {json.dumps({'message': str(exc)}, ensure_ascii=False)}\n\n"
         except Exception:
             logger.exception("聊天工具链失败 conversation_id=%s", req.conversation_id)
             yield "event: error\n"

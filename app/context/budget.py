@@ -1,6 +1,10 @@
 from dataclasses import asdict
 from .contracts import ContextConfig, BudgetBreakdown
 
+
+class ContextCapacityError(ValueError):
+    """Safe, actionable input/context capacity message for the SSE boundary."""
+
 def calculate_budget(config: ContextConfig, summary_tokens: int = 0) -> BudgetBreakdown:
     if any(isinstance(v,bool) or not isinstance(v,int) or v<=0 for v in asdict(config).values()):
         raise ValueError('上下文配置必须为正整数')

@@ -51,6 +51,17 @@ def verify():
         expect(page.locator('#messages')).to_contain_text('新商品原话')
         page.locator('[data-conversation-id="1"]').click()
         expect(page.get_by_text('已反馈',exact=True)).to_be_visible()
+        held=[]
+        page.route('**/api/chat/*/pending?*',lambda route:held.append(route))
+        page.evaluate('void recoverOrderSelection()')
+        page.wait_for_timeout(100)
+        assert held
+        page.evaluate("""setSending(true); addOrderSelection(addBubble('assistant','新选单').bubble,
+          {selection_id:'new-selection',conversation_id:1,turn_id:'new',options:[{order_id:'1001',amount:1}]});setSending(false)""")
+        held.pop().fulfill(json={'pending':None})
+        page.wait_for_timeout(100)
+        expect(page.locator('.order-card')).to_be_enabled()
+        page.unroute('**/api/chat/*/pending?*')
         fail_history=True
         page.locator('[data-conversation-id="2"]').click()
         expect(page.locator('#messages')).to_contain_text('完整订单原话。')
@@ -68,7 +79,7 @@ def verify():
         assert not errors,errors
         browser.close()
     return {'status':'passed','scope':'mocked HTTP headless UI; no production server',
-            'checks':['pagination','full_history','citation','feedback_restore','confirmed_action','failed_history','new_conversation','stream_lock','sidebar_failure'],
+            'checks':['pagination','full_history','citation','feedback_restore','confirmed_action','failed_history','new_conversation','stream_lock','sidebar_failure','stale_pending'],
             'requests':len(calls)}
 
 if __name__=='__main__': print(json.dumps(verify(),ensure_ascii=False))

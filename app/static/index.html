@@ -492,6 +492,7 @@
   }
 
   let pendingOrderCard = null;
+  let pendingRequestId = 0;
   function invalidateOrderCard() {
     if (!pendingOrderCard) return;
     for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = true;
@@ -523,11 +524,13 @@
   async function recoverOrderSelection() {
     if (!conversationId) return;
     const requestedId = conversationId;
+    const requestedView = switchRequestId;
+    const requestId = ++pendingRequestId;
     try {
       const response = await fetch(`/api/chat/${conversationId}/pending?user_id=${encodeURIComponent(userId)}`);
       if (!response.ok) return;
       const data = await response.json();
-      if (requestedId !== conversationId) return;
+      if (requestedId !== conversationId || requestedView !== switchRequestId || requestId !== pendingRequestId || isStreaming) return;
       if (!data.pending) { invalidateOrderCard(); return; }
       if (pendingOrderCard?.selection.selection_id === data.pending.selection_id) {
         for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = false;

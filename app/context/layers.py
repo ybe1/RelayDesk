@@ -22,8 +22,16 @@ def _payload(content):
 
 def tool_marker(message,name='tool'):
     data=_payload(message.content)
-    facts={k:data[k] for k in ('order_id','product_id','status','order_status','logistics_status','mock') if isinstance(data,dict) and k in data}
-    return f"工具{name} call={message.tool_call_id} {json.dumps(facts,ensure_ascii=False)}"
+    base=f"工具{name} call={message.tool_call_id} "
+    if estimate_text(base)>80:
+        return '工具结果（标识过长，详见checkpoint原始记录）'
+    facts={};omitted=False
+    for key in ('order_id','product_id','status','order_status','logistics_status','mock'):
+        if not isinstance(data,dict) or key not in data: continue
+        candidate={**facts,key:data[key]}
+        if estimate_text(base+json.dumps(candidate,ensure_ascii=False))<=100: facts=candidate
+        else: omitted=True
+    return base+json.dumps(facts,ensure_ascii=False)+('（部分字段过长，详见原始记录）' if omitted else '')
 
 def semi_compress(turn):
     names={call['id']:call['name'] for r in turn for call in getattr(r.message,'tool_calls',[]) or []}
@@ -74,6 +82,8 @@ def prepare_summary_batch(cid,records,anchors,segments):
     return SummaryBatch(cid,anchors.summary_upto,anchors.layer1_from,source,tuple(segments))
 
 def history_records(messages,message_db_ids):
+    from app.workflow.history import ordered_tool_history
+    messages=ordered_tool_history(messages)
     call_owners={call['id']:message_db_ids.get(m.id,0) for m in messages for call in getattr(m,'tool_calls',[]) or []}
     records=[]; turn=''
     for message in messages:

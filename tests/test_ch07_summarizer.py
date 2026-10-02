@@ -8,11 +8,11 @@ from app.context.contracts import SummaryBatch,HistoryRecord,ContextConfig,Layer
 class MemoryRepo:
     def __init__(self): self.anchors=LayerAnchors(0,4); self.segments=[]
     def load(self,cid): return self.anchors,list(self.segments)
-    def append(self,cid,expected,upto,content):
+    def append(self,cid,expected,upto,content,from_msg_id=None):
         if expected!=self.anchors.summary_upto: return None
         self.anchors=LayerAnchors(upto,self.anchors.layer1_from)
         if not content: return None
-        row=SummarySegment(len(self.segments)+1,expected+1,upto,content)
+        row=SummarySegment(len(self.segments)+1,from_msg_id or expected+1,upto,content)
         self.segments.append(row); return row
 
 def batch():

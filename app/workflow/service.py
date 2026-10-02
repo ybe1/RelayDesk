@@ -144,7 +144,7 @@ class WorkflowChatService:
     async def events(self, req, prepared=None):
         prepared = prepared or await self.prepare(req)
         cid, turn_id = prepared.conversation_id, prepared.turn_id
-        from app.context.budget import cumulative_token_limit,calculate_budget
+        from app.context.budget import cumulative_token_limit,calculate_budget,ContextCapacityError
         from app.context.tokens import estimate_text
         cfg=self.context_config
         calls=max(settings.agent_max_model_calls,cfg.steps+5)
@@ -165,6 +165,8 @@ class WorkflowChatService:
                 if task.done():
                     pending_writes.discard(task)
         try:
+            if estimate_text(req.message)>cfg.user_input:
+                raise ContextCapacityError('用户输入超出上下文额度，请缩短后重试')
             await asyncio.to_thread(self._close_pending, cid)
             if prepared.resume_value:
                 history=list(prepared.resume_state.get('messages',[]))
@@ -187,8 +189,6 @@ class WorkflowChatService:
                 message = HumanMessage(content=req.message, id=f"{turn_id}:user")
                 message_db_ids[message.id]=await write(self._save, cid, turn_id, message)
                 saved_messages.append(message)
-            if estimate_text(req.message)>cfg.user_input:
-                raise ValueError('用户输入超出上下文额度，请缩短后重试')
             from app.context.contracts import LayerAnchors,HistoryProjection
             from app.context.layers import history_records,project_history,prepare_summary_batch
             from app.context.logging import record_history
@@ -198,7 +198,7 @@ class WorkflowChatService:
             summary='\n'.join(s.content for s in segments)
             breakdown=calculate_budget(cfg,estimate_text(summary))
             if breakdown.history<breakdown.steady:
-                raise ValueError(f'上下文预算不足: history={breakdown.history} steady={breakdown.steady}')
+                raise ContextCapacityError('上下文预算不足，请开启新对话或调整模型窗口配置')
             projection=project_history(records,anchors,breakdown,summary)
             if self.summary_repository and projection.anchors.layer1_from!=anchors.layer1_from:
                 moved=await asyncio.to_thread(self.summary_repository.advance_layer1,cid,anchors.layer1_from,projection.anchors.layer1_from)

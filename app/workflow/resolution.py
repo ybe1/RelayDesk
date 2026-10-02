@@ -6,6 +6,7 @@ from .model import BudgetedModel
 from .routing_contracts import Resolution
 from .order_context import recent_turns, validate_resolution
 from app.context.tokens import estimate_messages
+from .history import understanding_payload
 
 
 async def resolve_question(model,raw_question,history,budget,shared_history=False):
@@ -14,7 +15,7 @@ async def resolve_question(model,raw_question,history,budget,shared_history=Fals
     # wrapper cannot see its turn boundaries. Fit complete historical turns
     # before nesting them, using the same conservative request estimate.
     while True:
-        payload={'history':[message.model_dump() for message in history],'current_question':raw_question}
+        payload={'history':understanding_payload(history),'current_question':raw_question}
         messages=[SystemMessage(content=RESOLUTION_PROMPT),HumanMessage(content=json.dumps(payload,ensure_ascii=False))]
         inputs=estimate_messages(messages)
         if shared_history or not history or (estimate_messages(history)<=2000 and budget.tokens+inputs+512<=budget.limits.tokens):

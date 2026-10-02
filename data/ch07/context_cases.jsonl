@@ -1,0 +1,4 @@
+﻿{"id":"C01","profile":"default","turns":22,"expected_demotions":0,"expected_summaries":0}
+{"id":"C02","profile":"demo","history":5650,"layer1":3954,"layer2":1695,"require_cascade":true,"earliest_order":"1001","earliest_request":"核实"}
+{"id":"C03","failure":"blocked_summary","expect":"current_sse_done_before_summary_done"}
+{"id":"C04","failure":"unmatched_tool_request","expect":"checkpoint_interrupted_without_business_reexecution"}

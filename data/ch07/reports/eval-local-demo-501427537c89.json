@@ -1,0 +1,730 @@
+{
+  "mode": "local",
+  "profile": "demo",
+  "signature": "501427537c89141cfe25fe570497ec6c50e975604a522872c11d745cadf690ed",
+  "config": {
+    "window": 18000,
+    "output": 2000,
+    "user_input": 2000,
+    "steps": 3,
+    "tool_result": 1200,
+    "rerank_k": 5,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 5550,
+    "transient": 6800,
+    "steady": 5600,
+    "history": 5650,
+    "layer1": 3954,
+    "layer2": 1695,
+    "summary": 600,
+    "margin": 450
+  },
+  "user_id": "ch07-eval-ed7cda0ba6cd4d0da3fdff0e78933e33",
+  "conversation_id": 1379,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 8133,
+        "estimated": true,
+        "elapsed": 0.15599999998812564,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.2970000000059372,
+      "checkpoint_count": 4,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 9064,
+        "estimated": true,
+        "elapsed": 0.09399999999732245,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.125,
+      "checkpoint_count": 6,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 3,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 11108,
+        "estimated": true,
+        "elapsed": 0.09399999999732245,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.13999999999941792,
+      "checkpoint_count": 8,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 4,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 13158,
+        "estimated": true,
+        "elapsed": 0.10899999999674037,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.15699999999196734,
+      "checkpoint_count": 10,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 5,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 15272,
+        "estimated": true,
+        "elapsed": 0.10899999999674037,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.17200000000593718,
+      "checkpoint_count": 12,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 6,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 17226,
+        "estimated": true,
+        "elapsed": 0.13999999999941792,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.1869999999908032,
+      "checkpoint_count": 14,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 7,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 19348,
+        "estimated": true,
+        "elapsed": 0.14100000000325963,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.20300000000861473,
+      "checkpoint_count": 16,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 8,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 21312,
+        "estimated": true,
+        "elapsed": 0.32800000000861473,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 0.3909999999887077,
+      "checkpoint_count": 18,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 9,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 23434,
+        "estimated": true,
+        "elapsed": 0.1870000000053551,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 2420
+      },
+      "seconds": 0.25,
+      "checkpoint_count": 20,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 10,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 25396,
+        "estimated": true,
+        "elapsed": 0.15600000000267755,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 2422
+      },
+      "seconds": 0.21899999999732245,
+      "checkpoint_count": 22,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 11,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 27522,
+        "estimated": true,
+        "elapsed": 0.17200000000593718,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 2424
+      },
+      "seconds": 0.2340000000112923,
+      "checkpoint_count": 24,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 12,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 33632,
+        "estimated": true,
+        "elapsed": 0.28100000000267755,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2426,
+        "layer1_from": 2426
+      },
+      "seconds": 0.34399999999732245,
+      "checkpoint_count": 28,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 13,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 23520,
+        "estimated": true,
+        "elapsed": 0.17199999999138527,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2426,
+        "layer1_from": 2428
+      },
+      "seconds": 0.21899999999732245,
+      "checkpoint_count": 30,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 14,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 25626,
+        "estimated": true,
+        "elapsed": 0.17199999999138527,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2426,
+        "layer1_from": 2430
+      },
+      "seconds": 0.21899999999732245,
+      "checkpoint_count": 32,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 15,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 27590,
+        "estimated": true,
+        "elapsed": 0.15600000000267755,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2426,
+        "layer1_from": 2432
+      },
+      "seconds": 0.21899999999732245,
+      "checkpoint_count": 34,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 16,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 27598,
+        "estimated": true,
+        "elapsed": 0.1870000000053551,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2434,
+        "layer1_from": 2434
+      },
+      "seconds": 0.21799999999348074,
+      "checkpoint_count": 36,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 17,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 23764,
+        "estimated": true,
+        "elapsed": 0.1870000000053551,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2434,
+        "layer1_from": 2436
+      },
+      "seconds": 0.25,
+      "checkpoint_count": 38,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 18,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 25722,
+        "estimated": true,
+        "elapsed": 0.17100000000209548,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2434,
+        "layer1_from": 2438
+      },
+      "seconds": 0.20299999999406282,
+      "checkpoint_count": 40,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 19,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 27778,
+        "estimated": true,
+        "elapsed": 0.15700000000651926,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2434,
+        "layer1_from": 2440
+      },
+      "seconds": 0.1880000000091968,
+      "checkpoint_count": 42,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 20,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 27762,
+        "estimated": true,
+        "elapsed": 0.1879999999946449,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2443,
+        "layer1_from": 2443
+      },
+      "seconds": 0.25,
+      "checkpoint_count": 44,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 21,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 29206,
+        "estimated": true,
+        "elapsed": 0.2340000000112923,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2443,
+        "layer1_from": 2445
+      },
+      "seconds": 0.3129999999946449,
+      "checkpoint_count": 48,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 22,
+      "answer": "订单1001为演示数据。您最早要求核实未到的物流，该诉求仍待核实；不能保证送达时间。最早留下的演示联系手机号是13800000000。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 24640,
+        "estimated": true,
+        "elapsed": 0.15600000000267755,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 2443,
+        "layer1_from": 2447
+      },
+      "seconds": 0.20299999999406282,
+      "checkpoint_count": 50,
+      "segments_immutable": true,
+      "passed": true
+    }
+  ],
+  "segments": [
+    {
+      "seq": 1,
+      "from_msg_id": 2418,
+      "upto_msg_id": 2426,
+      "content": "用户关注演示订单1001的物流，包裹未到并请求继续核实，当前诉求尚未确认已解决。演示联系手机号13800000000。"
+    },
+    {
+      "seq": 2,
+      "from_msg_id": 2427,
+      "upto_msg_id": 2434,
+      "content": "用户关注演示订单1001的物流，包裹未到并请求继续核实，当前诉求尚未确认已解决。"
+    },
+    {
+      "seq": 3,
+      "from_msg_id": 2435,
+      "upto_msg_id": 2443,
+      "content": "用户关注演示订单1001的物流，包裹未到并请求继续核实，当前诉求尚未确认已解决。"
+    }
+  ],
+  "final_anchors": {
+    "summary_upto": 2443,
+    "layer1_from": 2447
+  },
+  "source_checks_passed": true,
+  "context_cases": {
+    "C01": "other_profile",
+    "C02": "dialogue_checked",
+    "C03": "separate_local_test",
+    "C04": "separate_local_test"
+  },
+  "assessment": {
+    "passed": false,
+    "complete": true,
+    "earliest_fact_recalled": true,
+    "layer_behavior": true,
+    "source_checks_passed": true,
+    "prohibited_promises": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22
+    ],
+    "semantic_review": "required",
+    "live_quality": "not_verified"
+  }
+}
