@@ -75,3 +75,4 @@ class TurnContext:
     issue_actions: Any = None
     retrieve_queries: Any = None
     intent_small_model: Any = None
+    refund_defaults: Any = None

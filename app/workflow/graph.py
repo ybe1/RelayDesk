@@ -116,6 +116,7 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
     async def log(state: WorkflowState, runtime: Runtime[TurnContext]):
         update = traced(state, "log")
         suggestions=[action for action in state.get('actions',[]) if action!='refund' or refund_offer_defaults(state) is not None]
+        runtime.context.refund_defaults=refund_offer_defaults(state)
         if suggestions and runtime.context.issue_actions is not None:
             actions = await runtime.context.issue_actions(suggestions)
             update["actions"] = actions
