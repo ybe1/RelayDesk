@@ -41,11 +41,29 @@ class ChatActionOffer(Base):
     offer_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     conversation_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), ForeignKey("conversations.id"), nullable=False)
     turn_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    action: Mapped[str] = mapped_column(mysql.ENUM("handoff", "ticket"), nullable=False)
+    action: Mapped[str] = mapped_column(mysql.ENUM("handoff", "ticket", "refund"), nullable=False)
     defaults: Mapped[dict] = mapped_column(JSON, nullable=False)
     confirmed_params: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ticket_no: Mapped[str | None] = mapped_column(String(32), ForeignKey("tickets.ticket_no"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+
+
+class RefundRequest(Base):
+    __tablename__ = 'refund_requests'
+    __table_args__ = (Index('uk_refund_application_no','application_no',unique=True),
+        Index('uk_refund_offer','offer_id',unique=True), Index('idx_refund_conversation','conversation_id'),
+        Index('idx_refund_created_at','created_at'),
+        {'mysql_engine':'InnoDB','mysql_charset':'utf8mb4','comment':'演示退款申请，不执行资金动作'})
+    id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),primary_key=True,autoincrement=True)
+    application_no: Mapped[str] = mapped_column(String(32),nullable=False)
+    offer_id: Mapped[str] = mapped_column(String(64),ForeignKey('chat_action_offers.offer_id',name='fk_refund_offer'),nullable=False)
+    conversation_id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True),ForeignKey('conversations.id',name='fk_refund_conversation'),nullable=False)
+    order_id: Mapped[str] = mapped_column(String(64),nullable=False)
+    reason: Mapped[str] = mapped_column(mysql.ENUM('不喜欢/不需要','商品质量问题','商品与描述不符','错发/漏发','其他'),nullable=False)
+    status: Mapped[str] = mapped_column(mysql.ENUM('submitted'),nullable=False,server_default=text("'submitted'"))
+    is_mock: Mapped[bool] = mapped_column(mysql.TINYINT(display_width=1),nullable=False,server_default=text('1'))
+    snapshot: Mapped[dict] = mapped_column(JSON,nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime,nullable=False,server_default=text('CURRENT_TIMESTAMP'))
 
 
 class FAQ(Base):

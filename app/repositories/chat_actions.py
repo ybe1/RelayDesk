@@ -5,7 +5,7 @@ from app.db.models import ChatActionOffer
 
 
 def issue_offer(session, conversation_id, turn_id, action, defaults):
-    if action not in {"handoff", "ticket"}:
+    if action not in {"handoff", "ticket", "refund"}:
         raise ValueError("unknown action")
     query = select(ChatActionOffer).where(ChatActionOffer.conversation_id == conversation_id,
                 ChatActionOffer.turn_id == turn_id, ChatActionOffer.action == action).with_for_update()
