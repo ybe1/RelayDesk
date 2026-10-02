@@ -138,7 +138,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
                     state["conversation_id"], state["turn_id"], state.get("intent"), update["node_trace"],
                     state.get("stop_reason"), update["budget_usage"])
         get_stream_writer()(("workflow_summary", {"node_trace": update["node_trace"], "stop_reason": state.get("stop_reason"),
-                                                   "usage": update["budget_usage"]}))
+                                                   "usage": update["budget_usage"],
+                                                   "message_id":(runtime.context.message_db_ids or {}).get(f"{state['turn_id']}:final")}))
         return update
 
     builder = StateGraph(WorkflowState, context_schema=TurnContext)

@@ -154,6 +154,15 @@
     transition: opacity .15s;
   }
   #send:disabled { opacity: .5; cursor: not-allowed; }
+  .chat-layout { display: flex; flex: 1; min-height: 0; }
+  .chat-panel { display: flex; flex: 1; min-width: 0; flex-direction: column; }
+  #conversation-sidebar { width: 230px; flex-shrink: 0; padding: 16px 10px; overflow-y: auto; border-right: 1px solid var(--border); background: #fff; }
+  #new-conversation { width: 100%; padding: 10px; border: 1px solid var(--accent); border-radius: 9px; color: #9a3412; background: var(--accent-soft); cursor: pointer; margin-bottom: 12px; }
+  .conversation-item { display: block; width: 100%; text-align: left; padding: 10px; margin: 4px 0; border: 1px solid transparent; border-radius: 9px; background: none; cursor: pointer; color: var(--text); }
+  .conversation-item.active { border-color: var(--accent); background: var(--accent-soft); }
+  .conversation-item small { display: block; margin-top: 5px; color: var(--text-dim); }
+  .conversation-item:disabled, #new-conversation:disabled { opacity: .5; cursor: default; }
+  @media(max-width:700px) { #conversation-sidebar { width: 135px; padding: 10px 5px; } header .subtitle { display: none; } header { flex-wrap: wrap; padding: 10px; } header .nav { margin-left: 0; } .msg { max-width: 95%; } #messages { padding: 12px; } footer { padding: 10px; } }
 </style>
 </head>
 <body>
@@ -172,12 +181,20 @@
     <div class="status">在线</div>
   </header>
 
+  <div class="chat-layout">
+  <aside id="conversation-sidebar" aria-label="会话列表">
+    <button id="new-conversation" type="button">＋ 新对话</button>
+    <div id="conversation-list"></div>
+  </aside>
+  <section class="chat-panel" aria-label="客服聊天">
   <main id="messages"></main>
 
   <footer>
     <textarea id="input" rows="1" placeholder="输入你的问题，回车发送…"></textarea>
     <button id="send">发送</button>
   </footer>
+  </section>
+  </div>
   <dialog id="citation-dialog" aria-labelledby="citation-title">
     <div class="dialog-head"><h2 id="citation-title">引用来源</h2><button id="citation-close" class="dialog-close" type="button" aria-label="关闭引用来源">关闭</button></div>
     <p id="citation-label" class="source-label"></p>
@@ -253,7 +270,7 @@
     }));
   }
 
-  function addFeedback(bubble) {
+  function addFeedback(bubble, feedbackKey = null) {
     const bar = document.createElement('div');
     bar.className = 'feedback';
     bar.setAttribute('aria-label', '评价本次回答');
@@ -269,16 +286,26 @@
         const done = document.createElement('span');
         done.textContent = '已反馈';
         bar.append(done);
+        if (feedbackKey) localStorage.setItem('mewhelp_feedback_' + feedbackKey, String(index));
       });
       return button;
     });
     bar.append(...buttons);
+    const selected = feedbackKey ? localStorage.getItem('mewhelp_feedback_' + feedbackKey) : null;
+    if (selected === '0' || selected === '1') {
+      buttons[Number(selected)].classList.add('selected');
+      buttons.forEach(button => { button.disabled = true; });
+      const done = document.createElement('span'); done.textContent = '已反馈'; bar.append(done);
+    }
     bubble.append(bar);
   }
 
   // 服务端分配数字会话 ID；匿名用户标识由浏览器保存。
   let conversationId = Number(localStorage.getItem('mewhelp_conversation_id')) || null;
   let userId = localStorage.getItem('mewhelp_user_id');
+  let isStreaming = false;
+  let switchRequestId = 0;
+  let sidebarRequestId = 0;
   if (!userId) {
     userId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
     localStorage.setItem('mewhelp_user_id', userId);
@@ -320,8 +347,12 @@
   }
 
   function setSending(v) {
+    isStreaming = v;
+    if (v) switchRequestId++;
     sendBtn.disabled = v;
     inputEl.disabled = v;
+    document.getElementById('new-conversation').disabled = v;
+    for (const button of document.querySelectorAll('.conversation-item')) button.disabled = v;
     if (!v) inputEl.focus();
   }
 
@@ -346,6 +377,7 @@
     if (eventType === 'actions') return { type: 'actions', ...data };
     if (eventType === 'workflow_status') return { type: 'workflow_status', ...data };
     if (eventType === 'order_selection') return { type: 'order_selection', ...data };
+    if (eventType === 'workflow_summary') return { type: 'workflow_summary', ...data };
     if (data.delta) return { type: 'delta', delta: data.delta };
     return { type: 'ignore' };
   }
@@ -358,12 +390,18 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = offer.action === 'handoff' ? '转人工' : offer.action === 'refund' ? '提交退款申请' : '建工单';
+      const handoffKey = 'mewhelp_handoff_' + cid + '_' + offer.offer_id;
+      if (offer.confirmed || (offer.action === 'handoff' && localStorage.getItem(handoffKey))) {
+        button.disabled = true;
+        button.textContent = offer.action === 'handoff' ? '已转接人工客服' : offer.action === 'refund' ? '演示申请已提交' : '工单已创建';
+      }
       button.addEventListener('click', () => {
         if (button.disabled) return;
         if (offer.action === 'refund') { showRefundForm(button, bar, offer, cid); return; }
         if (offer.action === 'handoff') {
           button.disabled = true;
           button.textContent = '已转接人工客服';
+          localStorage.setItem(handoffKey, '1');
           addBubble('assistant', '您好，我是客服小猫，请问有什么可以帮您的');
           return;
         }
@@ -409,6 +447,11 @@
         document.body.appendChild(dialog); dialog.showModal(); description.focus();
       });
       bar.appendChild(button);
+      if (offer.ticket_no || offer.application_no) {
+        const note = document.createElement('span'); note.className = 'action-note';
+        note.textContent = offer.ticket_no ? '工单号：' + offer.ticket_no : '申请号：' + offer.application_no;
+        bar.appendChild(note);
+      }
     }
     if (bar.children.length) bubble.appendChild(bar);
   }
@@ -479,10 +522,12 @@
   }
   async function recoverOrderSelection() {
     if (!conversationId) return;
+    const requestedId = conversationId;
     try {
       const response = await fetch(`/api/chat/${conversationId}/pending?user_id=${encodeURIComponent(userId)}`);
       if (!response.ok) return;
       const data = await response.json();
+      if (requestedId !== conversationId) return;
       if (!data.pending) { invalidateOrderCard(); return; }
       if (pendingOrderCard?.selection.selection_id === data.pending.selection_id) {
         for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = false;
@@ -511,6 +556,7 @@
     let failed = false;
     let completed = false;
     let waiting = false;
+    let savedMessageId = null;
     const citations = new Map();
     const toolBadges = new Map();
     try {
@@ -580,6 +626,8 @@
               trace.className = 'tool-trace visible running';
               trace.textContent = '正在处理您的问题…';
             }
+          } else if (res.type === 'workflow_summary') {
+            savedMessageId = res.message_id;
           } else if (res.type === 'error') {
             throw new Error(res.message);
           } else if (res.type === 'done') {
@@ -602,8 +650,9 @@
       }
       if (!content && !failed && !waiting) body.textContent = '（未收到回复）';
       if (content && !failed) renderAnswer(body, content, citations);
-      if (completed && content.trim() && !failed) addFeedback(bubble);
+      if (completed && content.trim() && !failed) addFeedback(bubble, savedMessageId ? `${conversationId}:${savedMessageId}` : null);
       setSending(false);
+      refreshSidebar();
       scrollToBottom();
     }
   }
@@ -615,7 +664,6 @@
     }
   });
   sendBtn.addEventListener('click', send);
-  recoverOrderSelection();
 
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';
@@ -623,6 +671,70 @@
   });
 
   addBubble('assistant', '你好呀～我是喵喵优选的智能客服「小喵」，商品、订单、物流、售后问题都可以问我 🐾');
+  function applyConversationView(id, data) {
+    invalidateOrderCard();
+    messagesEl.replaceChildren();
+    conversationId = id;
+    localStorage.setItem('mewhelp_conversation_id', String(id));
+    for (const row of data.messages || []) {
+      if (!['user','assistant'].includes(row.role) || !row.content) continue;
+      const { bubble, body } = addBubble(row.role, row.content);
+      if (row.role === 'assistant') {
+        const citations = new Map((row.citations || []).map(item => [Number(item.n), item]));
+        renderAnswer(body, row.content, citations);
+        addFeedback(bubble, `${id}:${row.id}`);
+        addActions(bubble, row.actions || [], id);
+      }
+    }
+    for (const button of document.querySelectorAll('.conversation-item')) button.classList.toggle('active', Number(button.dataset.conversationId) === id);
+    recoverOrderSelection();
+  }
+  async function switchConversation(id) {
+    if (isStreaming) return;
+    const requestId = ++switchRequestId;
+    try {
+      const response = await fetch(`/api/conversations/${id}/messages?user_id=${encodeURIComponent(userId)}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (requestId !== switchRequestId || isStreaming) return;
+      applyConversationView(id, data);
+    } catch (_) { /* 保留当前会话，失败不影响发送。 */ }
+  }
+  async function refreshSidebar() {
+    const requestId = ++sidebarRequestId;
+    const items = []; let cursor = null;
+    try {
+      do {
+        const params = new URLSearchParams({user_id:userId,limit:'100'});
+        if (cursor) params.set('cursor',cursor);
+        const response = await fetch('/api/conversations?' + params);
+        if (!response.ok) return;
+        const page = await response.json();
+        items.push(...page.items); cursor = page.next_cursor;
+      } while (cursor);
+      if (requestId !== sidebarRequestId) return;
+      const buttons = items.map(item => {
+        const button = document.createElement('button'); button.type = 'button';
+        button.className = 'conversation-item'; button.dataset.conversationId = item.id;
+        button.textContent = item.first_question || '新对话'; button.disabled = isStreaming;
+        button.classList.toggle('active', item.id === conversationId);
+        if (item.has_summary) { const mark = document.createElement('small'); mark.textContent = '已摘要'; button.append(mark); }
+        button.addEventListener('click', () => switchConversation(item.id)); return button;
+      });
+      document.getElementById('conversation-list').replaceChildren(...buttons);
+    } catch (_) { /* 侧栏静默降级。 */ }
+  }
+  document.getElementById('new-conversation').addEventListener('click', () => {
+    if (isStreaming) return;
+    switchRequestId++; invalidateOrderCard();
+    conversationId = null; localStorage.removeItem('mewhelp_conversation_id');
+    messagesEl.replaceChildren();
+    addBubble('assistant','新对话已准备好，商品、订单、物流和售后问题都可以问我。');
+    for (const button of document.querySelectorAll('.conversation-item')) button.classList.remove('active');
+    inputEl.focus();
+  });
+  refreshSidebar();
+  if (conversationId) switchConversation(conversationId);
 </script>
 </body>
 </html>

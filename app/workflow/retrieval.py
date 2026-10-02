@@ -57,6 +57,8 @@ async def retrieve_for_turn(query, budget, understood_query=None):
             owned.reranker = MeasuredReranker(owned.reranker, budget)
         async with asyncio.timeout(budget.remaining_seconds()):
             kwargs={"understood_query":understood_query} if understood_query is not None else {}
+            cfg=getattr(budget,'context_config',None)
+            if cfg: kwargs['top_k']=cfg.rerank_k
             return await search_knowledge_ch04(query, dependencies=owned,**kwargs)
     finally:
         if owned is not None:
@@ -73,7 +75,8 @@ async def retrieve_policy_queries(question,queries,budget):
             owned=await RetrievalDependencies.afrom_settings(max_retries=0)
             owned.embedder=MeasuredEmbedder(owned.embedder,budget)
             owned.reranker=MeasuredReranker(owned.reranker,budget)
-            return await search_multi_queries(question,queries,owned)
+            cfg=getattr(budget,'context_config',None)
+            return await search_multi_queries(question,queries,owned,**({'top_k':cfg.rerank_k} if cfg else {}))
     finally:
         if owned is not None: await owned.aclose()
 

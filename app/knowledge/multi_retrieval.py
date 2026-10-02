@@ -24,7 +24,7 @@ def merge_candidate_lists(lists,limit=50):
     return result
 
 
-async def search_multi_queries(question,queries,dependencies,category=None):
+async def search_multi_queries(question,queries,dependencies,category=None,*,top_k=10):
     if not 1<=len(queries)<=3 or any(not isinstance(q,str) or not q.strip()
         or len(q)>(4096 if i==0 and q==question else 512) for i,q in enumerate(queries)):
         raise ValueError('invalid expanded queries')
@@ -41,7 +41,7 @@ async def search_multi_queries(question,queries,dependencies,category=None):
     if not candidates: return RetrievalResult(understood,[],False,'no_hits')
     cap=min(MAX_DOCUMENT_BYTES,MAX_TOTAL_DOCUMENT_BYTES//len(candidates))
     docs=[f"问题：{h['question']}\n答案：{h['answer']}".encode('utf-8')[:cap].decode('utf-8',errors='ignore') for h in candidates]
-    scores=await dependencies.reranker.rerank(question,docs,top_n=10)
+    scores=await dependencies.reranker.rerank(question,docs,top_n=top_k)
     if not scores: return RetrievalResult(understood,[],False,'no_rerank_hits')
     hits=[{**candidates[i],'rerank_score':score,'rank':rank} for rank,(i,score) in enumerate(sorted(scores,key=lambda item:item[1],reverse=True),1)]
     sufficient=hits[0]['rerank_score']>=dependencies.rerank_min_score
