@@ -10,10 +10,10 @@ uv sync
 uv run python -m scripts.migrate_ch06 --check
 # 仅首次待迁移时运行，已有结构不覆盖：
 uv run python -m scripts.migrate_ch06 --apply
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8001
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-打开 http://127.0.0.1:8001/ 。使用一个应用进程；不要同时运行8000和8001并共享同一SQLite检查点。保持Clash可用，云端API沿用现有配置。
+打开 http://127.0.0.1:8000/ 。用户在收尾后选择关闭8001、保留8000。使用一个应用进程；不要同时运行8000和8001并共享同一SQLite检查点。保持Clash可用，云端API沿用现有配置。
 
 `CHAT_MODEL`默认主模型；`INTENT_SMALL_MODEL`留空不降级。配置小模型时使用同一聊天上游，低于`INTENT_CONFIDENCE_THRESHOLD=0.75`或非法JSON升级主模型一次。MySQL仍存业务数据；官方AsyncSqliteSaver只存会话图状态。
 

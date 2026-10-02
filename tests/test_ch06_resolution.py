@@ -4,6 +4,23 @@ from tests.ch06_fakes import JSONSequenceModel
 from app.workflow.budget import TurnBudget
 
 
+async def test_oversized_old_tool_turn_cannot_block_new_question():
+    import json
+    from langchain_core.messages import AIMessage,ToolMessage
+    from app.workflow.resolution import resolve_question
+    history=[HumanMessage(content='退货政策是什么'),
+        AIMessage(content='',tool_calls=[{'name':'query_faq','args':{'keyword':'退货'},'id':'old'}]),
+        ToolMessage(content='中'*6000,tool_call_id='old')]
+    model=JSONSequenceModel([{'question':'退货政策是什么','reference_status':'clear',
+        'scope':'general','order_id':None,'order_source':'none'}])
+    result=await resolve_question(model,'退货政策是什么',history,TurnBudget(clock=lambda:0))
+    assert result.question=='退货政策是什么' and len(model.requests)==1
+    payload=json.loads(model.requests[0][0][1].content)
+    assert payload['current_question']=='退货政策是什么'
+    assert payload['history']==[]
+    assert len(history)==3  # Database history is never modified.
+
+
 async def test_model_invented_order_is_not_trusted():
     from app.workflow.resolution import resolve_question
     model=JSONSequenceModel([{'question':'订单9999能否退货','reference_status':'resolved',

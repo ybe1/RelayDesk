@@ -46,6 +46,8 @@ def build_agent_graph(deps=None):
         context = runtime.context
         selected = deps or context.agent
         read_tools = [t for t in selected.tools if t.name != "create_ticket"]
+        if state.get('gate_allowed') and state.get('evidence'):
+            read_tools=[tool for tool in read_tools if tool.name!='query_faq']
         prompt = ANSWER_SYSTEM + "\n这是私有决策节点，不写最终答案。需要数据时调用已注册业务工具。准备回答/追问/停止时调用AgentDecision函数，kind分别answer/clarify/stop、tool_calls为空；actions仅建议handoff/ticket/refund，不执行。退款或售后给refund_assessment={status:eligible/ineligible/needs_review,reason:原因,evidence_numbers:政策编号}；仅退款且政策与事实明确支持eligible时建议refund。未知条件归needs_review。维修不提供退款表单。简单查询有结果就answer；只有明确还需另一工具时继续；用户明确要求先查订单再查物流则按此顺序。"
         messages = [SystemMessage(content=prompt + "\n本轮订单快照:"+json.dumps(state.get('order_snapshot',{}),ensure_ascii=False)+"\n本轮知识证据:" + evidence_text(state)), *state["messages"]]
         try:
@@ -95,6 +97,12 @@ def build_agent_graph(deps=None):
                 observation = tool_error(call, stopped)
             elif call["name"] == "create_ticket":
                 observation = tool_error(call, "user_confirmation_required")
+            elif call['name']=='query_faq' and state.get('gate_allowed') and evidence:
+                # Close any stale/model-invented request without retrieving
+                # twice or duplicating the bulky evidence in message history.
+                observation=ToolMessage(content=json.dumps({'result':json.dumps({
+                    'sufficient':True,'reuse_existing_evidence':True,
+                    'message':'本轮政策已检索并通过置信度闸，请使用系统提供的证据回答。'},ensure_ascii=False)},ensure_ascii=False),tool_call_id=call['id'])
             elif (call['name']=='query_order' and state.get('order_snapshot')
                   and call['args'].get('order_id')==state['order_snapshot'].get('order_id')):
                 observation=ToolMessage(content=json.dumps({'result':json.dumps(state['order_snapshot'],ensure_ascii=False)},ensure_ascii=False),tool_call_id=call['id'])

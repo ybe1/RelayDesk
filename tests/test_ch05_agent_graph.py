@@ -35,6 +35,27 @@ def tools_decision(name, id="call"):
     return {"kind": "tools", "tool_calls": [{"name": name, "args": {"order_id": "1001"}, "id": id}], "actions": [], "reason": "需查询"}
 
 
+async def test_pretrieved_policy_cannot_repeat_external_faq_search():
+    from app.workflow.agent import build_agent_graph
+    from app.workflow.contracts import TurnContext
+    class CountingExecutor:
+        calls=0
+        async def execute(self,call,**kwargs):
+            self.calls+=1
+            return ToolMessage(content=json.dumps({'result':json.dumps({'sufficient':False})}),tool_call_id=call['id'])
+    executor=CountingExecutor()
+    model=GraphModel([{'kind':'tools','tool_calls':[{'name':'query_faq','args':{'keyword':'退货'},'id':'faq'}],'reason':'重复检索'},
+        {'kind':'answer','actions':[],'reason':'证据足够'}])
+    budget=TurnBudget(Limits(tokens=100000))
+    context=TurnContext(agent=AgentDependencies(model,build_tools(lambda:None,1),executor),budget=budget)
+    result=await build_agent_graph().ainvoke({'messages':[HumanMessage(content='退货政策是什么')],
+        'turn_id':'cached-faq','gate_allowed':True,'node_trace':[],
+        'evidence':[{'n':1,'id':1,'answer':'商品完好可退'}],'citations':[]},context=context)
+    assert executor.calls==0 and budget.tool_steps==0
+    assert 'query_faq' not in model.advertised
+    assert result['stop_reason']=='answered'
+
+
 async def scenario(decisions, limits=None):
     from app.workflow.agent import build_agent_graph
     from app.workflow.contracts import TurnContext
