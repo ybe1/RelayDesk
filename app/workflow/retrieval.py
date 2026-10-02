@@ -43,7 +43,7 @@ class CitationRegistry:
         return evidence
 
 
-async def retrieve_for_turn(query, budget):
+async def retrieve_for_turn(query, budget, understood_query=None):
     from app.knowledge.retrieval import RetrievalDependencies, search_knowledge_ch04
     owned = None
     try:
@@ -56,10 +56,26 @@ async def retrieve_for_turn(query, budget):
         if hasattr(owned, "reranker"):
             owned.reranker = MeasuredReranker(owned.reranker, budget)
         async with asyncio.timeout(budget.remaining_seconds()):
-            return await search_knowledge_ch04(query, dependencies=owned)
+            kwargs={"understood_query":understood_query} if understood_query is not None else {}
+            return await search_knowledge_ch04(query, dependencies=owned,**kwargs)
     finally:
         if owned is not None:
             await owned.aclose()
+
+
+async def retrieve_policy_queries(question,queries,budget):
+    from app.knowledge.retrieval import RetrievalDependencies
+    from app.knowledge.multi_retrieval import search_multi_queries
+    owned=None
+    try:
+        budget.check_deadline()
+        async with asyncio.timeout(budget.remaining_seconds()):
+            owned=await RetrievalDependencies.afrom_settings(max_retries=0)
+            owned.embedder=MeasuredEmbedder(owned.embedder,budget)
+            owned.reranker=MeasuredReranker(owned.reranker,budget)
+            return await search_multi_queries(question,queries,owned)
+    finally:
+        if owned is not None: await owned.aclose()
 
 
 class MeasuredEmbedder:
