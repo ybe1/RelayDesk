@@ -1,0 +1,9 @@
+{
+  "builtin::query_order": {"access":"read"},
+  "builtin::query_product": {"access":"read"},
+  "builtin::query_faq": {"access":"read","timeout_seconds":120,"max_retries":0,"retry_safe":false},
+  "builtin::create_ticket": {"access":"write","timeout_seconds":5,"max_retries":0,"retry_safe":false},
+  "mcp:logistics:query_logistics": {"access":"read"},
+  "mcp:after_sales:query_warranty": {"access":"read"},
+  "mcp:after_sales:query_return_progress": {"access":"read"}
+}
