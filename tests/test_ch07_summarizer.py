@@ -53,3 +53,10 @@ def test_no_facts_is_allowed():
     from app.services.summarizer import validate_summary
     greeting=SummaryBatch(1,0,2,(HistoryRecord(HumanMessage(content='你好',id='u'),1,'t'),),())
     assert validate_summary('',greeting)==''
+
+def test_summary_cannot_cover_explicit_user_phone_if_it_omits_it():
+    from app.services.summarizer import validate_summary
+    source=SummaryBatch(1,0,2,(HistoryRecord(HumanMessage(content='订单1001未到，请核实。演示联系手机号13800000000。',id='u'),1,'t'),),())
+    with pytest.raises(ValueError,match='contact'):
+        validate_summary('用户反馈订单1001物流一直未到，希望继续核实。',source)
+    assert validate_summary('用户反馈订单1001未到，请核实，演示联系手机号13800000000。',source)

@@ -1,0 +1,29 @@
+{
+  "scope": "seeded synthetic history, real background summary and real recall; not 22 live dialogue rounds",
+  "conversation_id": 1511,
+  "reply_seconds": 1.014999999999418,
+  "reply_done": true,
+  "anchors_at_reply": {
+    "summary_upto": 0,
+    "layer1_from": 2943
+  },
+  "summary_pending_at_reply": true,
+  "summary_finished_seconds": 3.264999999999418,
+  "anchors_after_summary": {
+    "summary_upto": 2943,
+    "layer1_from": 2943
+  },
+  "segments": [
+    {
+      "seq": 1,
+      "from_msg_id": 2918,
+      "upto_msg_id": 2943,
+      "content": "用户反馈订单1001物流迟迟未到，希望核实配送情况，并提供了联系手机号13800000000。用户多次强调核实诉求：依据已有演示订单和工具结果说明情况，尚未确认的内容保持待核实，不承诺到账或送达时间。当前订单状态、物流站点、是否发出、配送更新等均未确认，退货政策、运费规则、售后规则等也未明确。"
+    }
+  ],
+  "early_facts_preserved": true,
+  "recall_answer": "根据本会话早期记录：您提到的订单号是 **1001**，留下的联系手机号是 **13800000000**。您当时希望我帮您核实该订单的物流配送情况，并强调尚未确认的内容保持待核实，不承诺到账或送达时间。",
+  "recall_passed": true,
+  "segments_immutable": true,
+  "passed": true
+}

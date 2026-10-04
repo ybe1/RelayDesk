@@ -1,0 +1,178 @@
+{
+  "mode": "live",
+  "signature": "30db9fd589311f9614096a4b998aca3117fee51d7b72dfbc0b9a4d37a605a40e",
+  "results": {
+    "S01": {
+      "summary": "用户反馈订单1001的猫粮尚未到达，要求核实物流情况，当前记录为物流尚未核实。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 39,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 383,
+        "output_tokens": 28,
+        "total_tokens": 411,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    },
+    "S02": {
+      "summary": "用户提供手机号13800000000，要求联系核实订单1001。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 32,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 373,
+        "output_tokens": 24,
+        "total_tokens": 397,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S03": {
+      "summary": "用户提供订单号1001和1002，要求查询两个订单；其中1001申请退款，1002仅咨询物流。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 47,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 377,
+        "output_tokens": 35,
+        "total_tokens": 412,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S04": {
+      "summary": "用户表达投诉意向，询问可选方式；当前提供转人工和建工单按钮，用户尚未点击。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 37,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 388,
+        "output_tokens": 28,
+        "total_tokens": 416,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S05": {
+      "summary": "用户询问订单1001能否退货，当前包装和完好状态未知，无法确认退货资格。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 36,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 385,
+        "output_tokens": 25,
+        "total_tokens": 410,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S06": {
+      "summary": "",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 0,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 400,
+        "output_tokens": 5,
+        "total_tokens": 405,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S07": {
+      "summary": "用户反馈订单1001物流尚未到达，当前记录为未到状态。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 27,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 375,
+        "output_tokens": 24,
+        "total_tokens": 399,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S08": {
+      "summary": "用户想了解饮水机MX-200的保修规则，该问题尚待核实。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 28,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 380,
+        "output_tokens": 23,
+        "total_tokens": 403,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S09": {
+      "summary": "用户反馈订单1001物流尚未核实，希望继续处理。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 24,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 378,
+        "output_tokens": 21,
+        "total_tokens": 399,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    },
+    "S10": {
+      "summary": "用户反馈演示订单1001显示运输中，希望确认是否发出；当前记录为运输中、物流派送中，属于演示快照。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 49,
+      "semantic_review": "passed",
+      "usage": {
+        "input_tokens": 398,
+        "output_tokens": 36,
+        "total_tokens": 434,
+        "input_token_details": {
+          "cache_read": 256
+        },
+        "output_token_details": {}
+      }
+    }
+  },
+  "label_checks_passed": true,
+  "semantic_review_passed": true
+}

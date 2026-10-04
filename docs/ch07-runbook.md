@@ -75,3 +75,12 @@ MySQL保存用户/助手原文、工具申请、锚点和摘要段。新tool结�
 只读接口：`GET /api/conversations?user_id=...&cursor=...&limit=100`；`GET /api/conversations/{id}/messages?user_id=...`。匿名user_id延用演示身份，不能当生产登录鉴权。
 
 开发记录：`dev-notes/ch07.md`；设计/计划：`docs/superpowers/specs/2026-10-02-ch07-context-design.md`、`docs/superpowers/plans/2026-10-02-ch07-context.md`。
+
+## 2026-10-04 真实验收结果
+
+- 默认窗口22轮：`data/ch07/reports/eval-live-default-60c8abf19f7b.json`，无降级或摘要，早期事实回忆正确。该报告在摘要联系方式校验修复前生成，默认窗口没有调用摘要。
+- 演示窗口22轮：`data/ch07/reports/eval-live-demo-c5301ced81ae.json`，新增5段不可变摘要，最后正确回忆订单、虚拟手机号和诉求。
+- 10个真实摘要样例：`data/ch07/reports/eval-live-summary-30db9fd58931.json`，标注和语义复核通过；本地回归686 passed。
+- 每套包含1轮证据不足的安全拒答，单列记录，不视为业务题答对。旧失败报告保留。
+- 评估模型连接最多重试2次；`--direct`只给评估进程使用独立直连客户端，不关闭Clash，不改变生产服务。
+- 摘要专项复测：`uv run python -m scripts.eval_ch07_summary_pipeline`（植入合成历史，真实后台摘要及真实回忆，不能当作22轮真实对话）。

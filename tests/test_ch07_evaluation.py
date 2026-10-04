@@ -18,3 +18,9 @@ def test_explicit_no_promise_is_not_a_prohibited_promise():
     report={'mode':'local','source_checks_passed':True,'turns':[{'index':i+1,'passed':True,'segments_immutable':True,
         'anchors':{'layer1_from':0},'answer':'订单1001尚未核实，手机号13800000000；不能保证送达时间。'} for i in range(22)]}
     assert assess_dialogue(report,'default')['passed']
+def test_context_acceptance_distinguishes_safe_evidence_refusal_from_failure():
+    from scripts.eval_ch07 import context_turn_completed
+    assert context_turn_completed({'stop_reason':'fallback','node_trace':['retrieval','confidence_gate','fallback','log']},'知识库证据不足，暂时无法确认，请补充信息或人工核实。')
+    assert not context_turn_completed({'stop_reason':'fallback','node_trace':['fallback','log']},'查询服务暂时不可用，请稍后重试或选择人工核实。')
+    assert not context_turn_completed({'stop_reason':'limit'},'本次查询已达到处理上限')
+

@@ -1,0 +1,811 @@
+{
+  "mode": "live",
+  "profile": "demo",
+  "signature": "c5301ced81ae67691b67a7e97dc08334ad6130465112ab8106a60c0ac64421d4",
+  "config": {
+    "window": 18000,
+    "output": 2000,
+    "user_input": 2000,
+    "steps": 3,
+    "tool_result": 1200,
+    "rerank_k": 5,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 5550,
+    "transient": 6800,
+    "steady": 5600,
+    "history": 5650,
+    "layer1": 3954,
+    "layer2": 1695,
+    "summary": 600,
+    "margin": 450
+  },
+  "user_id": "ch07-eval-fb2988ff75ec462bb05c2e684c6b5e46",
+  "conversation_id": 1516,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "已为您核实订单1001（演示数据）：\n\n- 订单状态：已完成\n- 物流状态：已签收，签收地点为收货地址\n- 商品：猫抓板，金额263.6元\n- 签收至今：5天\n\n从当前工具结果看，该订单物流已签收，并非“迟迟未到”。若您实际未收到包裹，可能存在签收信息异常，建议您点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 6293,
+        "estimated": false,
+        "elapsed": 9.093999999997322,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 9.203000000008615,
+      "checkpoint_count": 5,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 2,
+      "answer": "已记住您的核实诉求：订单1001物流情况以已有演示订单和工具结果为准，尚未确认的内容保持待核实，不承诺到账或送达时间。\n\n当前核实结果（演示数据）：\n- 订单状态：已完成\n- 物流状态：已签收，签收地点为收货地址\n- 签收至今：5天\n\n工具结果显示物流已签收，与您反馈的“迟迟未到”不一致，该差异尚未确认原因。建议您点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 6862,
+        "estimated": false,
+        "elapsed": 7.077999999994063,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 7.125,
+      "checkpoint_count": 7,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 3,
+      "answer": "订单1001当前状态（演示数据）：\n\n- 订单状态：已完成\n- 物流状态：已签收，签收地点为收货地址\n- 签收至今：5天\n\n工具结果显示物流已签收，与您反馈的“迟迟未到”不一致，该差异尚未确认原因。建议您点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 8121,
+        "estimated": false,
+        "elapsed": 7.125,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 7.155999999988126,
+      "checkpoint_count": 9,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 4,
+      "answer": "订单1001的物流当前工具结果仅显示：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n未提供具体站点信息，因此无法确认当前在哪个站点。建议您点击“转人工”按钮进一步核实派送详情。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 9276,
+        "estimated": false,
+        "elapsed": 38.625,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 38.67200000000594,
+      "checkpoint_count": 11,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 5,
+      "answer": "退货政策（演示数据）如下：\n\n- 签收后七日内可申请退货[5]\n- 套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回[1]\n- 确认属于质量问题时由商家承担退货运费；寄回前需与客服确认寄件方式[3]\n- 在订单详情页选择申请售后，提交退货原因和商品照片[4]\n- 退件验收通过后两个工作日内发起退款；到账时间由原支付渠道决定[2]\n\n以上为演示条款，不代表真实平台承诺。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 11223,
+        "estimated": false,
+        "elapsed": 12.406000000002678,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.26600000000325963
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5160000000032596
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 12.452999999994063,
+      "checkpoint_count": 13,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 6,
+      "answer": "订单1001的物流工具结果显示为“已签收”，说明已有发出并完成签收记录；但您反馈“迟迟未到”，该差异尚未确认原因。建议您点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 12520,
+        "estimated": false,
+        "elapsed": 7.812000000005355,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 7.842999999993481,
+      "checkpoint_count": 15,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 7,
+      "answer": "平台运费规则（演示数据）：\n\n- 满99元包邮；不足99元运费8元[1]\n- 非质量原因退货的寄回运费由买家承担；不接受到付退件[5]\n- 确认属于质量问题时由商家承担退货运费；寄回前需与客服确认寄件方式[2]\n\n以上为演示条款，不代表真实平台承诺。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 14124,
+        "estimated": false,
+        "elapsed": 27.64100000000326,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 20.672000000005937
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 27.703000000008615,
+      "checkpoint_count": 17,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 8,
+      "answer": "订单1001物流最新查询结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n与之前查询结果一致，暂无新增物流更新。您反馈“迟迟未到”与工具结果不一致，该差异尚未确认原因。建议您点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 19535,
+        "estimated": false,
+        "elapsed": 7.328000000008615,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 3100
+      },
+      "seconds": 7.375,
+      "checkpoint_count": 21,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 9,
+      "answer": "知识库证据不足，暂时无法确认，请补充信息或人工核实。",
+      "stop_reason": "fallback",
+      "usage": {
+        "model_calls": 2,
+        "tool_steps": 0,
+        "tokens": 7970,
+        "estimated": false,
+        "elapsed": 4.125,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.3129999999946449
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5310000000026776
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "fallback",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 3102
+      },
+      "seconds": 4.171999999991385,
+      "checkpoint_count": 23,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": false
+    },
+    {
+      "index": 10,
+      "answer": "订单1001当前物流查询结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果未提供具体中转站点或当前位置，因此无法确认“现在物流到哪里”。该结果与您反馈的未收到情况存在差异，建议点击“转人工”按钮进一步核实派送详情。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 20062,
+        "estimated": false,
+        "elapsed": 25.625,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3104,
+        "layer1_from": 3104
+      },
+      "seconds": 25.671000000002095,
+      "checkpoint_count": 27,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 11,
+      "answer": "退货寄回地址应以下单后售后申请审核通过页面展示的地址为准，不要直接寄回原发货地址[1]。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 15040,
+        "estimated": false,
+        "elapsed": 23.25,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.28100000000267755
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.6719999999913853
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3104,
+        "layer1_from": 3176
+      },
+      "seconds": 23.296999999991385,
+      "checkpoint_count": 29,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 12,
+      "answer": "订单1001当前订单状态（演示数据）：\n\n- 订单状态：已完成\n- 商品：猫抓板\n- 金额：263.6元\n- 签收后天数：5天\n\n该状态与您反馈的“物流迟迟未到”不一致，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 20278,
+        "estimated": false,
+        "elapsed": 55.875,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3104,
+        "layer1_from": 3178
+      },
+      "seconds": 55.92200000000594,
+      "checkpoint_count": 33,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 13,
+      "answer": "订单1001配送情况再核实结果（演示数据）：\n\n- 订单状态：已完成\n- 物流状态：已签收\n- 签收地点：收货地址\n- 签收后天数：5天\n\n工具结果仍显示订单已完成且已签收，与您反馈的“物流迟迟未到”不一致，该差异尚未确认。建议您点击“转人工”按钮进一步核实派送详情。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 22966,
+        "estimated": false,
+        "elapsed": 9.186999999990803,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3104,
+        "layer1_from": 3180
+      },
+      "seconds": 9.218999999997322,
+      "checkpoint_count": 38,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 14,
+      "answer": "邮费规则（演示数据）：\n\n- 满99元包邮；不足99元运费8元[1]\n- 非质量原因退货的寄回运费由买家承担；不接受到付退件[2]\n- 确认属于质量问题时由商家承担退货运费，寄回前需与客服确认寄件方式[4]\n\n订单1001金额为263.6元，按演示规则已满99元，应属于包邮范围；但该订单当前工具结果显示已完成、已签收，与您反馈的未收到情况不一致，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 19110,
+        "estimated": false,
+        "elapsed": 7.48399999999674,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.3590000000112923
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.7029999999940628
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3185,
+        "layer1_from": 3185
+      },
+      "seconds": 7.5310000000026776,
+      "checkpoint_count": 40,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 15,
+      "answer": "订单1001最新物流查询结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果未提供具体中转站点或当前位置，因此无法确认“最新物流到哪里”。该结果与您反馈的未收到情况仍不一致，建议点击“转人工”按钮进一步核实派送详情。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 21288,
+        "estimated": false,
+        "elapsed": 12.030999999988126,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3185,
+        "layer1_from": 3188
+      },
+      "seconds": 12.062999999994645,
+      "checkpoint_count": 44,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 16,
+      "answer": "订单1001物流查询结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果未提供“是否发出”的发货节点或揽收记录，因此无法仅凭该结果确认是否发出。当前显示已签收，与您反馈的未收到情况不一致，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 23656,
+        "estimated": false,
+        "elapsed": 10.172000000005937,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3185,
+        "layer1_from": 3190
+      },
+      "seconds": 10.202999999994063,
+      "checkpoint_count": 48,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 17,
+      "answer": "完整的退货申请流程（演示数据）如下：\n\n1. 在订单详情页选择“申请售后”，提交退货原因和商品照片[1]\n2. 商品需保持完好并附带原包装[4]\n3. 套装退货需一并寄回主商品和全部配件；随单赠品也需一并寄回[3]\n4. 退件验收通过后两个工作日内发起退款，到账时间由原支付渠道决定[2]\n\n演示规则显示签收后七日内可申请退货[5]。订单1001当前工具结果显示已完成、已签收，签收后天数5天，仍在七日内；但该状态与您反馈的未收到情况不一致，建议先点击“转人工”按钮核实物流后再申请。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 18975,
+        "estimated": false,
+        "elapsed": 10.672000000005937,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.29699999999138527
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5320000000065193
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3193,
+        "layer1_from": 3193
+      },
+      "seconds": 10.719000000011874,
+      "checkpoint_count": 50,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 18,
+      "answer": "订单1001当前包裹位置查询结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果未提供具体中转站点或当前位置，因此无法确认包裹现在具体到哪。该结果与您反馈的未收到情况仍不一致，建议点击“转人工”按钮进一步核实派送详情。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 22192,
+        "estimated": false,
+        "elapsed": 7.735000000000582,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3193,
+        "layer1_from": 3198
+      },
+      "seconds": 7.7810000000026776,
+      "checkpoint_count": 54,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 19,
+      "answer": "订单1001订单状态与物流状态对比（演示数据）：\n\n- 订单状态：已完成\n- 物流状态：已签收\n\n两者在“已完成/已签收”层面是一致的，均表示订单已签收完成。但该结果与您反馈的“物流迟迟未到、未收到”不一致，差异尚未确认，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 22997,
+        "estimated": false,
+        "elapsed": 28.264999999999418,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3201,
+        "layer1_from": 3201
+      },
+      "seconds": 28.312000000005355,
+      "checkpoint_count": 59,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 20,
+      "answer": "订单1001最新物流核实结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果仍未提供具体中转站点或当前位置，因此无法确认包裹当前具体到哪。该结果与您反馈的未收到情况持续不一致，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 20807,
+        "estimated": false,
+        "elapsed": 7.593000000008033,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3201,
+        "layer1_from": 3203
+      },
+      "seconds": 7.640999999988708,
+      "checkpoint_count": 63,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 21,
+      "answer": "订单1001继续核实结果（演示数据）：\n\n- 物流状态：已签收\n- 签收地点：收货地址\n\n工具结果仍显示已签收，但您明确表示尚未确认收到。该差异尚未确认，我无法仅凭系统状态判断包裹实际是否送达。建议点击“转人工”按钮进一步核实派送情况。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 23092,
+        "estimated": false,
+        "elapsed": 28.453000000008615,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3201,
+        "layer1_from": 3206
+      },
+      "seconds": 28.5,
+      "checkpoint_count": 67,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    },
+    {
+      "index": 22,
+      "answer": "根据本会话历史，您最早的核实诉求是：订单1001物流迟迟未到，要求核实；演示联系手机号为13800000000。\n\n后续工具结果一直显示订单1001已完成、已签收，与您反馈未收到不一致，差异尚未确认，建议转人工进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 3882,
+        "estimated": false,
+        "elapsed": 1.9839999999967404,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "recall",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 3201,
+        "layer1_from": 3209
+      },
+      "seconds": 2.063000000009197,
+      "checkpoint_count": 69,
+      "segments_immutable": true,
+      "passed": true,
+      "business_answered": true
+    }
+  ],
+  "segments": [
+    {
+      "seq": 1,
+      "from_msg_id": 3098,
+      "upto_msg_id": 3104,
+      "content": "用户反馈订单1001物流迟迟未到，要求核实。联系手机号13800000000。工具结果显示订单已完成、已签收，与用户反馈不一致，差异尚未确认，建议转人工进一步核实。"
+    },
+    {
+      "seq": 2,
+      "from_msg_id": 3105,
+      "upto_msg_id": 3185,
+      "content": "用户询问订单1001物流站点、是否发出、退货政策及平台运费规则。工具显示订单1001已签收但无具体站点，与用户反馈未收到存在差异，待核实。退货政策为签收后七日内可申请，质量问题商家承担运费。运费规则满99元包邮，不足99元运费8元。"
+    },
+    {
+      "seq": 3,
+      "from_msg_id": 3186,
+      "upto_msg_id": 3193,
+      "content": "用户询问订单1001物流更新及当前位置，工具显示已签收、地点为收货地址，但用户反馈未收到，差异待核实。用户还询问智能饮水机售后规则，知识库证据不足无法确认。"
+    },
+    {
+      "seq": 4,
+      "from_msg_id": 3194,
+      "upto_msg_id": 3201,
+      "content": "用户询问退货寄回地址确认方式，AI回复以售后审核通过页面展示地址为准。用户多次核实订单1001状态与配送情况，工具结果显示订单1001已完成、已签收、签收地点为收货地址、签收后5天，商品为猫抓板，金额263.6元，与用户反馈物流未到不一致，差异待核实，建议转人工。"
+    },
+    {
+      "seq": 5,
+      "from_msg_id": 3202,
+      "upto_msg_id": 3209,
+      "content": "用户询问邮费规则，AI回复满99元包邮、不足99元运费8元，订单1001金额263.6元应包邮。用户多次查询订单1001物流，工具结果显示已签收、地点为收货地址，但用户反馈未收到，差异待核实，建议转人工。"
+    }
+  ],
+  "final_anchors": {
+    "summary_upto": 3209,
+    "layer1_from": 3209
+  },
+  "source_checks_passed": true,
+  "context_cases": {
+    "C01": "other_profile",
+    "C02": "dialogue_checked",
+    "C03": "separate_local_test",
+    "C04": "separate_local_test"
+  },
+  "assessment": {
+    "passed": true,
+    "complete": true,
+    "earliest_fact_recalled": true,
+    "layer_behavior": true,
+    "source_checks_passed": true,
+    "prohibited_promises": [],
+    "semantic_review": "passed",
+    "live_quality": "verified"
+  },
+  "semantic_review_note": "逐条检查22轮与5段摘要；首段保留唯一一次手机号，最后回忆正确；未收货与签收工具状态差异仍待核实；第9轮证据不足拒答单列，其余21轮回答；摘要源边界和不可变检查通过。"
+}

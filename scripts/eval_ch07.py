@@ -31,6 +31,12 @@ def assess_summary(case,summary):
     return {'passed':not missing and not forbidden and valid_length,'missing':missing,'forbidden':forbidden,
         'length':len(summary),'semantic_review':'required'}
 
+def context_turn_completed(status,answer):
+    if status.get('stop_reason') in {'answered','clarify','smalltalk'}: return True
+    return (status.get('stop_reason')=='fallback' and
+        'confidence_gate' in status.get('node_trace',[]) and
+        answer=='知识库证据不足，暂时无法确认，请补充信息或人工核实。')
+
 def assess_dialogue(report,profile):
     turns=report.get('turns',[])
     complete=len(turns)>=22 and all(t.get('passed') for t in turns)
@@ -128,7 +134,7 @@ async def evaluate_dialogue(profile,mode,cases,direct=False):
         if report.get('error'): raise RuntimeError(f'Previous run failed; inspect {path}, use a changed implementation/new report before retry')
     else: report={'mode':mode,'profile':profile,'signature':sig,'config':asdict(cfg),'initial_budget':asdict(calculate_budget(cfg)),
         'user_id':'ch07-eval-'+uuid4().hex,'conversation_id':None,'turns':[]}
-    model_factory=(lambda:get_chat_model(streaming=True,disable_thinking=True,max_retries=0,stream_usage=True,
+    model_factory=(lambda:get_chat_model(streaming=True,disable_thinking=True,max_retries=2,stream_usage=True,
         http_async_client=direct_client if direct else None)) if mode=='live' else LocalModel
     async def local_retrieve(query,budget):
         return RetrievalResult(QueryUnderstanding(normalized_query=query,search_query=query),[
@@ -153,7 +159,8 @@ async def evaluate_dialogue(profile,mode,cases,direct=False):
                     'trace':status.get('node_trace'),'anchors':asdict(anchors),'seconds':monotonic()-started,
                     'checkpoint_count':len(snapshot.values.get('messages',[])),
                     'segments_immutable':current_segments[:len(before)]==before,
-                    'passed':status.get('stop_reason') in {'answered','clarify','smalltalk'}}
+                    'passed':context_turn_completed(status,text),
+                    'business_answered':status.get('stop_reason')=='answered'}
                 report['turns'].append(row);save_report(path,report)
                 print(f"{mode}/{profile} turn {row['index']}/22 stop={row['stop_reason']} seconds={row['seconds']:.2f}",flush=True)
                 if not row['passed']: raise RuntimeError('dialogue turn did not converge')

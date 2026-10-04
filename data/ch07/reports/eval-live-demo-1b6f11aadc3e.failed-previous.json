@@ -1,0 +1,67 @@
+{
+  "mode": "live",
+  "profile": "demo",
+  "signature": "1b6f11aadc3effb061b63f22600246bd5f0b9cffe3586dd8ab597ad0248da914",
+  "config": {
+    "window": 18000,
+    "output": 2000,
+    "user_input": 2000,
+    "steps": 3,
+    "tool_result": 1200,
+    "rerank_k": 5,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 5550,
+    "transient": 6800,
+    "steady": 5600,
+    "history": 5650,
+    "layer1": 3954,
+    "layer2": 1695,
+    "summary": 600,
+    "margin": 450
+  },
+  "user_id": "ch07-eval-e3703042117749f68f5eea0f9fac557d",
+  "conversation_id": 1510,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "根据演示订单和物流工具结果，订单1001的情况如下：\n\n- 订单状态：已完成\n- 物流状态：已签收，签收地点为收货地址\n- 商品：猫抓板，金额263.6元\n- 签收后天数：5天\n\n物流显示已签收，与您反馈的“迟迟未到”不一致，建议您先确认是否家人或朋友代收，或检查收货地址附近是否有存放点。若确认未收到，可点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 5789,
+        "estimated": false,
+        "elapsed": 8.937000000005355,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 9.061999999990803,
+      "checkpoint_count": 5,
+      "segments_immutable": true,
+      "passed": true
+    }
+  ],
+  "segments": [],
+  "error": {
+    "type": "OpenAIConnectionError",
+    "message": "Connection error."
+  }
+}

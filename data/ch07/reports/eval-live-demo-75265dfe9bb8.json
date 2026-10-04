@@ -1,0 +1,325 @@
+{
+  "mode": "live",
+  "profile": "demo",
+  "signature": "75265dfe9bb8f7d459f5845b08172e754e45c73871a2bb3c9ce88ac8b2651566",
+  "config": {
+    "window": 18000,
+    "output": 2000,
+    "user_input": 2000,
+    "steps": 3,
+    "tool_result": 1200,
+    "rerank_k": 5,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 5550,
+    "transient": 6800,
+    "steady": 5600,
+    "history": 5650,
+    "layer1": 3954,
+    "layer2": 1695,
+    "summary": 600,
+    "margin": 450
+  },
+  "user_id": "ch07-eval-6de78419744d49be864757cf98cf2262",
+  "conversation_id": 1513,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "根据查询结果，订单1001的物流状态为**已签收**，签收地点为收货地址；订单状态为**已完成**，签收至今已5天[n]。当前没有发现物流未送达或异常的情况。\n\n由于这是演示数据（mock=true），以上结果仅用于说明查询流程。若你实际未收到商品，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 6273,
+        "estimated": false,
+        "elapsed": 10.297000000005937,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 10.422000000005937,
+      "checkpoint_count": 5,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "answer": "已记住你的核实诉求：仅依据已有演示订单和工具结果说明情况，尚未确认的内容保持待核实，不承诺到账或送达时间。\n\n目前订单1001的查询结果为：物流状态**已签收**，订单状态**已完成**，签收至今5天[n]。由于这是演示数据，若你实际未收到商品，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 6735,
+        "estimated": false,
+        "elapsed": 7.156999999991967,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 7.187999999994645,
+      "checkpoint_count": 7,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 3,
+      "answer": "订单1001当前状态为**已完成**，物流状态为**已签收**，签收至今5天[n]。以上为演示数据结果，若你实际未收到商品，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 7590,
+        "estimated": false,
+        "elapsed": 5.48399999999674,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 5.5310000000026776,
+      "checkpoint_count": 9,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 4,
+      "answer": "根据已有工具结果，订单1001的物流仅显示为**已签收**，签收地点为“收货地址”，未提供具体站点信息[n]。因此，目前无法确认该订单物流在哪个站点，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 9190,
+        "estimated": false,
+        "elapsed": 16.296999999991385,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 16.327999999994063,
+      "checkpoint_count": 11,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 5,
+      "answer": "根据演示退货政策：\n\n1. 签收后七日内可申请退货[n]。\n2. 套装退货需一并寄回主商品和全部配件，随单赠品也需一并寄回[n]。\n3. 确认属于质量问题时由商家承担退货运费，寄回前需与客服确认寄件方式[n]。\n4. 在订单详情页选择申请售后，提交退货原因和商品照片[n]。\n5. 退件验收通过后两个工作日内发起退款，到账时间由原支付渠道决定[n]。\n\n以上均为演示数据，不代表真实平台承诺。你的订单1001签收至今已5天，仍在七日内；如需退货，可在订单详情页申请售后。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 10901,
+        "estimated": false,
+        "elapsed": 9.96799999999348,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.3279999999940628
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5149999999994179
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 10.014999999999418,
+      "checkpoint_count": 13,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 6,
+      "answer": "根据已有工具结果，订单1001的物流状态为**已签收**，说明商品已经发出并完成签收[n]。但具体发出时间、揽收站点等细节未在结果中提供，无法确认。若你实际未收到商品，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 12015,
+        "estimated": false,
+        "elapsed": 15.468999999997322,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 15.514999999999418,
+      "checkpoint_count": 15,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 7,
+      "answer": "平台运费规则如下：\n\n1. 满99元包邮；不足99元运费8元[n]。\n2. 确认属于质量问题时由商家承担退货运费，寄回前需与客服确认寄件方式[n]。\n3. 非质量原因退货的寄回运费由买家承担，不接受到付退件[n]。\n4. 普通订单由仓库根据收货区域选择承运商，暂不支持指定快递公司[n]。\n\n以上均为演示规则，不代表真实平台承诺。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 13932,
+        "estimated": false,
+        "elapsed": 6.671999999991385,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.3279999999940628
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.5310000000026776
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 6.702999999994063,
+      "checkpoint_count": 17,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 8,
+      "answer": "订单1001的物流状态仍为**已签收**，签收地点为收货地址，暂无新的物流更新[n]。以上为演示数据结果，若你实际未收到商品，建议点击“转人工”按钮进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 1,
+        "tokens": 19442,
+        "estimated": false,
+        "elapsed": 8.202999999994063,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 2970
+      },
+      "seconds": 8.23399999999674,
+      "checkpoint_count": 21,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 9,
+      "answer": "知识库证据不足，暂时无法确认，请补充信息或人工核实。",
+      "stop_reason": "fallback",
+      "usage": {
+        "model_calls": 2,
+        "tool_steps": 0,
+        "tokens": 7963,
+        "estimated": false,
+        "elapsed": 13.906000000002678,
+        "external_usage": {
+          "embedding": {
+            "calls": 1,
+            "seconds": 0.3600000000005821
+          },
+          "rerank": {
+            "calls": 1,
+            "seconds": 0.7039999999979045
+          }
+        }
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "retrieval",
+        "confidence_gate",
+        "fallback",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 2972
+      },
+      "seconds": 13.952999999994063,
+      "checkpoint_count": 23,
+      "segments_immutable": true,
+      "passed": false
+    }
+  ],
+  "segments": [],
+  "error": {
+    "type": "RuntimeError",
+    "message": "dialogue turn did not converge"
+  }
+}

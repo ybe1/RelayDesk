@@ -1,0 +1,95 @@
+{
+  "mode": "live",
+  "profile": "demo",
+  "signature": "1b6f11aadc3effb061b63f22600246bd5f0b9cffe3586dd8ab597ad0248da914",
+  "config": {
+    "window": 18000,
+    "output": 2000,
+    "user_input": 2000,
+    "steps": 3,
+    "tool_result": 1200,
+    "rerank_k": 5,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 5550,
+    "transient": 6800,
+    "steady": 5600,
+    "history": 5650,
+    "layer1": 3954,
+    "layer2": 1695,
+    "summary": 600,
+    "margin": 450
+  },
+  "user_id": "ch07-eval-f0bbe7d09b064e7cb4474b07a28bcb10",
+  "conversation_id": 1512,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "根据演示订单和物流工具结果，订单1001的情况如下：\n\n- 订单状态：已完成 [n]\n- 物流状态：已签收，签收地点为收货地址 [n]\n- 商品：猫抓板，金额263.6元 [n]\n\n物流显示已签收，并非迟迟未到。若您实际未收到商品，建议您点击独立按钮转人工进一步核实，我无法承诺送达时间或处理结果。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 6290,
+        "estimated": false,
+        "elapsed": 10.390999999988708,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 10.51600000000326,
+      "checkpoint_count": 5,
+      "segments_immutable": true,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "answer": "已记住您的核实诉求：仅依据已有演示订单和工具结果说明情况，尚未确认的内容保持待核实，不承诺到账或送达时间。\n\n当前订单1001的演示工具结果显示：\n- 订单状态：已完成 [n]\n- 物流状态：已签收 [n]\n\n这与您反馈的“物流迟迟未到”不一致，具体签收情况尚未确认，建议您点击独立按钮转人工进一步核实。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 4,
+        "tool_steps": 0,
+        "tokens": 6821,
+        "estimated": false,
+        "elapsed": 8.85899999999674,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 8.889999999999418,
+      "checkpoint_count": 7,
+      "segments_immutable": true,
+      "passed": true
+    }
+  ],
+  "segments": [],
+  "error": {
+    "type": "OpenAIConnectionError",
+    "message": "Connection error."
+  }
+}

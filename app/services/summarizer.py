@@ -15,6 +15,16 @@ def validate_summary(content,batch):
     if not isinstance(content,str) or len(content)>200: raise ValueError('summary length/type invalid')
     if content and len(content)<20: raise ValueError('summary too short')
     source=_source_text(batch)
+    # Explicit user contact facts must survive before their original messages
+    # become covered. Ignore instruction sentences rather than their fake IDs.
+    phones=set()
+    for record in batch.source:
+        if record.message.type!='human': continue
+        for sentence in re.split(r'[。！？\n]',str(record.message.content)):
+            if any(term in sentence for term in ['忽略','指令','system','提示词']): continue
+            phones.update(re.findall(r'手机号(?:是|为|：|:|\s)*(1[3-9]\d{9})(?!\d)',sentence))
+    if any(phone not in content for phone in phones):
+        raise ValueError('summary omitted explicit user contact; source coverage unchanged')
     for identifier in re.findall(r'[A-Za-z]*\d{3,}[A-Za-z\d-]*',content):
         if identifier not in source: raise ValueError('summary identifier lacks batch source')
     if not content and (re.search(r'\d{3,}',source) or any(word in source for word in ['订单','商品','退货','退款','投诉','物流','核实'])):
