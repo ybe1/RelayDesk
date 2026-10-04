@@ -50,7 +50,7 @@ def test_real_chat_service_sse_citations_precede_answer_and_survive_persistence(
     body = response.text
     assert body.index("event: citations") < body.index('data: {"delta":')
     persisted = next(row for row in store.rows if isinstance(row, ToolMessage))
-    citation = json.loads(json.loads(persisted.content)["result"])["citations"][0]
+    citation = json.loads(persisted.content)["result"]["citations"][0]
     assert citation["chunk_id"] == 9
     assert json.dumps(citation, ensure_ascii=False) in body
     assert "data: [DONE]" in body

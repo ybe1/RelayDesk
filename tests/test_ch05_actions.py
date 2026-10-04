@@ -44,6 +44,10 @@ def test_double_confirmation_and_changed_params(action_case):
     with SessionLocal() as session:
         assert len(list(session.scalars(select(Ticket).where(Ticket.conversation_id == cid)))) == 1
         assert session.get(Conversation, cid).status == "进行中"
+        from app.db.models import ToolAuditLog
+        audits=list(session.scalars(select(ToolAuditLog).where(ToolAuditLog.conversation_id==cid)))
+        assert len(audits)==1
+        assert audits[0].tool_name=='create_ticket' and audits[0].status=='成功'
 
 
 def test_wrong_owner_and_handoff_offer_are_rejected(action_case):

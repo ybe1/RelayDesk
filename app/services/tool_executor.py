@@ -93,6 +93,9 @@ class ToolExecutor:
                         except (TimeoutError,ConnectionError):
                             if attempt+1==attempts: raise
                             await asyncio.sleep(self.backoff_seconds*(attempt+1))
+        except PermissionError:
+            status='权限拒绝'
+            payload=error('permission_denied','工单确认已失效、已取消或与调用不匹配')
         except TimeoutError:
             status='超时'
             payload=error('timeout','写操作超时，结果待核实，请勿重复提交' if definition and definition.name=='create_ticket' else '查询超时，请稍后重试')

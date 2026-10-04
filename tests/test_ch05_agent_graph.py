@@ -4,7 +4,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, Too
 from app.workflow.budget import TurnBudget, Limits
 from app.workflow.contracts import AgentDependencies
 from app.tools.business import build_tools
-from app.services.tool_executor import ToolExecutor
+from tests.test_tool_executor import ToolExecutor
 
 
 class GraphModel:

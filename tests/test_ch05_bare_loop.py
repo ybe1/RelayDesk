@@ -15,7 +15,7 @@ async def test_tool_limit_closes_all_pending_calls_without_another_model_call():
     from app.workflow.contracts import AgentDependencies
     from app.workflow.budget import TurnBudget, Limits
     from app.tools.business import build_tools
-    from app.services.tool_executor import ToolExecutor
+    from tests.test_tool_executor import ToolExecutor
     model = SequenceModel([AIMessage(content="", tool_calls=[
         {"name": "query_order", "args": {"order_id": "1001"}, "id": "a"},
         {"name": "query_logistics", "args": {"order_id": "1001"}, "id": "b"}])])
@@ -34,7 +34,7 @@ async def test_agent_cannot_execute_create_ticket_even_if_model_requests_it():
     from app.workflow.contracts import AgentDependencies
     from app.workflow.budget import TurnBudget, Limits
     from app.tools.business import build_tools
-    from app.services.tool_executor import ToolExecutor
+    from tests.test_tool_executor import ToolExecutor
     model = SequenceModel([AIMessage(content="", tool_calls=[
         {"name": "create_ticket", "args": {"description": "投诉", "ticket_type": "投诉"}, "id": "x"}]),
         AIMessage(content="请点击建工单")])

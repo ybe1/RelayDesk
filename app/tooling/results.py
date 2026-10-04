@@ -25,7 +25,10 @@ def normalize_result(definition,raw):
         return error('execution_failed','外部工具返回错误')
     if isinstance(raw,dict) and 'error' in raw:
         detail=raw['error']
-        return error('not_found' if isinstance(detail,dict) and detail.get('code')=='not_found' else 'execution_failed',
+        code=detail.get('code') if isinstance(detail,dict) else None
+        allowed={'not_found'}
+        if definition.key==('builtin',None,'create_ticket'): allowed.add('outcome_unknown')
+        return error(code if code in allowed else 'execution_failed',
                      str(detail.get('message','工具返回错误') if isinstance(detail,dict) else detail)[:512])
     if isinstance(raw,dict):
         raw={k:v for k,v in raw.items() if not k.startswith('_') and k not in {'debug','internal_trace','access_token','api_key'}}

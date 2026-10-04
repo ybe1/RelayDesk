@@ -174,7 +174,7 @@ def test_citations_precede_delta_and_match_persisted_tool_message():
     assert kinds.index("citations") < kinds.index("delta")
     citations = next(data["citations"] for kind, data in events if kind == "citations")
     message = next(m for m in store.rows if isinstance(m, ToolMessage))
-    assert citations == json.loads(json.loads(message.content)["result"])["citations"]
+    assert citations == json.loads(message.content)["result"]["citations"]
     assert citations[0]["chunk_id"] == 17
 
 
