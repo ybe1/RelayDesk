@@ -218,7 +218,7 @@ async def test_complete_tool_message_fits_utf8_budget_and_keeps_citation_mapping
     tool = build_tools(lambda: None, 42, lambda _: retrieval(hits), check)[3]
     message = await ToolExecutor([tool]).execute({"name": "query_faq", "args": {"keyword": "问题"}, "id": "c"})
     assert len(message.content.encode("utf-8")) <= 60000
-    result = json.loads(json.loads(message.content)["result"])
+    result = json.loads(message.content)["result"]
     assert len(result["citations"]) == 10
     for n, (citation, evidence) in enumerate(zip(result["citations"], result["evidence"]), 1):
         assert set(citation) == {"n", "chunk_id", "section_path", "question", "answer_excerpt"}

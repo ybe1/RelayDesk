@@ -6,7 +6,21 @@ import pytest
 from langchain.tools import tool
 from pydantic import BaseModel
 
-from app.services.tool_executor import ToolExecutor
+from app.services.tool_executor import ToolExecutor as RealToolExecutor, POLICY_PATH
+from app.tooling.policy import PolicyStore
+from app.tooling.contracts import ToolPolicy
+
+
+class FixturePolicy(PolicyStore):
+    def lookup(self,key):
+        # These two are explicit test registrations, not production permissions.
+        if key in {('builtin',None,'echo'),('builtin',None,'query_logistics')}:
+            return ToolPolicy(max_retries=2 if key[-1]=='query_logistics' else 0)
+        return super().lookup(key)
+
+
+def ToolExecutor(tools,**kwargs):
+    return RealToolExecutor(tools,policy=FixturePolicy(POLICY_PATH),**kwargs)
 
 
 class Input(BaseModel):
@@ -50,7 +64,7 @@ def test_read_only_transient_failure_retries_twice(name):
     assert json.loads(result.content)["result"] == "policy"
 
 
-def test_ticket_write_failure_is_never_retried():
+def test_ticket_without_confirmation_is_not_executed():
     attempts = 0
 
     @tool(args_schema=Input)
@@ -63,8 +77,8 @@ def test_ticket_write_failure_is_never_retried():
     result = asyncio.run(ToolExecutor([create_ticket], backoff_seconds=0).execute(
         {"name": "create_ticket", "args": {"value": "help"}, "id": "call-5"}
     ))
-    assert attempts == 1
-    assert json.loads(result.content)["error"]["code"] == "execution_failed"
+    assert attempts == 0
+    assert json.loads(result.content)["error"]["code"] == "permission_denied"
 
 
 def test_read_only_timeout_is_bounded_and_returns_error():
