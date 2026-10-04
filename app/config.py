@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     agent_timeout_seconds: float = 120
     workflow_gate_threshold: float = 0.032755612017354
     workflow_checkpoint_path: str = "data/runtime/ch05-checkpoints.sqlite"
+    mcp_logistics_url: str = "http://127.0.0.1:8101/mcp"
+    mcp_after_sales_url: str = "http://127.0.0.1:8102/mcp"
+    tool_policy_path: str = "config/tool_policy.json"
+    tool_plugins_path: str = "config/tool_plugins.json"
     intent_small_model: str = ""
     intent_confidence_threshold: float = Field(default=0.75,gt=0,le=1,allow_inf_nan=False)
     database_url: str = "mysql+pymysql://mewhelp:mewhelp_local@127.0.0.1:3307/mewhelp?charset=utf8mb4"

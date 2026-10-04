@@ -30,20 +30,8 @@ class TicketArgs(BaseModel):
 
 def _mock_order_snapshot(order_id: str) -> dict:
     """One reproducible synthetic shipment lifecycle per order; no storage."""
-    rng = random.Random(order_id)
-    order_status, logistics_status, location = rng.choice([
-        ("待发货", "暂无物流", None),
-        ("运输中", "已揽收", "上海分拨中心"),
-        ("运输中", "运输中", "杭州转运中心"),
-        ("运输中", "派送中", "本地配送站"),
-        ("已完成", "已签收", "收货地址"),
-    ])
-    amount = round(rng.uniform(29,399),2)
-    product_name,category = rng.choice([('喵喵猫粮','宠物食品'),('智能饮水机','宠物用品'),('猫抓板','宠物用品')])
-    return {"status": order_status, "amount": amount,
-            "logistics_status": logistics_status, "location": location,
-            "product_name":product_name,"category":category,
-            "days_since_receipt":rng.choice([2,5,15]) if order_status=='已完成' else None}
+    from app.mock.business import mock_order_snapshot
+    return mock_order_snapshot(order_id)
 
 
 async def _production_retriever(query: str):
