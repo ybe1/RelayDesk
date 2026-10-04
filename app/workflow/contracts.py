@@ -29,6 +29,7 @@ class WorkflowState(TypedDict, total=False):
     question: str
     intent: str
     route: str
+    history_recall: bool
     evidence: list
     citations: list
     actions: list

@@ -1,0 +1,67 @@
+{
+  "mode": "live",
+  "profile": "default",
+  "signature": "4e0d7ed6230f7b3b1091c92262dfc3968de3d3d9e1b0ce7d32cd08f65e532637",
+  "config": {
+    "window": 1000000,
+    "output": 4000,
+    "user_input": 4000,
+    "steps": 5,
+    "tool_result": 2400,
+    "rerank_k": 10,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 28000,
+    "transient": 18000,
+    "steady": 10800,
+    "history": 432000,
+    "layer1": 302399,
+    "layer2": 129600,
+    "summary": 600,
+    "margin": 20000
+  },
+  "user_id": "ch07-eval-a9c1fd843d9341ccbfe512892395e3d8",
+  "conversation_id": 1466,
+  "turns": [
+    {
+      "index": 1,
+      "answer": "根据演示订单和物流工具结果，订单1001的情况如下：\n\n- 订单状态：已完成，商品为猫抓板，金额263.6元，签收后已5天[n]\n- 物流状态：已签收，签收地点为收货地址[n]\n\n因此，该订单物流已签收完成，并非“迟迟未到”状态。若您实际未收到商品，建议点击“转人工”按钮进一步核实签收详情；当前演示数据下无法确认是否存在异常。",
+      "stop_reason": "answered",
+      "usage": {
+        "model_calls": 5,
+        "tool_steps": 2,
+        "tokens": 6105,
+        "estimated": false,
+        "elapsed": 8.969000000011874,
+        "external_usage": {}
+      },
+      "trace": [
+        "resolve",
+        "intent",
+        "decision",
+        "tools",
+        "decision",
+        "final_answer",
+        "log"
+      ],
+      "anchors": {
+        "summary_upto": 0,
+        "layer1_from": 0
+      },
+      "seconds": 9.125,
+      "checkpoint_count": 5,
+      "segments_immutable": true,
+      "passed": true
+    }
+  ],
+  "segments": [],
+  "error": {
+    "type": "OpenAIConnectionError",
+    "message": "Connection error."
+  }
+}

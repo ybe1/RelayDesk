@@ -1,0 +1,35 @@
+{
+  "mode": "live",
+  "profile": "default",
+  "signature": "5cd5d68fc3c0f8483769020cb5fda35f9c680f5d35eb4d6c7d27aec3865d3fc9",
+  "config": {
+    "window": 1000000,
+    "output": 4000,
+    "user_input": 4000,
+    "steps": 5,
+    "tool_result": 2400,
+    "rerank_k": 10,
+    "desired_turns": 40,
+    "prefix": 1600,
+    "evidence_per_hit": 180,
+    "summary_reserve": 600,
+    "call_overhead": 400
+  },
+  "initial_budget": {
+    "fixed": 28000,
+    "transient": 18000,
+    "steady": 10800,
+    "history": 432000,
+    "layer1": 302399,
+    "layer2": 129600,
+    "summary": 600,
+    "margin": 20000
+  },
+  "user_id": "ch07-eval-0bbfcb632902461998cc2b20fa3e6249",
+  "conversation_id": null,
+  "turns": [],
+  "error": {
+    "type": "OpenAIConnectionError",
+    "message": "Connection error."
+  }
+}

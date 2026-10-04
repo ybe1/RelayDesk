@@ -1,6 +1,16 @@
 """Restore complete history and close interrupted requests without execution."""
 import json
+import re
 from langchain_core.messages import ToolMessage
+
+
+def is_history_recall(question):
+    """Explicit questions about what was said, excluding current business actions."""
+    if re.search(r'能(?:不能)?退|能否退|可以退|政策|规则|运费|邮费|保修|怎么(?:退|申请|维修)|申请(?:退款|退货|维修)|到哪|到账',question):
+        return False
+    prior=re.search(r'最开始|最早|刚才|之前|先前|前面|当时',question)
+    facts=re.search(r'订单号|手机号|电话|诉求|记得|报过|留下|说过|提过|问过|聊过|怎么说|帮我做什么',question)
+    return bool(prior and facts)
 
 
 def understanding_payload(messages):

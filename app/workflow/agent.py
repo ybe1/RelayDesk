@@ -144,11 +144,12 @@ def build_agent_graph(deps=None):
         if state.get("citations"):
             writer(("citations", {"citations": state["citations"]}))
         mode = state["decision"]["kind"]
-        messages = _messages(state,context,'clarify' if mode=='clarify' else 'final_answer')
+        phase='history_recall' if state.get('history_recall') else ('clarify' if mode=='clarify' else 'final_answer')
+        messages = _messages(state,context,phase)
         content, reason = "", "clarify" if mode == "clarify" else "answered"
         try:
             read_tools=[t for t in selected.tools if t.name!='create_ticket']
-            async for chunk in _model(selected,context,state,'final_answer',[*read_tools,AgentDecision]).astream(messages):
+            async for chunk in _model(selected,context,state,phase,[*read_tools,AgentDecision]).astream(messages):
                 if isinstance(chunk.content, str) and chunk.content:
                     content += chunk.content
                     writer(("delta", {"delta": chunk.content, "node": "final_answer"}))
@@ -173,7 +174,7 @@ def build_agent_graph(deps=None):
     builder = StateGraph(WorkflowState, context_schema=TurnContext)
     for name, function in [("decision", decision), ("tools", tools), ("final_answer", final_answer), ("stop", stop)]:
         builder.add_node(name, function)
-    builder.add_edge(START, "decision")
+    builder.add_conditional_edges(START,lambda s:'final_answer' if s.get('history_recall') else 'decision')
     builder.add_conditional_edges("decision", lambda s: {"tools": "tools", "answer": "final_answer", "clarify": "final_answer", "stop": "stop"}[s["decision"]["kind"]])
     builder.add_conditional_edges("tools", lambda s: "stop" if s.get("stop_reason") else "decision")
     builder.add_edge("final_answer", END)

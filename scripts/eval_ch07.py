@@ -103,7 +103,7 @@ class LocalModel:
             text+='最早留下的演示联系手机号是13800000000。'
         yield AIMessageChunk(content=text)
 
-async def evaluate_dialogue(profile,mode,cases):
+async def evaluate_dialogue(profile,mode,cases,direct=False):
     # Import installs app logging only; never enters lifespan or opens a port.
     import app.main
     from app.config import settings
@@ -120,7 +120,7 @@ async def evaluate_dialogue(profile,mode,cases):
     from app.knowledge.retrieval import RetrievalResult
     from app.knowledge.query_understanding import QueryUnderstanding
     cfg=ContextConfig() if profile=='default' else ContextConfig(window=18000,output=2000,user_input=2000,steps=3,tool_result=1200,rerank_k=5)
-    sig=signature(profile,mode,settings.chat_model if mode=='live' else 'LocalModel')
+    sig=signature(profile,mode,(settings.chat_model+(':direct-no-reuse' if direct else '')) if mode=='live' else 'LocalModel')
     path=ROOT/'reports'/f'eval-{mode}-{profile}-{sig[:12]}.json'
     if path.exists():
         report=json.loads(path.read_text(encoding='utf-8'))
@@ -128,11 +128,13 @@ async def evaluate_dialogue(profile,mode,cases):
         if report.get('error'): raise RuntimeError(f'Previous run failed; inspect {path}, use a changed implementation/new report before retry')
     else: report={'mode':mode,'profile':profile,'signature':sig,'config':asdict(cfg),'initial_budget':asdict(calculate_budget(cfg)),
         'user_id':'ch07-eval-'+uuid4().hex,'conversation_id':None,'turns':[]}
-    model_factory=(lambda:get_chat_model(streaming=True,disable_thinking=True,max_retries=0,stream_usage=True)) if mode=='live' else LocalModel
+    model_factory=(lambda:get_chat_model(streaming=True,disable_thinking=True,max_retries=0,stream_usage=True,
+        http_async_client=direct_client if direct else None)) if mode=='live' else LocalModel
     async def local_retrieve(query,budget):
         return RetrievalResult(QueryUnderstanding(normalized_query=query,search_query=query),[
             {'id':1,'question':'退货政策','answer':'商品完好且包装齐全，签收七天内可申请退货，地址以审核后提供的地址为准。','rerank_score':0.9}],True,'local_fixture')
-    async with checkpoint_runtime(path.with_suffix('.sqlite')) as saver:
+    import httpx
+    async with httpx.AsyncClient(trust_env=False,limits=httpx.Limits(max_keepalive_connections=0),timeout=60) as direct_client,checkpoint_runtime(path.with_suffix('.sqlite')) as saver:
         service=WorkflowChatService(build_workflow(checkpointer=saver),DatabaseChatStore(SessionLocal),model_factory=model_factory,
             context_config=cfg,retriever=local_retrieve if mode=='local' else None)
         try:
@@ -204,8 +206,11 @@ async def evaluate_summaries(cases):
         batch=SummaryBatch(0,0,len(case['source']),tuple(HistoryRecord(HumanMessage(content=text),i+1,'t') for i,text in enumerate(case['source'])),
             tuple(SummarySegment(i+1,1,1,text) for i,text in enumerate(case.get('background',[]))))
         response=await model.ainvoke(summary_messages(batch),max_tokens=600,response_format={'type':'json_object'},extra_body={'thinking':{'type':'disabled'}})
-        content=json.loads(response.content)['summary'];validate_summary(content,batch)
+        content=json.loads(response.content)['summary']
         report['results'][case['id']]={'summary':content,**assess_summary(case,content),'usage':response.usage_metadata}
+        try: validate_summary(content,batch)
+        except ValueError as exc:
+            report['results'][case['id']].update(passed=False,validation_error=str(exc))
         save_report(path,report)
         print(f"summary {case['id']} label_pass={report['results'][case['id']]['passed']}",flush=True)
     report['label_checks_passed']=all(item['passed'] for item in report['results'].values())
@@ -218,6 +223,7 @@ def main():
     mode.add_argument('--local-workflow',action='store_true')
     parser.add_argument('--profile',choices=['default','demo'],default='default')
     parser.add_argument('--section',choices=['dialogue','summary'],default='dialogue')
+    parser.add_argument('--direct',action='store_true',help='Own direct HTTP client with no reused connections; evaluation process only')
     args=parser.parse_args();cases=load_cases();counts=inventory(cases)
     if not args.live and not args.local_workflow:
         path=ROOT/'reports'/'eval-offline.json';save_report(path,counts);print(json.dumps(counts));return 0
@@ -225,7 +231,7 @@ def main():
         if not args.live: parser.error('summary semantic evaluation requires --live')
         path,report=asyncio.run(evaluate_summaries(cases));passed=report['label_checks_passed']
     else:
-        path,report=asyncio.run(evaluate_dialogue(args.profile,'live' if args.live else 'local',cases));passed=report['assessment']['passed']
+        path,report=asyncio.run(evaluate_dialogue(args.profile,'live' if args.live else 'local',cases,args.direct));passed=report['assessment']['passed']
     print(f'report={path} passed={passed}')
     return 0 if passed else 1
 

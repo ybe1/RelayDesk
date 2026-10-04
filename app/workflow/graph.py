@@ -16,6 +16,7 @@ from .budget import BudgetExceeded
 from .retrieval import gate_result, CitationRegistry, retrieve_for_turn
 from .agent import build_agent_graph, persist
 from app.context.compile import understanding_history
+from .history import is_history_recall
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def make_turn_input(question, conversation_id, user_id, turn_id, messages):
             "user_id": user_id, "turn_id": turn_id, "messages": messages,
             "evidence": [], "citations": [], "actions": [], "decision": {}, "final_text": "",
             "stop_reason": "", "budget_usage": {}, "tool_steps": 0, "node_trace": [],
-            "intent": "", "route": "", "gate_allowed": False, "gate_reason": "",
+            "intent": "", "route": "", "history_recall":False, "gate_allowed": False, "gate_reason": "",
             "resolution":{},"intent_confidence":0.0,"intent_model_tier":"","intent_upgraded":False,
             "order_id":None,"order_snapshot":{},"selection":{},"expanded_queries":[],"refund_assessment":{}}
 
@@ -42,7 +43,7 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
         context=runtime.context
         update=traced(state,'resolve')
         try:
-            if detect_smalltalk(state['raw_question']):
+            if detect_smalltalk(state['raw_question']) or is_history_recall(state['raw_question']):
                 resolution=Resolution(question=state['raw_question'],reference_status='clear',scope='general',order_source='none')
             else:
                 if context.history_projection is not None:
@@ -62,6 +63,9 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
     async def intent(state: WorkflowState, runtime: Runtime[TurnContext]):
         context = runtime.context
         update = traced(state, "intent")
+        if is_history_recall(state['raw_question']):
+            return {**update,'intent':'订单','route':'recall','intent_confidence':1.0,
+                'intent_model_tier':'rule','intent_upgraded':False,'budget_usage':context.budget.snapshot()}
         try:
             if not state.get('resolution'): raise ValueError('resolution unavailable')
             run = await classify_with_escalation(context.agent.model,context.intent_small_model,state['question'],context.budget,
@@ -142,16 +146,21 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
                                                    "message_id":(runtime.context.message_db_ids or {}).get(f"{state['turn_id']}:final")}))
         return update
 
+    def recall(state):
+        return {**traced(state,'recall'),'history_recall':True,
+            'decision':{'kind':'answer','tool_calls':[],'actions':[],'reason':'只回忆本会话记录，不查询当前业务数据'}}
+
     builder = StateGraph(WorkflowState, context_schema=TurnContext)
     nodes = {"resolve": resolve, "intent": intent, "retrieval": retrieval, "confidence_gate": confidence_gate,
              "after_sales":build_after_sales_graph(threshold),
-             "agent": build_agent_graph(deps), "fallback": fixed("fallback", "知识库证据不足，暂时无法确认，请补充信息或人工核实。"),
+             "agent": build_agent_graph(deps), 'recall':recall, "fallback": fixed("fallback", "知识库证据不足，暂时无法确认，请补充信息或人工核实。"),
              "complaint": fixed("complaint", "抱歉给您带来不好的体验。您可以分别选择转人工或创建工单，也可以继续告诉我具体问题。", ["handoff", "ticket"]),
              "smalltalk": fixed("smalltalk", "您好，我是小喵，商品、订单、物流和售后问题都可以问我。"), "log": log}
     for name, function in nodes.items(): builder.add_node(name, function)
     builder.add_edge(START, "resolve")
     builder.add_edge("resolve", "intent")
-    builder.add_conditional_edges("intent", lambda s: {"knowledge": "retrieval", "business": "agent", "after_sales":"after_sales", "complaint": "complaint", "smalltalk": "smalltalk", "fallback": "fallback"}[s["route"]])
+    builder.add_conditional_edges("intent", lambda s: {"knowledge": "retrieval", "business": "agent", 'recall':'recall', "after_sales":"after_sales", "complaint": "complaint", "smalltalk": "smalltalk", "fallback": "fallback"}[s["route"]])
+    builder.add_edge('recall','agent')
     builder.add_edge('after_sales','confidence_gate')
     builder.add_edge("retrieval", "confidence_gate")
     builder.add_conditional_edges("confidence_gate", lambda s: "agent" if s["gate_allowed"] else "fallback")

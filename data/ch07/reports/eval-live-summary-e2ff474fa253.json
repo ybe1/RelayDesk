@@ -1,0 +1,108 @@
+{
+  "mode": "live",
+  "signature": "e2ff474fa25322fb1bd212093d4488b05b16664cf19473046bed2a84063e74aa",
+  "results": {
+    "S01": {
+      "summary": "用户询问订单1001的猫粮未到货，要求核实；物流尚未核实。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 29,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 256,
+        "output_tokens": 27,
+        "total_tokens": 283,
+        "input_token_details": {
+          "cache_read": 0
+        },
+        "output_token_details": {}
+      }
+    },
+    "S02": {
+      "summary": "用户提供演示手机号13800000000，要求联系核实订单1001。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 34,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 246,
+        "output_tokens": 25,
+        "total_tokens": 271,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    },
+    "S03": {
+      "summary": "用户要求查询订单1001和1002；订单1001需退款，订单1002仅询问物流。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 40,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 250,
+        "output_tokens": 28,
+        "total_tokens": 278,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    },
+    "S04": {
+      "summary": "用户表示要投诉，询问可选项。系统提供转人工和建工单按钮，用户尚未点击。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 35,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 261,
+        "output_tokens": 31,
+        "total_tokens": 292,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    },
+    "S05": {
+      "summary": "用户询问订单1001能否退货，当前包装和完好状态未知，无法确认退货资格。",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 36,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 258,
+        "output_tokens": 28,
+        "total_tokens": 286,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    },
+    "S06": {
+      "summary": "",
+      "passed": true,
+      "missing": [],
+      "forbidden": [],
+      "length": 0,
+      "semantic_review": "required",
+      "usage": {
+        "input_tokens": 273,
+        "output_tokens": 5,
+        "total_tokens": 278,
+        "input_token_details": {
+          "cache_read": 128
+        },
+        "output_token_details": {}
+      }
+    }
+  }
+}

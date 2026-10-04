@@ -20,3 +20,10 @@ def test_default_has_no_extra_body():
 def test_judge_can_set_zero_temperature_without_changing_chat_default():
     assert get_chat_model(temperature=0).temperature == 0
     assert get_chat_model().temperature == 0.3
+
+
+async def test_factory_can_use_owned_direct_async_client():
+    import httpx
+    async with httpx.AsyncClient(trust_env=False,limits=httpx.Limits(max_keepalive_connections=0)) as client:
+        model=get_chat_model(http_async_client=client)
+        assert model.root_async_client._client is client

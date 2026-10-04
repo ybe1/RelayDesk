@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "mode": "raw",
+      "question": "最开始那个订单号是什么？我留下的联系手机号是什么？当时想让你帮我做什么？",
+      "source": "用户报告演示订单1001包裹未到，留下虚拟手机号13800000000，诉求是核实包裹为什么还没到。",
+      "answer": "根据本会话记录：\n\n- 订单号：1001\n- 联系手机号：13800000000\n- 诉求：核实演示订单 1001 的包裹为什么还没到",
+      "trace": [
+        "resolve",
+        "intent",
+        "recall",
+        "final_answer",
+        "log"
+      ],
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 487,
+        "estimated": false,
+        "elapsed": 2.061999999990803,
+        "external_usage": {}
+      },
+      "passed": true,
+      "semantic_review": "passed",
+      "review_reason": "逐条对照来源：原文/摘要均正确返回订单、虚拟手机号和核实诉求；无来源时明确未知，无工具执行或新状态承诺。"
+    },
+    {
+      "mode": "summary",
+      "question": "最开始那个订单号是什么？我留下的联系手机号是什么？当时想让你帮我做什么？",
+      "source": "用户报告演示订单1001包裹未到，留下虚拟手机号13800000000，诉求是核实包裹为什么还没到。",
+      "answer": "根据本会话记录：订单号是 1001，联系手机号是 13800000000，当时你想让我帮你核实包裹为什么还没到。",
+      "trace": [
+        "resolve",
+        "intent",
+        "recall",
+        "final_answer",
+        "log"
+      ],
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 480,
+        "estimated": false,
+        "elapsed": 1.2970000000059372,
+        "external_usage": {}
+      },
+      "passed": true,
+      "semantic_review": "passed",
+      "review_reason": "逐条对照来源：原文/摘要均正确返回订单、虚拟手机号和核实诉求；无来源时明确未知，无工具执行或新状态承诺。"
+    },
+    {
+      "mode": "missing",
+      "question": "最开始那个订单号是什么？我留下的联系手机号是什么？当时想让你帮我做什么？",
+      "source": "",
+      "answer": "抱歉，我在当前会话记录中没有找到您之前提供的订单号、联系手机号或具体诉求。请您补充一下这些信息，我再帮您处理。",
+      "trace": [
+        "resolve",
+        "intent",
+        "recall",
+        "final_answer",
+        "log"
+      ],
+      "usage": {
+        "model_calls": 1,
+        "tool_steps": 0,
+        "tokens": 452,
+        "estimated": false,
+        "elapsed": 1.4529999999940628,
+        "external_usage": {}
+      },
+      "passed": true,
+      "semantic_review": "passed",
+      "review_reason": "逐条对照来源：原文/摘要均正确返回订单、虚拟手机号和核实诉求；无来源时明确未知，无工具执行或新状态承诺。"
+    }
+  ],
+  "semantic_review_passed": true
+}
