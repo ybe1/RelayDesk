@@ -163,6 +163,13 @@
   .conversation-item small { display: block; margin-top: 5px; color: var(--text-dim); }
   .conversation-item:disabled, #new-conversation:disabled { opacity: .5; cursor: default; }
   @media(max-width:700px) { #conversation-sidebar { width: 135px; padding: 10px 5px; } header .subtitle { display: none; } header { flex-wrap: wrap; padding: 10px; } header .nav { margin-left: 0; } .msg { max-width: 95%; } #messages { padding: 12px; } footer { padding: 10px; } }
+  .ticket-preview {margin-top:12px;padding:16px;border:1px solid #fed7aa;border-radius:12px;background:#fffaf5;max-width:560px;}
+  .ticket-preview p {margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere;}
+  .ticket-preview small {display:block;color:#64748b;}
+  .ticket-preview-actions {display:flex;gap:10px;margin-top:14px;}
+  .ticket-preview-actions button {padding:9px 18px;border-radius:8px;border:1px solid #fd7e14;cursor:pointer;background:white;color:#b94700;}
+  .ticket-preview-actions .ticket-confirm {background:#ff7518;color:white;}
+  .ticket-preview-actions button:disabled {opacity:.5;cursor:default;}
 </style>
 </head>
 <body>
@@ -376,6 +383,7 @@
     if (eventType === 'citations') return { type: 'citations', citations: data.citations };
     if (eventType === 'actions') return { type: 'actions', ...data };
     if (eventType === 'workflow_status') return { type: 'workflow_status', ...data };
+    if (eventType === 'ticket_confirmation') return { type: 'ticket_confirmation', ...data };
     if (eventType === 'order_selection') return { type: 'order_selection', ...data };
     if (eventType === 'workflow_summary') return { type: 'workflow_summary', ...data };
     if (data.delta) return { type: 'delta', delta: data.delta };
@@ -491,9 +499,44 @@
     dialog.append(title, note, label, error, cancel, submit); document.body.appendChild(dialog); dialog.showModal(); reason.focus();
   }
 
+  let pendingTicketCard = null;
+  function invalidateTicketCard() {
+    if (!pendingTicketCard) return;
+    for (const button of pendingTicketCard.element.querySelectorAll('button')) button.disabled = true;
+    pendingTicketCard.note.textContent = '此预览已结束，提交结果请查看后续回复。';
+    pendingTicketCard = null;
+  }
+  function addTicketConfirmation(bubble, preview) {
+    if (pendingTicketCard?.preview.confirmation_id === preview.confirmation_id) return;
+    invalidateOrderCard();
+    const card = document.createElement('section'); card.className = 'ticket-preview';
+    card.setAttribute('aria-label', '工单预览');
+    const title = document.createElement('strong'); title.textContent = '请确认工单信息';
+    const type = document.createElement('p'); type.textContent = '工单类型：' + preview.ticket_type;
+    const description = document.createElement('p'); description.className = 'ticket-description'; description.textContent = '问题描述：' + preview.description;
+    const note = document.createElement('small'); note.setAttribute('aria-live', 'polite'); note.textContent = '确认后才会创建工单；取消不会提交。';
+    const actions = document.createElement('div'); actions.className = 'ticket-preview-actions';
+    for (const [decision, label] of [['confirm', '确认提交'], ['cancel', '取消']]) {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+      button.className = decision === 'confirm' ? 'ticket-confirm' : 'ticket-cancel';
+      button.addEventListener('click', async () => {
+        if (sendBtn.disabled || button.disabled || pendingTicketCard?.preview.confirmation_id !== preview.confirmation_id) return;
+        for (const item of card.querySelectorAll('button')) item.disabled = true;
+        note.textContent = decision === 'confirm' ? '正在提交确认…' : '正在取消…';
+        addBubble('user', decision === 'confirm' ? '确认提交工单' : '取消提交工单');
+        await runChat('/api/chat/ticket-confirmation', {user_id: userId, conversation_id: preview.conversation_id,
+          turn_id: preview.turn_id, confirmation_id: preview.confirmation_id, decision});
+        await recoverOrderSelection();
+      });
+      actions.appendChild(button);
+    }
+    card.append(title, type, description, note, actions); bubble.appendChild(card);
+    pendingTicketCard = {element: card, note, preview}; scrollToBottom();
+  }
   let pendingOrderCard = null;
   let pendingRequestId = 0;
   function invalidateOrderCard() {
+    invalidateTicketCard();
     if (!pendingOrderCard) return;
     for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = true;
     pendingOrderCard.note.textContent = '这组选单已结束，可继续发送问题。';
@@ -532,6 +575,15 @@
       const data = await response.json();
       if (requestedId !== conversationId || requestedView !== switchRequestId || requestId !== pendingRequestId || isStreaming) return;
       if (!data.pending) { invalidateOrderCard(); return; }
+      if (data.pending.kind === 'ticket_confirmation') {
+        if (pendingTicketCard?.preview.confirmation_id === data.pending.confirmation_id) {
+          for (const button of pendingTicketCard.element.querySelectorAll('button')) button.disabled = false;
+          pendingTicketCard.note.textContent = '尚未提交，请确认或取消。';
+        } else {
+          const {bubble} = addBubble('assistant', '请核对工单信息。'); addTicketConfirmation(bubble, data.pending);
+        }
+        return;
+      }
       if (pendingOrderCard?.selection.selection_id === data.pending.selection_id) {
         for (const button of pendingOrderCard.element.querySelectorAll('button')) button.disabled = false;
         return;
@@ -620,6 +672,10 @@
             scrollToBottom();
           } else if (res.type === 'actions') {
             if (Array.isArray(res.actions)) addActions(bubble, res.actions, res.conversation_id);
+          } else if (res.type === 'ticket_confirmation') {
+            waiting = true;
+            body.textContent = '请核对工单信息，确认后才会提交。';
+            addTicketConfirmation(bubble, res);
           } else if (res.type === 'order_selection') {
             waiting = true;
             body.textContent = '请选择需要处理的订单。';

@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "scope": "headless Edge, all HTTP intercepted, no local server/browser session",
+  "checks": [
+    "preview and safe text rendering",
+    "confirm submits once with ticket number",
+    "cancel creates no ticket",
+    "pending preview restores after reload",
+    "new message invalidates stale ticket preview",
+    "legacy complaint handoff/ticket buttons remain independent",
+    "order card remains functional"
+  ],
+  "requests": 27,
+  "screenshots": [
+    "data\\ch08\\reports\\ticket-preview.png",
+    "data\\ch08\\reports\\ticket-confirmed.png",
+    "data\\ch08\\reports\\ticket-cancelled.png"
+  ]
+}
