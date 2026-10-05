@@ -13,7 +13,7 @@ from .bare_loop import tool_error
 from .agent import persist
 from .expansion import expand_queries
 from .order_context import demo_order_options
-from .retrieval import CitationRegistry,gate_result,retrieve_policy_queries
+from .retrieval import CitationRegistry,gate_result,calibrated_gate,retrieve_policy_queries
 from app.services.refunds import validate_refund_defaults
 
 
@@ -80,7 +80,12 @@ def build_after_sales_graph(gate_threshold=None):
         update=trace(state,'policy_retrieval')
         try:
             result=await (context.retrieve_queries or retrieve_policy_queries)(state['question'],state['expanded_queries'],context.budget)
-            gate=gate_result(result,threshold)
+            if context.confidence_config is not None:
+                snapshot,gate=calibrated_gate(state['question'],result,context.confidence_config,
+                    query_sources=state.get('expanded_queries',[]))
+                update.update(evidence_snapshot=snapshot.model_dump(mode='json'),confidence=gate.model_dump())
+            else:
+                gate=gate_result(result,threshold)
             registry=CitationRegistry()
             update.update(evidence=registry.merge(result.hits) if gate.allowed else [],citations=registry.citations,
                           gate_allowed=gate.allowed,gate_reason=gate.reason)

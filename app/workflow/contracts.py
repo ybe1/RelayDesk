@@ -31,6 +31,9 @@ class WorkflowState(TypedDict, total=False):
     route: str
     history_recall: bool
     evidence: list
+    evidence_snapshot: dict
+    confidence: dict
+    evidence_useful: bool | None
     citations: list
     actions: list
     decision: dict
@@ -86,3 +89,5 @@ class TurnContext:
     message_db_ids: Any = None
     history_projection: Any = None
     context_config: Any = None
+    confidence_config: Any = None
+    evidence_check: Any = None

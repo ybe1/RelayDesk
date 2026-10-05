@@ -13,7 +13,7 @@ from .after_sales import build_after_sales_graph,refund_offer_defaults
 from .routing_contracts import Resolution
 from .model import BudgetedModel
 from .budget import BudgetExceeded
-from .retrieval import gate_result, CitationRegistry, retrieve_for_turn
+from .retrieval import gate_result, calibrated_gate, CitationRegistry, retrieve_for_turn, check_for_turn
 from .agent import build_agent_graph, persist
 from app.context.compile import understanding_history
 from .history import is_history_recall
@@ -24,7 +24,8 @@ LOGGER = logging.getLogger(__name__)
 def make_turn_input(question, conversation_id, user_id, turn_id, messages):
     return {"raw_question": question, "question": question, "conversation_id": conversation_id,
             "user_id": user_id, "turn_id": turn_id, "messages": messages,
-            "evidence": [], "citations": [], "actions": [], "decision": {}, "final_text": "",
+            "evidence": [], "evidence_snapshot": {}, "confidence": {}, "evidence_useful": None,
+            "citations": [], "actions": [], "decision": {}, "final_text": "",
             "stop_reason": "", "budget_usage": {}, "tool_steps": 0, "node_trace": [],
             "intent": "", "route": "", "history_recall":False, "gate_allowed": False, "gate_reason": "",
             "resolution":{},"intent_confidence":0.0,"intent_model_tier":"","intent_upgraded":False,
@@ -98,7 +99,11 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
                 from app.knowledge.query_understanding import QueryUnderstanding
                 result=await retrieve_for_turn(state['question'],context.budget,
                     understood_query=QueryUnderstanding(normalized_query=state['question'],search_query=state['question']))
-            gate = gate_result(result, threshold)
+            if context.confidence_config is not None:
+                snapshot, gate = calibrated_gate(state['question'], result, context.confidence_config)
+                update.update(evidence_snapshot=snapshot.model_dump(mode='json'), confidence=gate.model_dump())
+            else:
+                gate = gate_result(result, threshold)
             registry = CitationRegistry()
             update.update(evidence=registry.merge(result.hits) if gate.allowed else [],
                           citations=registry.citations if gate.allowed else [], gate_allowed=gate.allowed, gate_reason=gate.reason)
@@ -110,11 +115,36 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
 
     async def confidence_gate(state: WorkflowState, runtime: Runtime[TurnContext]):
         update = traced(state, "confidence_gate")
-        if not state["gate_allowed"] and runtime.context.record_low_confidence is not None:
+        operational = state.get("gate_reason", "").startswith("retrieval_unavailable:")
+        if not state["gate_allowed"] and not operational and runtime.context.record_low_confidence is not None:
             try:
-                await runtime.context.record_low_confidence(state["raw_question"], state["gate_reason"])
+                callback = runtime.context.record_low_confidence
+                try:
+                    await callback(state["raw_question"], "retrieval_low_conf", state["gate_reason"],
+                                   state.get("evidence_snapshot") or None, f"{state['turn_id']}:retrieval_low_conf")
+                except TypeError:
+                    await callback(state["raw_question"], state["gate_reason"])
             except Exception:
                 LOGGER.exception("low-confidence persistence failed conversation_id=%s", state["conversation_id"])
+        return update
+
+    async def ensure_useful_evidence(state: WorkflowState, runtime: Runtime[TurnContext]):
+        update = traced(state, "evidence_self_check")
+        if runtime.context.confidence_config is None:
+            return {**update, "evidence_useful": True}
+        checker = runtime.context.evidence_check
+        decision = (await checker(state["question"], state["evidence"], runtime.context.budget)
+                    if checker else await check_for_turn(state["question"], state["evidence"],
+                                                         runtime.context.agent.model, runtime.context.budget))
+        update.update(evidence_useful=decision.useful, gate_reason=decision.reason)
+        if not decision.useful and runtime.context.record_low_confidence is not None:
+            try:
+                await runtime.context.record_low_confidence(
+                    state["raw_question"], "self_check", decision.reason,
+                    state.get("evidence_snapshot") or None, f"{state['turn_id']}:self_check",
+                )
+            except Exception:
+                LOGGER.exception("self-check persistence failed conversation_id=%s", state["conversation_id"])
         return update
 
     def fixed(node, text, actions=None):
@@ -123,7 +153,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
             current = text
             if node == "fallback" and "unavailable" in state.get("gate_reason", ""):
                 current = "查询服务暂时不可用，请稍后重试或选择人工核实。"
-            message = AIMessage(content=current, id=f"{state['turn_id']}:final")
+            message = AIMessage(content=current, id=f"{state['turn_id']}:final",
+                additional_kwargs={'evidence_snapshot':state.get('evidence_snapshot') or None})
             await persist(runtime.context, message)
             get_stream_writer()(("delta", {"delta": current, "node": node}))
             update.update(messages=[message], final_text=current, actions=actions or [], stop_reason=node)
@@ -158,6 +189,7 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
 
     builder = StateGraph(WorkflowState, context_schema=TurnContext)
     nodes = {"resolve": resolve, "intent": intent, "retrieval": retrieval, "confidence_gate": confidence_gate,
+             "evidence_self_check": ensure_useful_evidence,
              "after_sales":build_after_sales_graph(threshold),
              "agent": build_agent_graph(deps), 'recall':recall, "fallback": fixed("fallback", "知识库证据不足，暂时无法确认，请补充信息或人工核实。"),
              "complaint": fixed("complaint", "抱歉给您带来不好的体验。您可以分别选择转人工或创建工单，也可以继续告诉我具体问题。", ["handoff", "ticket"]),
@@ -169,7 +201,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
     builder.add_edge('recall','agent')
     builder.add_edge('after_sales','confidence_gate')
     builder.add_edge("retrieval", "confidence_gate")
-    builder.add_conditional_edges("confidence_gate", lambda s: "agent" if s["gate_allowed"] else "fallback")
+    builder.add_conditional_edges("confidence_gate", lambda s: "evidence_self_check" if s["gate_allowed"] else "fallback")
+    builder.add_conditional_edges("evidence_self_check", lambda s: "agent" if s.get("evidence_useful") else "fallback")
     for node in ["agent", "fallback", "complaint", "smalltalk"]: builder.add_edge(node, "log")
     builder.add_edge("log", END)
     return builder.compile(checkpointer=checkpointer)

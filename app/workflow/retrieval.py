@@ -3,6 +3,10 @@ import asyncio
 import math
 from time import monotonic
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from uuid import uuid4
+from app.flywheel.confidence import compute_confidence
+from app.flywheel.evidence import snapshot_hits
 from .model import BudgetedModel
 
 
@@ -10,6 +14,16 @@ from .model import BudgetedModel
 class GateDecision:
     allowed: bool
     reason: str
+
+
+def calibrated_gate(query, result, config, *, query_sources=None):
+    hits = [{**hit, "rank": rank} for rank, hit in enumerate(result.hits, 1)]
+    snapshot = snapshot_hits(
+        query, getattr(result, "strategy", "hybrid_rerank"), hits,
+        retrieval_id=uuid4().hex, created_at=datetime.now(UTC), query_sources=query_sources,
+    )
+    decision = compute_confidence(snapshot.hits, config)
+    return snapshot, decision
 
 
 def gate_result(result, threshold):

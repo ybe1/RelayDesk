@@ -25,13 +25,15 @@ class PreparedTurn:
 
 class WorkflowChatService:
     def __init__(self, graph, store, model_factory=None, tools_factory=build_tools, retriever=None,policy_retriever=None,
-                 context_config=None,summary_repository=None,summary_worker=None,tool_registry=None,mcp_discovery=None):
+                 context_config=None,summary_repository=None,summary_worker=None,tool_registry=None,mcp_discovery=None,
+                 confidence_config=None,evidence_check=None):
         self.graph, self.store = graph, store
         if model_factory is None:
             from app.core.llm import get_chat_model
             model_factory = lambda: get_chat_model(streaming=True, disable_thinking=True, max_retries=0, stream_usage=True)
         self.model_factory, self.tools_factory, self.retriever = model_factory, tools_factory, retriever
         self.policy_retriever=policy_retriever
+        self.confidence_config,self.evidence_check=confidence_config,evidence_check
         self.tool_registry,self.mcp_discovery=tool_registry,mcp_discovery
         self.active = set()
         from app.context.budget import config_from_settings
@@ -166,10 +168,11 @@ class WorkflowChatService:
             session.commit()
             return row.id
 
-    def _pool(self, cid, raw, reason):
+    def _pool(self, cid, raw, source, reason, snapshot=None, event_key=None):
         from app.repositories.low_confidence import insert_low_confidence
+        stored = list(snapshot.get('hits', []))[:3] if isinstance(snapshot, dict) else snapshot
         with self.store.session_factory() as session:
-            insert_low_confidence(session, cid, raw, "retrieval_low_conf", reason)
+            insert_low_confidence(session, cid, raw, source, reason, retrieved_chunks=stored)
             session.commit()
 
     def _offers(self, cid, turn_id, raw, actions,refund_defaults=None):
@@ -292,7 +295,8 @@ class WorkflowChatService:
                 db_id=await write(self._save, cid, turn_id, msg)
                 if db_id is not None: message_db_ids[msg.id]=db_id
                 return db_id
-            async def pool(raw, reason): await write(self._pool, cid, raw, reason)
+            async def pool(raw, source, reason, snapshot=None, event_key=None):
+                await write(self._pool, cid, raw, source, reason, snapshot, event_key)
             async def offers(actions): return await write(self._offers, cid, turn_id, req.message, actions,context.refund_defaults)
             small_model=None
             if settings.intent_small_model:
@@ -304,6 +308,8 @@ class WorkflowChatService:
                                   message_db_ids=message_db_ids)
             context.history_projection=projection
             context.context_config=cfg
+            context.confidence_config=self.confidence_config
+            context.evidence_check=self.evidence_check
             state = Command(resume=prepared.resume_value) if prepared.resume_value else make_turn_input(req.message, cid, req.user_id, turn_id,
                                     [*history,message])
             if isinstance(state,dict): state['message_db_ids']=dict(message_db_ids)
