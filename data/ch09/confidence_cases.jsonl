@@ -1,0 +1,80 @@
+{"id": "cal-001", "source_id": "ch04-A-001", "bucket": "A_policy", "query": "签收后多久可以申请退货？", "fact_group": "fact-7ce52bf6869860c9", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-002", "source_id": "ch04-A-002", "bucket": "A_policy", "query": "包邮的订单金额门槛是多少？", "fact_group": "fact-0e278ec301881762", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-003", "source_id": "ch04-A-003", "bucket": "A_policy", "query": "退货申请从哪个页面发起？", "fact_group": "fact-a9f40e7343c35d9b", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-004", "source_id": "ch04-A-004", "bucket": "A_policy", "query": "退货验收通过后多久发起退款？", "fact_group": "fact-fef8899b3a269c9f", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-005", "source_id": "ch04-A-005", "bucket": "A_policy", "query": "退货寄回地址在哪里确认？", "fact_group": "fact-d1bfc969c3cf8d8a", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-006", "source_id": "ch04-A-006", "bucket": "A_policy", "query": "质量问题退货的运费由谁承担？", "fact_group": "fact-7a3b1722e015fb7e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-007", "source_id": "ch04-A-007", "bucket": "A_policy", "query": "非质量原因退货的寄回运费由谁承担？", "fact_group": "fact-d427ccf4cf10df5a", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-008", "source_id": "ch04-A-008", "bucket": "A_policy", "query": "套装退货需要寄回哪些商品和配件？", "fact_group": "fact-13dd6e5403987ab6", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-009", "source_id": "ch04-A-009", "bucket": "A_policy", "query": "现货订单支付后多久发货？", "fact_group": "fact-8a3f6d922acf4091", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-010", "source_id": "ch04-A-010", "bucket": "A_policy", "query": "未发货订单如何申请修改收货地址？", "fact_group": "fact-30deeb961a702e00", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-011", "source_id": "ch04-A-011", "bucket": "A_policy", "query": "物流轨迹多久未更新可申请核查？", "fact_group": "fact-4e017aab35a6f2dc", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-012", "source_id": "ch04-A-012", "bucket": "A_policy", "query": "签收时发现包裹破损应拍摄什么？", "fact_group": "fact-a1208cc9e5aa170d", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-013", "source_id": "ch04-A-013", "bucket": "A_policy", "query": "同一订单为何可能拆成多个包裹？", "fact_group": "fact-325ea40193956284", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-014", "source_id": "ch04-A-014", "bucket": "A_policy", "query": "普通订单的承运商由谁选择？", "fact_group": "fact-a0190c0056299de6", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-015", "source_id": "ch04-A-015", "bucket": "A_policy", "query": "演示型号整机的保修期是多久？", "fact_group": "fact-d813ba3e40fe1de3", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-016", "source_id": "ch04-B-001", "bucket": "B_model", "query": "MH-V10 的额定功率是多少？", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-017", "source_id": "ch04-B-002", "bucket": "B_model", "query": "MH-V10 的尘杯容量是多少？", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-018", "source_id": "ch04-B-003", "bucket": "B_model", "query": "请给出 MH-V10 的续航和充电接口。", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-019", "source_id": "ch04-B-004", "bucket": "B_model", "query": "MH-V10 的湿吸能力及附件分别是什么？", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-020", "source_id": "ch04-B-005", "bucket": "B_model", "query": "我只核对完整型号 MH-V10，请同时列明额定功率、尘杯容量和充电接口，避免套用同系列其他后缀参数。", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-021", "source_id": "ch04-B-006", "bucket": "B_model", "query": "标签写的是 MH-V10，不能凭同系列名称推断；它的续航、湿吸能力、附件应以哪些规格为准？", "fact_group": "fact-25f60a2cb13e2a3e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-022", "source_id": "ch04-B-007", "bucket": "B_model", "query": "MH-V10S 的额定功率是多少？", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-023", "source_id": "ch04-B-008", "bucket": "B_model", "query": "MH-V10S 的尘杯容量是多少？", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-024", "source_id": "ch04-B-009", "bucket": "B_model", "query": "请给出 MH-V10S 的续航和充电接口。", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-025", "source_id": "ch04-B-010", "bucket": "B_model", "query": "MH-V10S 的湿吸能力及附件分别是什么？", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-026", "source_id": "ch04-B-011", "bucket": "B_model", "query": "我只核对完整型号 MH-V10S，请同时列明额定功率、尘杯容量和充电接口，避免套用同系列其他后缀参数。", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-027", "source_id": "ch04-B-012", "bucket": "B_model", "query": "标签写的是 MH-V10S，不能凭同系列名称推断；它的续航、湿吸能力、附件应以哪些规格为准？", "fact_group": "fact-b37eb50e527a7239", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-028", "source_id": "ch04-B-013", "bucket": "B_model", "query": "MH-V10 Pro 的额定功率是多少？", "fact_group": "fact-132648c7c801da26", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-029", "source_id": "ch04-B-014", "bucket": "B_model", "query": "MH-V10 Pro 的尘杯容量是多少？", "fact_group": "fact-132648c7c801da26", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-030", "source_id": "ch04-B-015", "bucket": "B_model", "query": "请给出 MH-V10 Pro 的续航和充电接口。", "fact_group": "fact-132648c7c801da26", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-031", "source_id": "ch04-C-001", "bucket": "C_colloquial", "query": "东西拿到手几天之内能退呀？", "fact_group": "fact-7ce52bf6869860c9", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-032", "source_id": "ch04-C-002", "bucket": "C_colloquial", "query": "买够多少钱不用掏邮费呀？", "fact_group": "fact-0e278ec301881762", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-033", "source_id": "ch04-C-003", "bucket": "C_colloquial", "query": "我想退，这按钮藏哪儿了？", "fact_group": "fact-a9f40e7343c35d9b", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-034", "source_id": "ch04-C-004", "bucket": "C_colloquial", "query": "退回去检查完了，啥时候开始退钱？", "fact_group": "fact-fef8899b3a269c9f", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-035", "source_id": "ch04-C-005", "bucket": "C_colloquial", "query": "退回去到底寄哪儿啊？", "fact_group": "fact-d1bfc969c3cf8d8a", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-036", "source_id": "ch04-C-006", "bucket": "C_colloquial", "query": "东西有毛病要退，寄回去的邮费谁掏？", "fact_group": "fact-7a3b1722e015fb7e", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-037", "source_id": "ch04-C-007", "bucket": "C_colloquial", "query": "东西没坏就是不想要了，往回寄谁出钱？", "fact_group": "fact-d427ccf4cf10df5a", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-038", "source_id": "ch04-C-008", "bucket": "C_colloquial", "query": "买的一套要退，是不是零零碎碎都得寄回？", "fact_group": "fact-13dd6e5403987ab6", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-039", "source_id": "ch04-C-009", "bucket": "C_colloquial", "query": "不是预售的，钱付完多久给我寄呀？", "fact_group": "fact-8a3f6d922acf4091", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-040", "source_id": "ch04-C-010", "bucket": "C_colloquial", "query": "还没寄出去，地址写错了找谁改？", "fact_group": "fact-30deeb961a702e00", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-041", "source_id": "ch04-C-011", "bucket": "C_colloquial", "query": "快递跟钉住了一样，多久不动能找客服查？", "fact_group": "fact-4e017aab35a6f2dc", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-042", "source_id": "ch04-C-012", "bucket": "C_colloquial", "query": "送来盒子烂了，我要拍哪里留个证？", "fact_group": "fact-a1208cc9e5aa170d", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-043", "source_id": "ch04-C-013", "bucket": "C_colloquial", "query": "明明一单怎么给我分几包寄啊？", "fact_group": "fact-325ea40193956284", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-044", "source_id": "ch04-C-014", "bucket": "C_colloquial", "query": "用哪家快递是仓库定的吗？", "fact_group": "fact-a0190c0056299de6", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-045", "source_id": "ch04-C-015", "bucket": "C_colloquial", "query": "这演示机器到手后保修多长时间？", "fact_group": "fact-d813ba3e40fe1de3", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-046", "source_id": "ch04-E-001", "bucket": "E_multi", "query": "请分别回答两个问题：东西拿到手几天之内能退呀？快递跟钉住了一样，多久不动能找客服查？", "fact_group": "fact-0f0d9091f8e689e9", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-047", "source_id": "ch04-E-002", "bucket": "E_multi", "query": "请分别回答两个问题：买够多少钱不用掏邮费呀？送来盒子烂了，我要拍哪里留个证？", "fact_group": "fact-0b9fc94b8df027ba", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-048", "source_id": "ch04-E-003", "bucket": "E_multi", "query": "请分别回答两个问题：我想退，这按钮藏哪儿了？明明一单怎么给我分几包寄啊？", "fact_group": "fact-b290adfc5caa9641", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-049", "source_id": "ch04-E-004", "bucket": "E_multi", "query": "请分别回答两个问题：退回去检查完了，啥时候开始退钱？用哪家快递是仓库定的吗？", "fact_group": "fact-0d662caad478a57a", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-050", "source_id": "ch04-E-005", "bucket": "E_multi", "query": "请分别回答两个问题：退回去到底寄哪儿啊？这演示机器到手后保修多长时间？", "fact_group": "fact-8e403e7881c4ed04", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-051", "source_id": "ch04-E-006", "bucket": "E_multi", "query": "请分别回答两个问题：东西有毛病要退，寄回去的邮费谁掏？滤芯滤网这种算用着用着就得换的东西吗？", "fact_group": "fact-9bb926b2fcd32ab8", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-052", "source_id": "ch04-E-007", "bucket": "E_multi", "query": "请分别回答两个问题：东西没坏就是不想要了，往回寄谁出钱？我给摔了或者弄进水了，还能白修吗？", "fact_group": "fact-24b1e419c154113d", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-053", "source_id": "ch04-E-008", "bucket": "E_multi", "query": "请分别回答两个问题：买的一套要退，是不是零零碎碎都得寄回？寄去修之前我自己的存储卡是不是先拿下来？", "fact_group": "fact-4bb5ae01ca671a15", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-054", "source_id": "ch04-E-009", "bucket": "E_multi", "query": "请分别回答两个问题：不是预售的，钱付完多久给我寄呀？买完了想开发票，啥时候在哪儿点啊？", "fact_group": "fact-dd0c5db89d2304ee", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-055", "source_id": "ch04-E-010", "bucket": "E_multi", "query": "请分别回答两个问题：还没寄出去，地址写错了找谁改？你们人工几点上班几点下班呀？", "fact_group": "fact-8514b88daf5055e7", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-056", "source_id": "ch04-E-011", "bucket": "E_multi", "query": "请告诉我 MH-V10 的额定功率；另外，这演示机器到手后保修多长时间？", "fact_group": "fact-59d6991597b7c4d4", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-057", "source_id": "ch04-E-012", "bucket": "E_multi", "query": "请告诉我 MH-V10S 的额定功率；另外，滤芯滤网这种算用着用着就得换的东西吗？", "fact_group": "fact-09ccd252ddd3f11d", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-058", "source_id": "ch04-E-013", "bucket": "E_multi", "query": "请告诉我 MH-V10 Pro 的额定功率；另外，我给摔了或者弄进水了，还能白修吗？", "fact_group": "fact-022adf6dfae838d7", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-059", "source_id": "ch04-E-014", "bucket": "E_multi", "query": "请告诉我 MH-A20 的额定功率；另外，寄去修之前我自己的存储卡是不是先拿下来？", "fact_group": "fact-3c714f3d5ee53cda", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-060", "source_id": "ch04-E-015", "bucket": "E_multi", "query": "请告诉我 MH-A20S 的额定功率；另外，买完了想开发票，啥时候在哪儿点啊？", "fact_group": "fact-c21442e0a68af9e8", "evidence_sufficient": true, "reason": "标注章节覆盖该问题所需事实"}
+{"id": "cal-061", "source_id": "ch04-D-001", "bucket": "D_out_of_scope", "query": "明天北京会下雨吗？", "fact_group": "out-of-scope:ch04-D-001", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-062", "source_id": "ch04-D-002", "bucket": "D_out_of_scope", "query": "请推荐今天值得买入的股票。", "fact_group": "out-of-scope:ch04-D-002", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-063", "source_id": "ch04-D-003", "bucket": "D_out_of_scope", "query": "巴黎到罗马坐火车要多久？", "fact_group": "out-of-scope:ch04-D-003", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-064", "source_id": "ch04-D-004", "bucket": "D_out_of_scope", "query": "帮我写一首关于月亮的诗。", "fact_group": "out-of-scope:ch04-D-004", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-065", "source_id": "ch04-D-005", "bucket": "D_out_of_scope", "query": "光合作用的化学方程式是什么？", "fact_group": "out-of-scope:ch04-D-005", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-066", "source_id": "ch04-D-006", "bucket": "D_out_of_scope", "query": "请翻译这句英文：Good morning。", "fact_group": "out-of-scope:ch04-D-006", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-067", "source_id": "ch04-D-007", "bucket": "D_out_of_scope", "query": "下周足球比赛谁会夺冠？", "fact_group": "out-of-scope:ch04-D-007", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-068", "source_id": "ch04-D-008", "bucket": "D_out_of_scope", "query": "怎么做一份红烧肉？", "fact_group": "out-of-scope:ch04-D-008", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-069", "source_id": "ch04-D-009", "bucket": "D_out_of_scope", "query": "给我制定马拉松训练计划。", "fact_group": "out-of-scope:ch04-D-009", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-070", "source_id": "ch04-D-010", "bucket": "D_out_of_scope", "query": "帮我解一道三角函数题。", "fact_group": "out-of-scope:ch04-D-010", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-071", "source_id": "ch04-D-011", "bucket": "D_out_of_scope", "query": "手机操作系统今天最新版本是多少？", "fact_group": "out-of-scope:ch04-D-011", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-072", "source_id": "ch04-D-012", "bucket": "D_out_of_scope", "query": "帮我预订上海的酒店。", "fact_group": "out-of-scope:ch04-D-012", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-073", "source_id": "ch04-D-013", "bucket": "D_out_of_scope", "query": "美元今天兑换人民币多少钱？", "fact_group": "out-of-scope:ch04-D-013", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-074", "source_id": "ch04-D-014", "bucket": "D_out_of_scope", "query": "讲一个恐龙的故事。", "fact_group": "out-of-scope:ch04-D-014", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-075", "source_id": "ch04-D-015", "bucket": "D_out_of_scope", "query": "我的电脑蓝屏了要怎么修？", "fact_group": "out-of-scope:ch04-D-015", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-076", "source_id": "ch04-D-016", "bucket": "D_out_of_scope", "query": "给我介绍文艺复兴历史。", "fact_group": "out-of-scope:ch04-D-016", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-077", "source_id": "ch04-D-017", "bucket": "D_out_of_scope", "query": "去冰岛旅游需要准备什么？", "fact_group": "out-of-scope:ch04-D-017", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-078", "source_id": "ch04-D-018", "bucket": "D_out_of_scope", "query": "请预测明年的房价。", "fact_group": "out-of-scope:ch04-D-018", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-079", "source_id": "ch04-D-019", "bucket": "D_out_of_scope", "query": "推荐三本哲学入门书。", "fact_group": "out-of-scope:ch04-D-019", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}
+{"id": "cal-080", "source_id": "ch04-D-020", "bucket": "D_out_of_scope", "query": "如何给汽车更换发动机机油？", "fact_group": "out-of-scope:ch04-D-020", "evidence_sufficient": false, "reason": "知识库范围外，应拒绝回答"}

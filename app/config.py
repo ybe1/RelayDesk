@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     agent_max_tokens: int = 12000
     agent_timeout_seconds: float = 120
     workflow_gate_threshold: float = 0.032755612017354
+    workflow_confidence_report_path: str = "data/ch09/reports/confidence-calibration.json"
     workflow_checkpoint_path: str = "data/runtime/ch05-checkpoints.sqlite"
     mcp_logistics_url: str = "http://127.0.0.1:8101/mcp"
     mcp_after_sales_url: str = "http://127.0.0.1:8102/mcp"
