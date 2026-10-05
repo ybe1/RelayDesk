@@ -49,7 +49,7 @@ def build_agent_graph(deps=None):
     async def decision(state: WorkflowState, runtime: Runtime[TurnContext]):
         context = runtime.context
         selected = deps or context.agent
-        read_tools = [t for t in selected.tools if t.name != "create_ticket"]
+        read_tools = [t for t in selected.tools if t.name != "create_ticket" or state.get("ticket_request",{}).get("active")]
         messages = _messages(state,context,'decision')
         try:
             rows,complete=project_evidence(state.get('evidence',[]))
@@ -84,6 +84,9 @@ def build_agent_graph(deps=None):
                 message = AIMessage(content="", tool_calls=calls, id=f"{state['turn_id']}:decision:{context.budget.model_calls}")
                 await persist(context, message)
                 update["messages"] = [message]
+                update["decision"]["tool_calls"] = calls
+                update["tool_cursor"] = 0
+                update["tool_observations"] = []
         except (BudgetExceeded, ValueError) as exc:
             update = {"decision": {"kind": "stop"}, "stop_reason": str(exc),
                       "node_trace": state.get("node_trace", []) + ["decision"]}
@@ -96,11 +99,13 @@ def build_agent_graph(deps=None):
         messages, stopped = [], None
         registry = CitationRegistry(state.get("citations"))
         evidence = list(state.get("evidence", []))
-        for call in state["messages"][-1].tool_calls:
+        calls=state["decision"]["tool_calls"]
+        cursor=state.get("tool_cursor",0)
+        for call in calls[cursor:cursor+1]:
             if stopped:
                 observation = tool_error(call, stopped)
             elif call["name"] == "create_ticket":
-                observation = tool_error(call, "user_confirmation_required")
+                observation = await selected.executor.execute(call)
             elif call['name']=='query_faq' and state.get('gate_allowed') and evidence:
                 # Close any stale/model-invented request without retrieving
                 # twice or duplicating the bulky evidence in message history.
@@ -133,9 +138,16 @@ def build_agent_graph(deps=None):
             await persist(context, observation)
             messages.append(observation)
             get_stream_writer()(("tool_status", {"tool_name": call["name"], "phase": "failed" if "error" in json.loads(observation.content) else "success", "tool_call_id": call["id"]}))
+        if stopped:
+            for pending_call in calls[cursor+1:]:
+                observation=tool_error(pending_call,stopped)
+                observation.id=f"{state['turn_id']}:tool:{pending_call['id']}"
+                await persist(context,observation)
+                messages.append(observation)
         return {"messages": messages, "stop_reason": stopped or "", "budget_usage": context.budget.snapshot(),
                 "tool_steps": context.budget.tool_steps, "citations": registry.citations, "evidence": evidence,
-                "node_trace": state.get("node_trace", []) + ["tools"]}
+                "node_trace": state.get("node_trace", []) + ["tools"],
+                "tool_cursor":cursor+1,"tool_observations":[*state.get("tool_observations",[]),call["id"]]}
 
     async def final_answer(state: WorkflowState, runtime: Runtime[TurnContext]):
         context = runtime.context
@@ -171,12 +183,33 @@ def build_agent_graph(deps=None):
         return {"messages": [message], "final_text": text, "budget_usage": runtime.context.budget.snapshot(),
                 "node_trace": state.get("node_trace", []) + ["stop"]}
 
+    from .ticket_flow import prepare_ticket,wait_ticket,execute_ticket,current_tool_call
+    def dispatch(state,runtime:Runtime[TurnContext]):
+        selected=deps or runtime.context.agent
+        call=current_tool_call(state)
+        if call['name']=='create_ticket' and hasattr(selected.executor,'preflight'):
+            check=selected.executor.preflight(call)
+            if check.kind=='needs_confirmation': return {'ticket_confirmation':{'prepare':True}}
+        return {'ticket_confirmation':{}}
+
+    def after_tool(state):
+        if state.get('stop_reason'): return 'stop'
+        return 'dispatch' if state.get('tool_cursor',0)<len(state['decision']['tool_calls']) else 'decision'
+
     builder = StateGraph(WorkflowState, context_schema=TurnContext)
+    builder.add_node('dispatch',dispatch)
+    builder.add_node('prepare_ticket',prepare_ticket)
+    builder.add_node('wait_ticket',wait_ticket)
+    builder.add_node('execute_ticket',execute_ticket)
+    builder.add_conditional_edges('dispatch',lambda s:'prepare_ticket' if s.get('ticket_confirmation',{}).get('prepare') else 'tools')
+    builder.add_edge('prepare_ticket','wait_ticket')
+    builder.add_edge('wait_ticket','execute_ticket')
+    builder.add_conditional_edges('execute_ticket',after_tool)
     for name, function in [("decision", decision), ("tools", tools), ("final_answer", final_answer), ("stop", stop)]:
         builder.add_node(name, function)
     builder.add_conditional_edges(START,lambda s:'final_answer' if s.get('history_recall') else 'decision')
-    builder.add_conditional_edges("decision", lambda s: {"tools": "tools", "answer": "final_answer", "clarify": "final_answer", "stop": "stop"}[s["decision"]["kind"]])
-    builder.add_conditional_edges("tools", lambda s: "stop" if s.get("stop_reason") else "decision")
+    builder.add_conditional_edges("decision", lambda s: {"tools": "dispatch", "answer": "final_answer", "clarify": "final_answer", "stop": "stop"}[s["decision"]["kind"]])
+    builder.add_conditional_edges("tools",after_tool)
     builder.add_edge("final_answer", END)
     builder.add_edge("stop", END)
     return builder.compile()

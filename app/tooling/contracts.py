@@ -17,6 +17,7 @@ class CallContext:
     ticket_request:bool=False
     confirmation:Any=None
     trusted_results:dict=field(default_factory=dict)
+    ticket_sources:tuple[str,...]|None=None
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field,ConfigDict
+from typing import Literal
 
 class ChatRequest(BaseModel):
     user_id: str = Field(min_length=1, max_length=64, description="匿名用户 ID")
@@ -13,3 +14,12 @@ class SelectionRequest(BaseModel):
     turn_id:str=Field(min_length=1,max_length=64)
     selection_id:str=Field(min_length=1,max_length=64)
     order_id:str=Field(min_length=1,max_length=64)
+
+
+class TicketDecisionRequest(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    user_id:str=Field(min_length=1,max_length=64)
+    conversation_id:int=Field(gt=0)
+    turn_id:str=Field(min_length=1,max_length=64)
+    confirmation_id:str=Field(min_length=1,max_length=64)
+    decision:Literal['confirm','cancel']

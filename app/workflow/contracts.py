@@ -50,6 +50,10 @@ class WorkflowState(TypedDict, total=False):
     selection: dict
     expanded_queries: list[str]
     refund_assessment: dict
+    ticket_request: dict
+    ticket_confirmation: dict
+    tool_cursor: int
+    tool_observations: list
 
 
 class ToolRequest(BaseModel):

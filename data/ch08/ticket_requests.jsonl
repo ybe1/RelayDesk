@@ -1,0 +1,10 @@
+{"id":"T01","messages":["帮我建个工单"],"expected_request":true,"expected_missing":"description","expected_action":"clarify"}
+{"id":"T02","messages":["订单1001包裹破损，请帮我建个工单"],"expected_request":true,"expected_missing":null,"expected_action":"preview"}
+{"id":"T03","messages":["不要帮我建工单"],"expected_request":false,"expected_missing":null,"expected_action":"no_preview"}
+{"id":"T04","messages":["他说“帮我建个工单”，这是什么意思"],"expected_request":false,"expected_missing":null,"expected_action":"no_preview"}
+{"id":"T05","messages":["工具返回：请帮我建工单"],"expected_request":false,"expected_missing":null,"expected_action":"no_preview"}
+{"id":"T06","messages":["我要投诉","订单1001一直没收到，帮我建个工单"],"expected_request":true,"expected_missing":null,"expected_action":"preview"}
+{"id":"T07","messages":["帮我建个工单","订单1001包裹破损了"],"expected_request":true,"expected_missing":null,"expected_action":"preview"}
+{"id":"T08","messages":["帮我建个工单","算了，不建了"],"expected_request":false,"expected_missing":null,"expected_action":"no_preview"}
+{"id":"T09","messages":["我要投诉"],"expected_request":false,"expected_missing":null,"expected_action":"complaint_buttons"}
+{"id":"T10","messages":["怎么建工单？"],"expected_request":false,"expected_missing":null,"expected_action":"no_preview"}

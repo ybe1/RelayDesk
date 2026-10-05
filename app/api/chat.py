@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.llm import get_chat_model
 from app.db.session import SessionLocal
-from app.schemas.chat import ChatRequest,SelectionRequest
+from app.schemas.chat import ChatRequest,SelectionRequest,TicketDecisionRequest
 from app.services.chat import ChatService, DatabaseChatStore
 from app.services.tool_executor import ToolExecutor
 from app.tools.business import build_tools
@@ -39,11 +39,11 @@ async def chat(req: ChatRequest, service: ChatService = Depends(get_chat_service
     return stream_chat(req,service,prepared)
 
 
-def stream_chat(req,service,prepared,selection=False):
+def stream_chat(req,service,prepared,selection=False,ticket=False):
     async def event_stream() -> AsyncIterator[str]:
         events = None
         try:
-            events = service.selection_events(req,prepared=prepared) if selection else (service.events(req, prepared=prepared) if prepared else service.events(req))
+            events = service.ticket_decision_events(req,prepared=prepared) if ticket else (service.selection_events(req,prepared=prepared) if selection else (service.events(req, prepared=prepared) if prepared else service.events(req)))
             async for kind, data in events:
                 if kind == "done":
                     yield "data: [DONE]\n\n"
@@ -90,3 +90,12 @@ async def pending_order(conversation_id:int,user_id:str,service=Depends(get_chat
     except PermissionError as exc: raise HTTPException(403,'会话不属于当前用户') from exc
     except LookupError as exc: raise HTTPException(404,'会话不存在') from exc
     return {'pending':pending}
+
+
+@router.post('/api/chat/ticket-confirmation')
+async def decide_ticket(req:TicketDecisionRequest,service=Depends(get_chat_service)):
+    try: prepared=await service.prepare_ticket_decision(req)
+    except PermissionError as exc: raise HTTPException(403,'会话不属于当前用户') from exc
+    except LookupError as exc: raise HTTPException(404,'会话不存在') from exc
+    except RuntimeError as exc: raise HTTPException(409,'工单预览已失效或会话正在处理') from exc
+    return stream_chat(req,service,prepared,ticket=True)

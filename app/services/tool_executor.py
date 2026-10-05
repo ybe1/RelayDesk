@@ -38,6 +38,10 @@ class ToolExecutor:
         if definition.name=='create_ticket' or policy.access=='write':
             if definition.key!=('builtin',None,'create_ticket') or policy.access!='write' or not self.context.ticket_request:
                 return ExecutionOutcome('denied',error('permission_denied','客户尚未明确要求创建工单'))
+            if self.context.ticket_sources is not None:
+                from app.workflow.ticket_flow import grounded_description
+                if not grounded_description(call['args'].get('description'),self.context.ticket_sources):
+                    return ExecutionOutcome('invalid',error('invalid_arguments','缺少客户实际提供的问题描述。请追问具体问题，description引用客户原话，不得编造。'))
             permit=self.context.confirmation
             if not isinstance(permit,WritePermit) or not permit.allows(self.context,call,definition.definition_hash):
                 return ExecutionOutcome('needs_confirmation',error('permission_denied','user_confirmation_required：需要用户确认工单预览'))

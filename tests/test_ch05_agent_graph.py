@@ -103,7 +103,8 @@ async def test_ticket_is_not_executed_and_clarify_streams_only_final_node():
         {"kind": "clarify", "tool_calls": [], "actions": ["ticket"], "reason": "缺订单号"}])
     results = [m for mode, v in events if mode == "updates" for d in v.values()
                for m in d.get("messages", []) if isinstance(m, ToolMessage)]
-    assert json.loads(results[0].content)["error"]["code"] == "user_confirmation_required"
+    # Unified schema validation rejects the order_id-only ticket payload first.
+    assert json.loads(results[0].content)["error"]["code"] == "invalid_arguments"
     assert budget.snapshot()["tool_steps"] == 0
 
 

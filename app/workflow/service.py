@@ -50,8 +50,26 @@ class WorkflowChatService:
             raise RuntimeError("conversation busy")
         self.active.add(cid)
         try:
-            if await self._pending(cid):
-                await self.graph.aupdate_state(self._config(cid),{'stop_reason':'superseded','selection':{},'actions':[]},as_node='log')
+            pending=await self._pending(cid)
+            if pending:
+                preview,values=pending
+                messages=list(values.get('messages',[]))
+                if preview.get('kind')=='ticket_confirmation':
+                    from app.services.ticket_confirmation import TicketConfirmationService
+                    from app.tooling.contracts import CallContext
+                    from app.tooling.builtins import bind_ticket
+                    from .ticket_flow import current_tool_call
+                    service=TicketConfirmationService(self.store.session_factory)
+                    await asyncio.to_thread(service.cancel,req.user_id,cid,preview['confirmation_id'])
+                    bound=CallContext(conversation_id=cid,user_id=req.user_id,turn_id=preview['turn_id'],
+                        session_factory=self.store.session_factory,ticket_request=True)
+                    executor=ToolExecutor([bind_ticket(bound)],context=bound)
+                    call=current_tool_call(values)
+                    observation=await executor.reject(call,'客户继续新对话，旧工单预览已取消')
+                    observation.id=f"{preview['turn_id']}:tool:{call['id']}"
+                    messages.append(observation)
+                await self.graph.aupdate_state(self._config(cid),{'stop_reason':'superseded','selection':{},'actions':[],
+                    'messages':messages,'ticket_request':{'active':False,'user_messages':[]},'ticket_confirmation':{}},as_node='log')
         except BaseException:
             self.active.discard(cid)
             raise
@@ -71,7 +89,7 @@ class WorkflowChatService:
                     if found: return found
                 for pause in task.interrupts:
                     selection=pause.value
-                    if isinstance(selection,dict) and 'selection_id' in selection:
+                    if isinstance(selection,dict) and ('selection_id' in selection or selection.get('kind')=='ticket_confirmation'):
                         return ({**selection,'conversation_id':cid,'budget_usage':values.get('budget_usage',{}),'node_trace':values.get('node_trace',[])},values)
             return None
         return locate(snapshot,{})
@@ -89,7 +107,7 @@ class WorkflowChatService:
             pending=await self._pending(cid)
             if not pending: raise RuntimeError('no pending selection')
             selection,state=pending
-            if selection['turn_id']!=req.turn_id or selection['selection_id']!=req.selection_id: raise RuntimeError('stale selection')
+            if selection['turn_id']!=req.turn_id or selection.get('selection_id')!=req.selection_id: raise RuntimeError('stale selection')
             if req.order_id not in {item['order_id'] for item in selection['options']}: raise ValueError('invalid candidate')
             return PreparedTurn(cid,req.turn_id,{'selection_id':req.selection_id,'order_id':req.order_id},state)
         except BaseException:
@@ -99,6 +117,32 @@ class WorkflowChatService:
     async def selection_events(self,req,prepared=None):
         from app.schemas.chat import ChatRequest
         prepared=prepared or await self.prepare_selection(req)
+        original=ChatRequest(user_id=req.user_id,conversation_id=req.conversation_id,message=prepared.resume_state['raw_question'])
+        events=self.events(original,prepared)
+        try:
+            async for event in events: yield event
+        finally: await events.aclose()
+
+    async def prepare_ticket_decision(self,req):
+        cid=await asyncio.to_thread(self.store.start_or_load,req.user_id,req.conversation_id)
+        if cid in self.active: raise RuntimeError('conversation busy')
+        self.active.add(cid)
+        try:
+            pending=await self._pending(cid)
+            if not pending: raise RuntimeError('no pending confirmation')
+            preview,state=pending
+            if (preview.get('kind')!='ticket_confirmation' or preview['turn_id']!=req.turn_id
+                    or preview['confirmation_id']!=req.confirmation_id):
+                raise RuntimeError('stale confirmation')
+            return PreparedTurn(cid,req.turn_id,{'turn_id':req.turn_id,
+                'confirmation_id':req.confirmation_id,'decision':req.decision},state)
+        except BaseException:
+            self.active.discard(cid)
+            raise
+
+    async def ticket_decision_events(self,req,prepared=None):
+        from app.schemas.chat import ChatRequest
+        prepared=prepared or await self.prepare_ticket_decision(req)
         original=ChatRequest(user_id=req.user_id,conversation_id=req.conversation_id,message=prepared.resume_state['raw_question'])
         events=self.events(original,prepared)
         try:
@@ -170,12 +214,17 @@ class WorkflowChatService:
             await asyncio.to_thread(self._close_pending, cid)
             if prepared.resume_value:
                 history=list(prepared.resume_state.get('messages',[]))
-                confirmation=HumanMessage(content='选择订单'+prepared.resume_value['order_id'],id=f'{turn_id}:selection:{prepared.resume_value["selection_id"]}')
+                if 'confirmation_id' in prepared.resume_value:
+                    confirmation=HumanMessage(content='确认提交工单' if prepared.resume_value['decision']=='confirm' else '取消提交工单',
+                        id=f'{turn_id}:confirmation:{prepared.resume_value["confirmation_id"]}')
+                else:
+                    confirmation=HumanMessage(content='选择订单'+prepared.resume_value['order_id'],id=f'{turn_id}:selection:{prepared.resume_value["selection_id"]}')
                 message_db_ids[confirmation.id]=await write(self._save,cid,turn_id,confirmation)
                 saved_messages.append(confirmation)
             else:
                 database = await asyncio.to_thread(self.store.load_history, cid)
                 checkpoint=[]
+                snapshot=None
                 if getattr(self.graph,'checkpointer',None):
                     snapshot=await self.graph.aget_state(self._config(cid))
                     checkpoint=list(snapshot.values.get('messages',[]))
@@ -211,6 +260,18 @@ class WorkflowChatService:
                 self.summary_worker.submit(batch)
             model = self.model_factory()
             tools = self.tools_factory(self.store.session_factory, cid, raw_question=req.message, budget=budget, model=model)
+            from .ticket_flow import ticket_request_from_user
+            previous=prepared.resume_state or (snapshot.values if snapshot else {})
+            ticket_request=previous.get('ticket_request',{}) if prepared.resume_value else ticket_request_from_user(req.message,previous.get('ticket_request',{}))
+            from app.tooling.contracts import CallContext
+            from app.tooling.builtins import bind_ticket
+            call_context=CallContext(conversation_id=cid,user_id=req.user_id,turn_id=turn_id,
+                session_factory=self.store.session_factory,raw_question=req.message,budget=budget,model=model,
+                ticket_request=bool(ticket_request.get('active')))
+            call_context.ticket_sources=tuple([m.content for m in history if m.type=='human'
+                and isinstance(m.content,str) and not m.additional_kwargs.get('context_materials')
+                and not m.additional_kwargs.get('context_summary')]+ticket_request.get('user_messages',[]))
+            tools=[t for t in tools if t.name!='create_ticket']+[bind_ticket(call_context)]
             async def save(msg):
                 saved_messages.append(msg)
                 db_id=await write(self._save, cid, turn_id, msg)
@@ -222,7 +283,7 @@ class WorkflowChatService:
             if settings.intent_small_model:
                 from app.core.llm import get_chat_model
                 small_model=get_chat_model(model_name=settings.intent_small_model,disable_thinking=True,max_retries=0)
-            context = TurnContext(AgentDependencies(model, tools, ToolExecutor(tools)), budget, save,
+            context = TurnContext(AgentDependencies(model, tools, ToolExecutor(tools,context=call_context)), budget, save,
                                   retrieve=self.retriever, record_low_confidence=pool, issue_actions=offers,
                                   retrieve_queries=self.policy_retriever,intent_small_model=small_model,
                                   message_db_ids=message_db_ids)
@@ -231,6 +292,7 @@ class WorkflowChatService:
             state = Command(resume=prepared.resume_value) if prepared.resume_value else make_turn_input(req.message, cid, req.user_id, turn_id,
                                     [*history,message])
             if isinstance(state,dict): state['message_db_ids']=dict(message_db_ids)
+            if isinstance(state,dict): state.update(ticket_request=ticket_request,ticket_confirmation={},tool_cursor=0,tool_observations=[])
             if isinstance(state,dict): state['context_anchors']={'summary_upto':projection.anchors.summary_upto,'layer1_from':projection.anchors.layer1_from}
             yield "conversation", {"conversation_id": cid}
             async for namespace, event in self.graph.astream(state, {"configurable": {"thread_id": f"conversation:{cid}"}, "recursion_limit": 50},
@@ -239,7 +301,7 @@ class WorkflowChatService:
             pending=await self._pending(cid)
             if pending:
                 selection,values=pending
-                yield 'order_selection',selection
+                yield 'ticket_confirmation' if selection.get('kind')=='ticket_confirmation' else 'order_selection',selection
                 yield 'workflow_summary',{'node_trace':values.get('node_trace',[]),'stop_reason':'waiting','usage':selection['budget_usage']}
             yield "done", None
         except BaseException as exc:

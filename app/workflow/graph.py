@@ -42,6 +42,9 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
     async def resolve(state: WorkflowState,runtime:Runtime[TurnContext]):
         context=runtime.context
         update=traced(state,'resolve')
+        if state.get('ticket_request',{}).get('active'):
+            return {**update,'question':state['raw_question'],'resolution':
+                Resolution(question=state['raw_question'],reference_status='clear',scope='general',order_source='none').model_dump()}
         try:
             if detect_smalltalk(state['raw_question']) or is_history_recall(state['raw_question']):
                 resolution=Resolution(question=state['raw_question'],reference_status='clear',scope='general',order_source='none')
@@ -63,6 +66,9 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
     async def intent(state: WorkflowState, runtime: Runtime[TurnContext]):
         context = runtime.context
         update = traced(state, "intent")
+        if state.get('ticket_request',{}).get('active'):
+            return {**update,'intent':'售后','route':'business','intent_confidence':1.0,
+                'intent_model_tier':'user_action','budget_usage':context.budget.snapshot()}
         if is_history_recall(state['raw_question']):
             return {**update,'intent':'订单','route':'recall','intent_confidence':1.0,
                 'intent_model_tier':'rule','intent_upgraded':False,'budget_usage':context.budget.snapshot()}
