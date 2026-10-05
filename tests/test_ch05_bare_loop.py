@@ -42,4 +42,4 @@ async def test_agent_cannot_execute_create_ticket_even_if_model_requests_it():
     result = await run_bare_loop([HumanMessage(content="投诉")], AgentDependencies(model, tools, ToolExecutor(tools)),
                                  TurnBudget(Limits(), clock=lambda: 0))
     tool_result = next(m for m in result.messages if isinstance(m, ToolMessage))
-    assert json.loads(tool_result.content)["error"]["code"] == "user_confirmation_required"
+    assert json.loads(tool_result.content)["error"]["code"] == "permission_denied"

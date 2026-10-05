@@ -140,3 +140,13 @@ async def test_read_connection_recovers_after_one_retry():
     result=await runner.execute({'name':'read_item','args':{},'id':'retry'})
     assert json.loads(result.content)['result']['status']=='已签收'
     assert len(audits.rows)==1 and audits.rows[0]['retry_count']==1
+
+async def test_budget_skipped_call_has_failed_audit_without_execution():
+    @tool
+    async def query_order(order_id:str)->dict:
+        """Read order."""
+        raise AssertionError('budget forbids dispatch')
+    runner,_,audits,_=engine(query_order)
+    message=await runner.fail({'name':'query_order','args':{'order_id':'1'},'id':'skipped'},'tool_steps','工具预算已用完')
+    assert json.loads(message.content)['error']['code']=='tool_steps'
+    assert len(audits.rows)==1 and audits.rows[0]['status']=='失败' and audits.rows[0]['retry_count']==0

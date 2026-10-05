@@ -41,19 +41,24 @@ async def lifespan(application):
     from app.services.chat import DatabaseChatStore
     from app.db.session import SessionLocal
     from app.api.jobs import get_job_runner
-    from app.context.budget import config_from_settings,validate_context_capacity
+    from app.context.budget import config_from_settings,validate_context_capacity,with_tool_prefix
     from app.context.compile import AGENT_SYSTEM
     from app.context.tokens import estimate_messages
-    from app.tools.business import build_tools
+    from app.tooling.runtime import create_runtime_tools
+    from app.tooling.contracts import CallContext
     from app.workflow.contracts import AgentDecision
     from langchain_core.messages import SystemMessage
     from langchain_core.utils.function_calling import convert_to_openai_tool
     cfg=config_from_settings(settings)
-    schemas=[convert_to_openai_tool(t) for t in [*[t for t in build_tools(SessionLocal,0) if t.name!='create_ticket'],AgentDecision]]
+    registry,discovery=create_runtime_tools()
+    initial=registry.snapshot(CallContext(session_factory=SessionLocal,conversation_id=0))
+    schemas=[convert_to_openai_tool(t) for t in [*initial.model_tools(),AgentDecision]]
+    cfg=with_tool_prefix(cfg,[SystemMessage(content=AGENT_SYSTEM)],schemas)
     breakdown=validate_context_capacity(cfg,estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas))
     _log.info('context startup fixed_prefix=%s history=%s layer1=%s layer2=%s',estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas),breakdown.history,breakdown.layer1,breakdown.layer2)
     async with checkpoint_runtime(settings.workflow_checkpoint_path) as saver:
-        application.state.workflow_service = WorkflowChatService(build_workflow(checkpointer=saver), DatabaseChatStore(SessionLocal))
+        application.state.workflow_service = WorkflowChatService(build_workflow(checkpointer=saver), DatabaseChatStore(SessionLocal),
+            context_config=cfg,tool_registry=registry,mcp_discovery=discovery)
         try:
             yield
         finally:

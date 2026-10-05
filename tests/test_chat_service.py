@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
 
@@ -71,7 +72,7 @@ def test_multiple_requests_execute_only_first_and_match_all_tool_ids():
             executed.append(call["name"])
             return ToolMessage(content='{"mock":true}', tool_call_id=call["id"])
 
-    service = ChatService(model, store, lambda cid: [object()], lambda tools: Executor())
+    service = ChatService(model, store, lambda cid: [SimpleNamespace(name="fixture_tool")], lambda tools: Executor())
     events = collect(service, ChatRequest(user_id="u1", conversation_id=7, message="订单物流"))
     assert executed == ["query_logistics"]
     assert [m.tool_call_id for m in store.rows if isinstance(m, ToolMessage)] == ["call-1", "call-2"]
@@ -91,7 +92,7 @@ def test_tool_success_status_is_not_confused_by_result_text():
         async def execute(self, call):
             return ToolMessage(content='{"result":"error"}', tool_call_id=call["id"])
 
-    service = ChatService(Model(selection), MemoryStore(), lambda cid: [object()], lambda tools: Executor())
+    service = ChatService(Model(selection), MemoryStore(), lambda cid: [SimpleNamespace(name="fixture_tool")], lambda tools: Executor())
     events = collect(service, ChatRequest(user_id="u1", message="错误"))
     phases = [data["phase"] for kind, data in events if kind == "tool_status"]
     assert phases == ["running", "success"]
@@ -104,7 +105,7 @@ def test_disconnect_after_running_status_persists_matching_tool_result():
         {"name": "query_faq", "args": {"keyword": "退货"}, "id": "call-4"},
     ])
     store = MemoryStore()
-    service = ChatService(Model(selection), store, lambda cid: [object()], lambda tools: None)
+    service = ChatService(Model(selection), store, lambda cid: [SimpleNamespace(name="fixture_tool")], lambda tools: None)
 
     async def disconnect():
         stream = service.events(ChatRequest(user_id="u1", message="退货"))
@@ -131,7 +132,7 @@ def test_disconnect_after_success_status_keeps_completed_tool_result():
         async def execute(self, call):
             return ToolMessage(content='{"result":"ok"}', tool_call_id=call["id"])
 
-    service = ChatService(Model(selection), store, lambda cid: [object()], lambda tools: Executor())
+    service = ChatService(Model(selection), store, lambda cid: [SimpleNamespace(name="fixture_tool")], lambda tools: Executor())
 
     async def disconnect():
         stream = service.events(ChatRequest(user_id="u1", message="退货"))

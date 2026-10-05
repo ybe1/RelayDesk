@@ -25,13 +25,14 @@ class PreparedTurn:
 
 class WorkflowChatService:
     def __init__(self, graph, store, model_factory=None, tools_factory=build_tools, retriever=None,policy_retriever=None,
-                 context_config=None,summary_repository=None,summary_worker=None):
+                 context_config=None,summary_repository=None,summary_worker=None,tool_registry=None,mcp_discovery=None):
         self.graph, self.store = graph, store
         if model_factory is None:
             from app.core.llm import get_chat_model
             model_factory = lambda: get_chat_model(streaming=True, disable_thinking=True, max_retries=0, stream_usage=True)
         self.model_factory, self.tools_factory, self.retriever = model_factory, tools_factory, retriever
         self.policy_retriever=policy_retriever
+        self.tool_registry,self.mcp_discovery=tool_registry,mcp_discovery
         self.active = set()
         from app.context.budget import config_from_settings
         self.context_config=context_config or config_from_settings(settings)
@@ -238,6 +239,34 @@ class WorkflowChatService:
                 message = HumanMessage(content=req.message, id=f"{turn_id}:user")
                 message_db_ids[message.id]=await write(self._save, cid, turn_id, message)
                 saved_messages.append(message)
+            model = self.model_factory()
+            from .ticket_flow import ticket_request_from_user
+            previous=prepared.resume_state or (snapshot.values if snapshot else {})
+            ticket_request=previous.get('ticket_request',{}) if prepared.resume_value else ticket_request_from_user(req.message,previous.get('ticket_request',{}))
+            from app.tooling.contracts import CallContext
+            from app.tooling.builtins import bind_ticket
+            call_context=CallContext(conversation_id=cid,user_id=req.user_id,turn_id=turn_id,
+                session_factory=self.store.session_factory,raw_question=req.message,budget=budget,model=model,
+                ticket_request=bool(ticket_request.get('active')))
+            call_context.ticket_sources=tuple([m.content for m in history if m.type=='human'
+                and isinstance(m.content,str) and not m.additional_kwargs.get('context_materials')
+                and not m.additional_kwargs.get('context_summary')]+ticket_request.get('user_messages',[]))
+            catalog=None
+            if self.tool_registry is not None:
+                discovered=await self.mcp_discovery.discover() if self.mcp_discovery else ()
+                catalog=self.tool_registry.snapshot(call_context,discovered)
+                tools=catalog.model_tools()
+            else:
+                tools=self.tools_factory(self.store.session_factory,cid,raw_question=req.message,budget=budget,model=model)
+                tools=[t for t in tools if t.name!='create_ticket']+[bind_ticket(call_context)]
+            from app.context.budget import with_tool_prefix
+            from app.context.compile import AGENT_SYSTEM
+            from langchain_core.messages import SystemMessage
+            from langchain_core.utils.function_calling import convert_to_openai_tool
+            from .contracts import AgentDecision
+            schemas=[convert_to_openai_tool(t) for t in [*tools,AgentDecision]]
+            cfg=with_tool_prefix(cfg,[SystemMessage(content=AGENT_SYSTEM)],schemas)
+            budget.context_config=cfg
             from app.context.contracts import LayerAnchors,HistoryProjection
             from app.context.layers import history_records,project_history,prepare_summary_batch
             from app.context.logging import record_history
@@ -258,20 +287,6 @@ class WorkflowChatService:
                 batch=prepare_summary_batch(cid,records,projection.anchors,segments)
                 LOGGER.info('summary trigger conversation_id=%s from=%s upto=%s layer2=%s > budget=%s',cid,anchors.summary_upto+1,batch.upto_msg_id,projection.layer2_tokens,breakdown.layer2)
                 self.summary_worker.submit(batch)
-            model = self.model_factory()
-            tools = self.tools_factory(self.store.session_factory, cid, raw_question=req.message, budget=budget, model=model)
-            from .ticket_flow import ticket_request_from_user
-            previous=prepared.resume_state or (snapshot.values if snapshot else {})
-            ticket_request=previous.get('ticket_request',{}) if prepared.resume_value else ticket_request_from_user(req.message,previous.get('ticket_request',{}))
-            from app.tooling.contracts import CallContext
-            from app.tooling.builtins import bind_ticket
-            call_context=CallContext(conversation_id=cid,user_id=req.user_id,turn_id=turn_id,
-                session_factory=self.store.session_factory,raw_question=req.message,budget=budget,model=model,
-                ticket_request=bool(ticket_request.get('active')))
-            call_context.ticket_sources=tuple([m.content for m in history if m.type=='human'
-                and isinstance(m.content,str) and not m.additional_kwargs.get('context_materials')
-                and not m.additional_kwargs.get('context_summary')]+ticket_request.get('user_messages',[]))
-            tools=[t for t in tools if t.name!='create_ticket']+[bind_ticket(call_context)]
             async def save(msg):
                 saved_messages.append(msg)
                 db_id=await write(self._save, cid, turn_id, msg)
@@ -283,7 +298,7 @@ class WorkflowChatService:
             if settings.intent_small_model:
                 from app.core.llm import get_chat_model
                 small_model=get_chat_model(model_name=settings.intent_small_model,disable_thinking=True,max_retries=0)
-            context = TurnContext(AgentDependencies(model, tools, ToolExecutor(tools,context=call_context)), budget, save,
+            context = TurnContext(AgentDependencies(model, tools, ToolExecutor(catalog or tools,context=call_context,policy=self.tool_registry.policy if self.tool_registry else None)), budget, save,
                                   retrieve=self.retriever, record_low_confidence=pool, issue_actions=offers,
                                   retrieve_queries=self.policy_retriever,intent_small_model=small_model,
                                   message_db_ids=message_db_ids)

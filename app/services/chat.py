@@ -125,6 +125,7 @@ class ChatService:
             tools = self.tools_factory(conversation_id)  # Legacy injected factories.
         else:
             tools = self.tools_factory(conversation_id, raw_question=req.message)
+        tools=[tool for tool in tools if tool.name!='query_logistics']
         selection = await self.model.bind_tools(tools, tool_choice="auto").ainvoke(prompt_messages)
         final_messages = list(prompt_messages)
 
@@ -135,12 +136,17 @@ class ChatService:
             pending = {call["id"]: call for call in selection.tool_calls}
             try:
                 executor = self.executor_factory(tools)
+                from app.services.tool_executor import ToolExecutor
+                from app.tooling.contracts import CallContext
+                if isinstance(executor,ToolExecutor):
+                    executor.context=CallContext(conversation_id=conversation_id,user_id=req.user_id,
+                        raw_question=req.message,session_factory=getattr(self.store,'session_factory',None))
                 for index, call in enumerate(selection.tool_calls):
                     if index == 0:
                         yield "tool_status", {"tool_name": call["name"], "phase": "running", "message": "正在查询"}
                         result = await executor.execute(call)
                     else:
-                        result = ToolMessage(
+                        result = await executor.fail(call,'single_tool_limit','本轮未执行') if isinstance(executor,ToolExecutor) else ToolMessage(
                             content=json.dumps({"error": {"code": "single_tool_limit", "message": "本轮未执行"}}, ensure_ascii=False),
                             tool_call_id=call["id"],
                         )

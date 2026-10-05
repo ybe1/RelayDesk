@@ -49,7 +49,7 @@ def build_agent_graph(deps=None):
     async def decision(state: WorkflowState, runtime: Runtime[TurnContext]):
         context = runtime.context
         selected = deps or context.agent
-        read_tools = [t for t in selected.tools if t.name != "create_ticket" or state.get("ticket_request",{}).get("active")]
+        read_tools = list(selected.tools)
         messages = _messages(state,context,'decision')
         try:
             rows,complete=project_evidence(state.get('evidence',[]))
@@ -104,18 +104,16 @@ def build_agent_graph(deps=None):
         for call in calls[cursor:cursor+1]:
             if stopped:
                 observation = tool_error(call, stopped)
-            elif call["name"] == "create_ticket":
-                observation = await selected.executor.execute(call)
-            elif call['name']=='query_faq' and state.get('gate_allowed') and evidence:
-                # Close any stale/model-invented request without retrieving
-                # twice or duplicating the bulky evidence in message history.
-                observation=ToolMessage(content=json.dumps({'result':json.dumps({
-                    'sufficient':True,'reuse_existing_evidence':True,
-                    'message':'本轮政策已检索并通过置信度闸，请使用本轮资料中的证据回答。'},ensure_ascii=False)},ensure_ascii=False),tool_call_id=call['id'])
-            elif (call['name']=='query_order' and state.get('order_snapshot')
-                  and call['args'].get('order_id')==state['order_snapshot'].get('order_id')):
-                observation=ToolMessage(content=json.dumps({'result':json.dumps(state['order_snapshot'],ensure_ascii=False)},ensure_ascii=False),tool_call_id=call['id'])
             else:
+                bound=getattr(selected.executor,'context',None)
+                if bound is not None:
+                    if call['name']=='query_faq' and state.get('gate_allowed') and evidence:
+                        bound.trusted_results['query_faq']={'args':call['args'],'result':{
+                            'sufficient':True,'reuse_existing_evidence':True,
+                            'message':'本轮政策已检索并通过置信度闸，请使用本轮资料中的证据回答。'}}
+                    elif (call['name']=='query_order' and state.get('order_snapshot')
+                          and call['args'].get('order_id')==state['order_snapshot'].get('order_id')):
+                        bound.trusted_results['query_order']={'args':call['args'],'result':state['order_snapshot']}
                 try:
                     get_stream_writer()(("tool_status", {"tool": call["name"], "status": "running", "tool_call_id": call["id"]}))
                     async with asyncio.timeout(context.budget.remaining_seconds()):
@@ -126,12 +124,13 @@ def build_agent_graph(deps=None):
                 if call["name"] == "query_faq":
                     try:
                         payload = json.loads(observation.content)
-                        faq = json.loads(payload["result"])
-                        if faq.get("sufficient"):
+                        faq = payload["result"]
+                        faq = json.loads(faq) if isinstance(faq,str) else faq
+                        if faq.get("sufficient") and not faq.get("reuse_existing_evidence"):
                             mapped = registry.merge(faq["evidence"])
                             faq["evidence"], faq["citations"] = mapped, registry.citations
                             evidence.extend(mapped)
-                            observation.content = json.dumps({"result": json.dumps(faq, ensure_ascii=False)}, ensure_ascii=False)
+                            observation.content = json.dumps({"result": faq}, ensure_ascii=False)
                     except (KeyError, ValueError, TypeError):
                         pass
             observation.id = f"{state['turn_id']}:tool:{call['id']}"
@@ -140,7 +139,7 @@ def build_agent_graph(deps=None):
             get_stream_writer()(("tool_status", {"tool_name": call["name"], "phase": "failed" if "error" in json.loads(observation.content) else "success", "tool_call_id": call["id"]}))
         if stopped:
             for pending_call in calls[cursor+1:]:
-                observation=tool_error(pending_call,stopped)
+                observation=await selected.executor.fail(pending_call,stopped,'本轮预算耗尽，工具未执行')
                 observation.id=f"{state['turn_id']}:tool:{pending_call['id']}"
                 await persist(context,observation)
                 messages.append(observation)
@@ -160,7 +159,7 @@ def build_agent_graph(deps=None):
         messages = _messages(state,context,phase)
         content, reason = "", "clarify" if mode == "clarify" else "answered"
         try:
-            read_tools=[t for t in selected.tools if t.name!='create_ticket']
+            read_tools=list(selected.tools)
             async for chunk in _model(selected,context,state,phase,[*read_tools,AgentDecision]).astream(messages):
                 if isinstance(chunk.content, str) and chunk.content:
                     content += chunk.content

@@ -51,7 +51,7 @@ async def test_pretrieved_policy_cannot_repeat_external_faq_search():
     result=await build_agent_graph().ainvoke({'messages':[HumanMessage(content='退货政策是什么')],
         'turn_id':'cached-faq','gate_allowed':True,'node_trace':[],
         'evidence':[{'n':1,'id':1,'answer':'商品完好可退'}],'citations':[]},context=context)
-    assert executor.calls==0 and budget.tool_steps==0
+    assert executor.calls==1 and budget.tool_steps==0  # Test executor; the real engine cache is covered in ch08.
     assert 'query_faq' in model.advertised  # Ch07 fixed schemas; execution still caches.
     assert result['stop_reason']=='answered'
 
@@ -87,7 +87,7 @@ async def test_agent_advertises_real_function_tools_and_finish_schema():
     _, model, _ = await scenario([{"kind": "answer", "tool_calls": [], "actions": [], "reason": "足够"}])
     assert "query_logistics" in model.advertised
     assert "AgentDecision" in model.advertised
-    assert "create_ticket" not in model.advertised
+    assert "create_ticket" in model.advertised  # Permission remains enforced by the engine.
 
 
 async def test_tool_budget_stops_without_extra_generation():

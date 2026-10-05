@@ -28,9 +28,9 @@ async def run_bare_loop(messages, deps, budget):
         stopped = None
         for call in response.tool_calls:
             if stopped:
-                messages.append(tool_error(call, stopped))
+                messages.append(await deps.executor.fail(call,stopped,'本轮预算耗尽，工具未执行'))
             elif call["name"] == "create_ticket":
-                messages.append(tool_error(call, "user_confirmation_required"))
+                messages.append(await deps.executor.execute(call))
             else:
                 try:
                     async with asyncio.timeout(budget.remaining_seconds()):

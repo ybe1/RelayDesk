@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict,replace
 from .contracts import ContextConfig, BudgetBreakdown
 
 
@@ -33,3 +33,12 @@ def config_from_settings(settings) -> ContextConfig:
 def cumulative_token_limit(config: ContextConfig, model_calls: int) -> int:
     """Independent turn cost guard: bounded calls, each bounded by its window."""
     return model_calls * (config.window - max(450,(config.window+49)//50))
+
+
+def with_tool_prefix(config,system_messages,schemas):
+    from .tokens import estimate_messages
+    adjusted=replace(config,prefix=max(config.prefix,estimate_messages(system_messages,schemas)))
+    budget=calculate_budget(adjusted)
+    if budget.history<budget.steady:
+        raise ContextCapacityError('工具定义占用后上下文预算不足，请减少启用工具或调整窗口配置')
+    return adjusted

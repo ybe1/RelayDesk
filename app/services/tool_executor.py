@@ -66,6 +66,11 @@ class ToolExecutor:
         await self._audit(call,payload,'权限拒绝',0,started)
         return self._message(call.get('id',''),payload)
 
+    async def fail(self,call,code,reason):
+        started=monotonic(); payload=error(code,reason)
+        await self._audit(call,payload,'失败',0,started)
+        return self._message(call.get('id',''),payload)
+
     async def execute(self,call,*,before_attempt=None):
         started=monotonic(); retries=0; status='失败'; payload=error('execution_failed','工具调用未完成')
         definition=self.snapshot.get(call.get('name',''))
@@ -83,12 +88,12 @@ class ToolExecutor:
                     for attempt in range(attempts):
                         if self.policy.lookup(definition.key)!=policy:
                             payload=error('permission_denied','工具权限已变更'); status='权限拒绝'; break
-                        if before_attempt: before_attempt()
                         retries=attempt
                         try:
                             cache=self.context.trusted_results.get(definition.name)
                             if cache is not None and cache.get('args')==call.get('args',{}): raw=cache['result']
                             else:
+                                if before_attempt: before_attempt()
                                 timeout=self.timeout_seconds if self.timeout_seconds is not None else policy.timeout_seconds
                                 raw=await asyncio.wait_for(definition.tool.ainvoke(call.get('args',{})),timeout)
                             payload=json.loads(serialize_result(normalize_result(definition,raw)))
