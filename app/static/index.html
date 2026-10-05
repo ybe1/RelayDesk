@@ -286,10 +286,27 @@
       button.type = 'button';
       button.textContent = label;
       button.setAttribute('aria-label', index === 0 ? '回答有帮助' : '回答无帮助');
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         if (buttons.some(item => item.disabled)) return;
-        button.classList.add('selected');
         buttons.forEach(item => { item.disabled = true; });
+        let error = bar.querySelector('.feedback-error');
+        if (error) error.remove();
+        try {
+          if (index === 1) {
+            if (!feedbackKey) throw new Error('回答尚未保存，请稍后重试');
+            const [feedbackConversationId, assistantMessageId] = feedbackKey.split(':').map(Number);
+            const response = await fetch('/api/chat/feedback', {method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({user_id: userId, conversation_id: feedbackConversationId,
+                assistant_message_id: assistantMessageId, helpful: false})});
+            if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || '反馈提交失败');
+          }
+        } catch (reason) {
+          buttons.forEach(item => { item.disabled = false; });
+          error = document.createElement('span'); error.className = 'feedback-error';
+          error.textContent = String(reason.message || reason) + '，可重试'; bar.append(error);
+          return;
+        }
+        button.classList.add('selected');
         const done = document.createElement('span');
         done.textContent = '已反馈';
         bar.append(done);

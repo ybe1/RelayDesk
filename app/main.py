@@ -16,6 +16,7 @@ from app.api.rageval import router as rageval_router
 from app.api.chat_actions import router as chat_actions_router
 from app.api.refunds import router as refunds_router
 from app.api.conversations import router as conversations_router
+from app.api.feedback import router as feedback_router
 
 # uvicorn 默认不给应用记录器配 handler,不手动加这一句,logger.info 一句都看不见
 _log = logging.getLogger("app")
@@ -77,6 +78,7 @@ app.include_router(rageval_router)
 app.include_router(chat_actions_router)
 app.include_router(refunds_router)
 app.include_router(conversations_router)
+app.include_router(feedback_router)
 
 # 客服聊天页(前端):静态资源 + 首页
 app.mount("/static", StaticFiles(directory=_BASE_DIR / "static"), name="static")
