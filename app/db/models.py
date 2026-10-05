@@ -174,11 +174,51 @@ class QAExtractionStaging(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment="抽取写入时间")
 
 
+class ReviewQueue(Base):
+    __tablename__ = "review_queue"
+    __table_args__ = (
+        Index("idx_review_status", "review_status"),
+        {
+            "mysql_engine": "InnoDB",
+            "mysql_charset": "utf8mb4",
+            "comment": "飞轮待审队列",
+        },
+    )
+
+    id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), primary_key=True, autoincrement=True, comment="缺口主键,也是查重命中要返回的 matched_question_id")
+    normalized_question: Mapped[str] = mapped_column(String(512), nullable=False, comment="标准化后的 FAQ 式问题")
+    ai_suggested_answer: Mapped[str | None] = mapped_column(Text, nullable=True, comment="模型生成的示例答案,备查")
+    occurrence_count: Mapped[int] = mapped_column(mysql.INTEGER(unsigned=True), nullable=False, server_default=text("1"), comment="出现次数,查重命中累加,越高越该优先补")
+    review_status: Mapped[str] = mapped_column(mysql.ENUM("待审", "通过", "驳回"), nullable=False, server_default=text("'待审'"), comment="人工审核状态")
+    approved_answer: Mapped[str | None] = mapped_column(Text, nullable=True, comment="审核通过时补的核准答案,走 ch03 落库流程写回知识库")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment="首次入队时间")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"), comment="更新时间")
+
+
+class EvalRun(Base):
+    __tablename__ = "eval_runs"
+    __table_args__ = (
+        Index("idx_created_at", "created_at"),
+        {
+            "mysql_engine": "InnoDB",
+            "mysql_charset": "utf8mb4",
+            "comment": "自动化评估流水线轮次结果",
+        },
+    )
+
+    id: Mapped[int] = mapped_column(mysql.BIGINT(unsigned=True), primary_key=True, autoincrement=True, comment="评估轮次主键")
+    triggered_by: Mapped[str] = mapped_column(mysql.ENUM("定时", "手动"), nullable=False, server_default=text("'定时'"), comment="这轮怎么起的:定时任务,或某次改动后手动跑")
+    dataset_size: Mapped[int] = mapped_column(mysql.INTEGER(unsigned=True), nullable=False, comment="这轮跑的评估集条数")
+    metrics: Mapped[dict] = mapped_column(JSON, nullable=False, comment='各指标分数,如 {"recall_at_k":0.82,"mrr":0.71,"faithfulness":0.90}')
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment="跑完落表时间")
+
+
 class LowConfidenceQuestion(Base):
     __tablename__ = "low_confidence_questions"
     __table_args__ = (
         Index("idx_source", "source"),
         Index("idx_created_at", "created_at"),
+        Index("idx_matched_review_id", "matched_review_id"),
         {
             "mysql_engine": "InnoDB",
             "mysql_charset": "utf8mb4",
@@ -191,6 +231,8 @@ class LowConfidenceQuestion(Base):
     raw_question: Mapped[str] = mapped_column(Text, nullable=False, comment="用户原话,带情绪口语")
     source: Mapped[str] = mapped_column(mysql.ENUM("retrieval_low_conf", "self_check", "user_feedback"), nullable=False, comment="入池入口:检索证据低 / 生成自评不足 / 用户反馈未解决")
     reason: Mapped[str | None] = mapped_column(Text, nullable=True, comment="判不能的原因,留作复盘")
+    retrieved_chunks: Mapped[list | None] = mapped_column(JSON(none_as_null=True), nullable=True, comment="落池时的召回片段快照:Top 几条的原文与分数,审核页展示用;没走检索为 NULL")
+    matched_review_id: Mapped[int | None] = mapped_column(mysql.BIGINT(unsigned=True), ForeignKey("review_queue.id", name="fk_lcq_review", ondelete="SET NULL"), nullable=True, comment="查重后归并到的缺口,指向 review_queue.id")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), comment="入池时间")
 
 

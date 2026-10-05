@@ -53,7 +53,7 @@ def _tool_contract(question: str, hits: list[dict]) -> bool:
         factory = forbidden_session
         if engine is not None:
             with engine.begin() as connection:
-                connection.execute(text("CREATE TABLE low_confidence_questions (id INTEGER PRIMARY KEY, conversation_id BIGINT, raw_question TEXT NOT NULL, source TEXT NOT NULL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"))
+                connection.execute(text("CREATE TABLE low_confidence_questions (id INTEGER PRIMARY KEY, conversation_id BIGINT, raw_question TEXT NOT NULL, source TEXT NOT NULL, reason TEXT, retrieved_chunks JSON, matched_review_id BIGINT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"))
             factory = lambda: Session(engine)
         tool = {item.name: item for item in build_tools(factory, 1, retriever=lambda _: hits)}["query_faq"]
         payload = json.loads(asyncio.run(tool.ainvoke({"keyword": question})))

@@ -22,6 +22,8 @@ def test_low_confidence_columns_defaults_and_storage():
         "raw_question": ("TEXT", False, "用户原话,带情绪口语"),
         "source": ("ENUM('retrieval_low_conf','self_check','user_feedback')", False, "入池入口:检索证据低 / 生成自评不足 / 用户反馈未解决"),
         "reason": ("TEXT", True, "判不能的原因,留作复盘"),
+        "retrieved_chunks": ("JSON", True, "落池时的召回片段快照:Top 几条的原文与分数,审核页展示用;没走检索为 NULL"),
+        "matched_review_id": ("BIGINT UNSIGNED", True, "查重后归并到的缺口,指向 review_queue.id"),
         "created_at": ("DATETIME", False, "入池时间"),
     })
     assert [column.name for column in table.primary_key] == ["id"]
@@ -40,6 +42,7 @@ def test_low_confidence_foreign_key_and_indexes():
     assert {index.name: tuple(c.name for c in index.columns) for index in table.indexes} == {
         "idx_source": ("source",),
         "idx_created_at": ("created_at",),
+        "idx_matched_review_id": ("matched_review_id",),
     }
 
 
