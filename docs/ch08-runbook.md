@@ -2,7 +2,7 @@
 
 ## 启动顺序（PowerShell）
 
-先确保 Docker Desktop 正在运行，并且 `.env` 中已有 `CHAT_API_KEY`、数据库连接配置。以下服务分开在三个终端启动；不会自动打开浏览器。
+先确保 Docker Desktop 正在运行，并且 `.env` 中已有 `CHAT_API_KEY`、数据库连接配置。执行 `--live` 还需可用的 `RERANK_API_KEY`（或 `EMBED_API_KEY`）以及相应服务额度。以下服务分开在三个终端启动；不会自动打开浏览器。
 
 终端一，MySQL：
 
@@ -66,4 +66,4 @@ uv run python scripts/verify_ch08_browser.py
 
 本地验收使用真实独立 MCP HTTP 进程和测试数据库；模型替身覆盖分流/调用。浏览器验证拦截全部 HTTP 请求并使用合成响应，不启动客服网页、不访问云端。截图保存在 `data/ch08/reports/ticket-preview.png`、`ticket-confirmed.png` 和 `ticket-cancelled.png`。
 
-`uv run python -m scripts.eval_ch08 --live` 目前因尚未获得本章样例发送至 DeepSeek/SiliconFlow 的明确授权而停止，不会外发数据。得到授权并完成实时模型用例后才能报告真实语义验收结果。
+`uv run python -m scripts.eval_ch08 --live` 使用固定的合成订单1001问题和本地 MCP mock 结果：DeepSeek 实际选择并调用物流/售后 MCP，再生成答复；SiliconFlow 的 BGE 重排器对合成工具描述做排序诊断。不会读取或发送客户会话历史，也不会创建真实工单。运行结果写入 `data/ch08/reports/live.json`。发送到这两个外部服务的数据属于本次验收的合成样例。

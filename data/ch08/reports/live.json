@@ -1,0 +1,171 @@
+{
+  "mode": "live",
+  "data_scope": "仅固定合成问题/订单1001演示mock结果；未加载客户会话或消息",
+  "started_at_utc": "2026-10-05T09:49:25.587079+00:00",
+  "status": "passed",
+  "deepseek": {
+    "provider": "DeepSeek",
+    "model": "deepseek-v4-pro",
+    "cases": [
+      {
+        "id": "L01",
+        "provider": "DeepSeek",
+        "model": "deepseek-v4-pro",
+        "question": "订单1001的物流轨迹到哪里了？",
+        "expected_tool": "query_logistics",
+        "actual_tool": "query_logistics",
+        "tool_call_id": "call_00_5mBobETobJ4BYulSPyIU3440",
+        "tool_call_passed": true,
+        "tool_source": "mcp",
+        "mcp_server": "logistics",
+        "tool_result": {
+          "result": {
+            "mock": true,
+            "order_id": "1001",
+            "status": "已签收",
+            "location": "收货地址",
+            "tracks": [
+              {
+                "sequence": 1,
+                "status": "已揽收",
+                "location": "上海分拨中心"
+              },
+              {
+                "sequence": 2,
+                "status": "运输中",
+                "location": "杭州转运中心"
+              },
+              {
+                "sequence": 3,
+                "status": "派送中",
+                "location": "本地配送站"
+              },
+              {
+                "sequence": 4,
+                "status": "已签收",
+                "location": "收货地址"
+              }
+            ]
+          }
+        },
+        "final_answer": "订单1001的物流轨迹显示：已揽收 → 运输中 → 派送中 → 已签收，当前已到达收货地址并签收。这是演示mock数据。",
+        "status": "passed"
+      },
+      {
+        "id": "L02",
+        "provider": "DeepSeek",
+        "model": "deepseek-v4-pro",
+        "question": "订单1001对应商品现在还在保修期内吗？",
+        "expected_tool": "query_warranty",
+        "actual_tool": "query_warranty",
+        "tool_call_id": "call_00_ed1UrWwhvzwSQGAn7mPH0472",
+        "tool_call_passed": true,
+        "tool_source": "mcp",
+        "mcp_server": "after_sales",
+        "tool_result": {
+          "result": {
+            "mock": true,
+            "order_id": "1001",
+            "product_name": "猫抓板",
+            "status": "在保",
+            "basis": "演示规则：签收后365天内在保",
+            "days_since_receipt": 5
+          }
+        },
+        "final_answer": "订单 1001 对应商品“猫抓板”目前仍在保修期内。这是演示 mock 数据。",
+        "status": "passed"
+      }
+    ],
+    "ticket_cases": [
+      {
+        "id": "T-L01",
+        "provider": "DeepSeek",
+        "model": "deepseek-v4-pro",
+        "question": "帮我建个工单",
+        "expected_action": "clarify",
+        "passed": true,
+        "action": "clarify",
+        "tool_call_id": null,
+        "status": "passed"
+      },
+      {
+        "id": "T-L02",
+        "provider": "DeepSeek",
+        "model": "deepseek-v4-pro",
+        "question": "订单1001包裹破损，请帮我建一个售后工单。",
+        "expected_action": "preview",
+        "passed": true,
+        "action": "preview",
+        "tool_call_id": "call_00_zz435pjrf06wbd3T0pkQ5294",
+        "description_grounded": true,
+        "ticket_type_correct": true,
+        "execution": "not_executed_no_ticket_created",
+        "status": "passed"
+      }
+    ],
+    "audit_records": [
+      {
+        "conversation_id": 880001,
+        "tool_call_id": "call_00_5mBobETobJ4BYulSPyIU3440",
+        "tool_name": "query_logistics",
+        "tool_source": "mcp",
+        "mcp_server": "logistics",
+        "arguments": {
+          "order_id": "1001"
+        },
+        "result_summary": "{\"result\": {\"mock\": true, \"order_id\": \"1001\", \"status\": \"已签收\", \"location\": \"收货地址\", \"tracks\": [{\"sequence\": 1, \"status\": \"已揽收\", \"location\": \"上海分拨中心\"}, {\"sequence\": 2, \"status\": \"运输中\", \"location\": \"杭州转运中心\"}, {\"sequence\": 3, \"status\": \"派送中\", \"location\": \"本地配送站\"}, {\"sequence\": 4, \"status\": \"已签收\", \"location\": \"收货地址\"}]}}",
+        "status": "成功",
+        "error_message": null,
+        "retry_count": 0,
+        "duration_ms": 31
+      },
+      {
+        "conversation_id": 880001,
+        "tool_call_id": "call_00_ed1UrWwhvzwSQGAn7mPH0472",
+        "tool_name": "query_warranty",
+        "tool_source": "mcp",
+        "mcp_server": "after_sales",
+        "arguments": {
+          "order_id": "1001"
+        },
+        "result_summary": "{\"result\": {\"mock\": true, \"order_id\": \"1001\", \"product_name\": \"猫抓板\", \"status\": \"在保\", \"basis\": \"演示规则：签收后365天内在保\", \"days_since_receipt\": 5}}",
+        "status": "成功",
+        "error_message": null,
+        "retry_count": 0,
+        "duration_ms": 47
+      }
+    ],
+    "mcp_servers_discovered": [
+      "after_sales",
+      "logistics"
+    ],
+    "status": "passed"
+  },
+  "siliconflow": {
+    "provider": "SiliconFlow",
+    "model": "BAAI/bge-reranker-v2-m3",
+    "query": "订单1001的物流轨迹到哪里了？",
+    "ranking": [
+      {
+        "tool_name": "query_logistics",
+        "score": 0.18900536000728607
+      },
+      {
+        "tool_name": "query_order",
+        "score": 8.872249600244686e-05
+      },
+      {
+        "tool_name": "query_warranty",
+        "score": 2.3167449398897588e-05
+      },
+      {
+        "tool_name": "create_ticket",
+        "score": 1.6274168956442736e-05
+      }
+    ],
+    "transport_retries": 0,
+    "status": "passed"
+  },
+  "finished_at_utc": "2026-10-05T09:49:40.578822+00:00",
+  "side_effects": "不写MySQL、不创建工单；审计仅保存在进程内。"
+}
