@@ -1,0 +1,152 @@
+{
+  "mode": "local",
+  "model_mode": "offline substitutes + actual local MCP subprocesses + test MySQL",
+  "status": "passed",
+  "migration_check": "Ch08 audit schema is current",
+  "pytest_returncode": 0,
+  "pytest_summary": "57 passed in 18.85s",
+  "pytest_output": ".........................................................                [100%]\n57 passed in 18.85s\n\n",
+  "cases": [
+    {
+      "id": "C01",
+      "kind": "mcp_logistics",
+      "input": "订单1001现在到哪里了？",
+      "expected_tools": [
+        "query_logistics"
+      ],
+      "expected_mcp_server": "logistics",
+      "side_effect": "none"
+    },
+    {
+      "id": "C02",
+      "kind": "mcp_warranty",
+      "input": "商品1001还在保修期内吗？",
+      "expected_tools": [
+        "query_warranty"
+      ],
+      "expected_mcp_server": "after_sales",
+      "side_effect": "none"
+    },
+    {
+      "id": "C03",
+      "kind": "missing_description",
+      "input": "帮我建个工单",
+      "expected_tools": [],
+      "expected_action": "clarify",
+      "side_effect": "none"
+    },
+    {
+      "id": "C04",
+      "kind": "ticket_confirm",
+      "input": "订单1001包裹破损，帮我建个售后工单",
+      "expected_tools": [
+        "create_ticket"
+      ],
+      "expected_action": "preview_then_confirm",
+      "side_effect": "one_ticket_only"
+    },
+    {
+      "id": "C05",
+      "kind": "ticket_cancel",
+      "input": "订单1001包裹破损，帮我建个工单",
+      "expected_tools": [
+        "create_ticket"
+      ],
+      "expected_action": "preview_then_cancel",
+      "side_effect": "zero_tickets"
+    },
+    {
+      "id": "C06",
+      "kind": "unknown_tool",
+      "tool": "drop_customer_table",
+      "expected_status": "权限拒绝",
+      "expected_retry_count": 0
+    },
+    {
+      "id": "C07",
+      "kind": "schema_error",
+      "tool": "query_order",
+      "arguments": {
+        "order_id": 1001
+      },
+      "expected_status": "校验拦下"
+    },
+    {
+      "id": "C08",
+      "kind": "empty_result",
+      "tool": "query_return_progress",
+      "expected_status": "成功",
+      "expected_result": "not_found"
+    },
+    {
+      "id": "C09",
+      "kind": "read_transient_failure",
+      "tool": "query_order",
+      "expected_status": "成功",
+      "expected_retry_count": 1
+    },
+    {
+      "id": "C10",
+      "kind": "read_timeout",
+      "tool": "query_order",
+      "expected_status": "超时",
+      "expected_retry_count": 2
+    },
+    {
+      "id": "C11",
+      "kind": "write_timeout",
+      "tool": "create_ticket",
+      "expected_status": "超时",
+      "expected_retry_count": 0,
+      "expected_ticket_count": 0
+    },
+    {
+      "id": "C12",
+      "kind": "audit_sink_failure",
+      "tool": "query_order",
+      "expected_status": "success_even_if_audit_fails"
+    },
+    {
+      "id": "C13",
+      "kind": "cancelled_preview",
+      "tool": "create_ticket",
+      "expected_status": "权限拒绝",
+      "expected_ticket_count": 0
+    },
+    {
+      "id": "C14",
+      "kind": "cross_user",
+      "tool": "create_ticket",
+      "expected_status": "拒绝",
+      "expected_ticket_count": 0
+    },
+    {
+      "id": "C15",
+      "kind": "repeat_confirm",
+      "tool": "create_ticket",
+      "expected_status": "成功",
+      "expected_ticket_count": 1
+    },
+    {
+      "id": "C16",
+      "kind": "claim_crash",
+      "tool": "create_ticket",
+      "expected_status": "outcome_unknown",
+      "expected_retry_count": 0,
+      "expected_ticket_count": 0
+    },
+    {
+      "id": "C17",
+      "kind": "permission_hot_revoke",
+      "tool": "query_order",
+      "expected_status": "权限拒绝"
+    },
+    {
+      "id": "C18",
+      "kind": "plugin_hot_add",
+      "tool": "query_demo_note",
+      "expected_status": "本轮目录即用"
+    }
+  ],
+  "timestamp_utc": "2026-10-05T09:12:40.162315+00:00"
+}

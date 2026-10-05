@@ -42,7 +42,10 @@ def owned_history(session,user_id,cid):
             turn=row.message_key[:-len(':final')]
             for offer in offers:
                 if offer.turn_id!=turn: continue
-                item={'action':offer.action,'offer_id':offer.offer_id,'defaults':offer.defaults,
+                # _ch08 stores replay/idempotency state and internal capabilities.
+                # History is a browser-facing API, so only return user-visible fields.
+                defaults={key:value for key,value in offer.defaults.items() if key!='_ch08'}
+                item={'action':offer.action,'offer_id':offer.offer_id,'defaults':defaults,
                     'ticket_no':offer.ticket_no,'confirmed':bool(offer.confirmed_params)}
                 if offer.offer_id in refunds:
                     item['application_no']=refunds[offer.offer_id].application_no

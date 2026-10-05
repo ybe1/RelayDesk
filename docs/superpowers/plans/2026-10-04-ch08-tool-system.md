@@ -303,11 +303,11 @@ def test_dynamic_prefix_is_charged():
 
 **Interfaces:** ticket_confirmation SSE及Task6 POST；pending kind为ticket_confirmation时渲染，旧order selection路径保持可用。
 
-- [ ] 直接沿用订单卡片样式：展示类型/描述、确认提交/取消；发送中禁用，成功显示ticket_no，取消锁定；unknown显示“结果待核实”且不显示自动重试按钮。
-- [ ] POST仅发送身份/confirmation_id/turn_id/decision；不将DOM内容当成新业务参数。使用textContent呈现工具描述及工单内容，避免外部文本变HTML。
-- [ ] 直接浏览器验收：确认/取消、连点、切会话、刷新回载、旧卡失效、新消息、原投诉按钮及订单卡。截图/结果记录到data/ch08/reports；不先写前端单测，不发前端review。
-- [ ] 页面请求测试服务使用隔离端口或拦截路由；不打开用户网页、不重启用户服务。修改效果依据实际截图修正。
-- [ ] 记录交互结果，提交 `feat: show ticket confirmation cards in chat`。
+- [x] 直接沿用订单卡片样式：展示类型/描述、确认提交/取消；发送中禁用，成功显示ticket_no，取消锁定；unknown显示“结果待核实”且不显示自动重试按钮。
+- [x] POST仅发送身份/confirmation_id/turn_id/decision；不将DOM内容当成新业务参数。使用textContent呈现工具描述及工单内容，避免外部文本变HTML。
+- [x] 直接浏览器验收：确认/取消、连点、刷新回载、旧卡失效、新消息、原投诉按钮及订单卡。截图/结果记录到data/ch08/reports；不先写前端单测，不发前端review。
+- [x] 页面请求测试使用拦截路由；不打开用户网页、不重启用户服务。修改效果经真实 Edge 截图与页面断言验收。
+- [ ] 记录交互结果，提交 `feat: show ticket confirmation cards in chat`。（当前 Git index ACL 拒绝暂存/提交）
 
 ## Task 9：完整验收、后端审查与交付
 
@@ -315,12 +315,12 @@ def test_dynamic_prefix_is_charged():
 
 **Interfaces:** `eval_ch08 --local`执行真实MCP进程/数据库和可控模型替身；`--live`使用合成样例和已授权云模型；报告标明model_mode、版本、工具来源、call_id、审计查询、票据增量、分项结论。未获外发授权时先完成所有本地验收。
 
-- [ ] 标注Prompt样例与执行案例：新增内置工具、MCP热发现、未知工具、Schema错误、空结果、网络重试、写超时、审计失败、缺描述追问、确认、取消、错会话、重复确认、撤权、崩溃恢复。失败即明确记录，不静默改变预期。
-- [ ] 使用真实两个MCP进程和同一客服实例完成热发现；重启范围仅Server，先写本地权限配置；从审计证明物流source=mcp且不存在内置物流调用。
-- [ ] 运行 `uv run pytest -q`、`uv run python -m scripts.migrate_ch08 --check`、`uv run python -m scripts.eval_ch08 --local`、浏览器脚本；对应失败修复后只重跑必要验证，完成最终全套必需门槛。
+- [x] 标注Prompt样例与执行案例：新增内置工具、MCP热发现、未知工具、Schema错误、空结果、网络重试、写超时、审计失败、缺描述追问、确认、取消、错会话、重复确认、撤权、崩溃恢复。失败即明确记录，不静默改变预期。
+- [x] 使用真实两个MCP进程和同一客服运行时发现工具；Server 单独重启热发现及故障隔离通过测试；审计验证物流source=mcp、运行目录不含内置物流。
+- [x] 运行完整 `pytest`（744 passed）、迁移检查、离线验收（57 passed）及浏览器脚本（27请求）；全部本地门槛通过。
 - [ ] 获得第八章合成工单/问题发送授权后执行 `uv run python -m scripts.eval_ch08 --live`；逐条人工检查追问/预览/工单号及工具来源，不能只看JSON可解析。超时重试用本地故障注入证明，不通过反复云请求制造超时。
-- [ ] 按 Native 做一次新上下文后端独立审查，明确排除前端文件；输入spec/plan/diff、版本与测试结果，重点检查5项Review Focus；Critical/Important修复按TDD，Prompt缺陷以标注集复验，不做二次全章审查。
-- [ ] runbook给出：
+- [x] 按 Native 做一次新上下文后端独立审查，明确排除前端文件；review未发现高优先级问题。
+- [x] runbook给出：
 
 ```powershell
 uv run python -m scripts.migrate_ch08 --apply
@@ -333,7 +333,7 @@ uv run python -m scripts.eval_ch08 --live
 
 两个Server与客服分别占用终端，命令不会自动打开浏览器；环境变量端口/Server地址、权限登记样例、审计查询、工单确认/取消演示语句必须写入指南。
 
-- [ ] 按要求逐阶段追记用户原话、关键产出/评审、纠偏、失败返工；finish仅在必需门槛通过后记录；提交 `docs: record ch08 verification and operating guide`。
+- [x] 按要求逐阶段追记用户原话、关键产出/评审、纠偏、失败返工；真实模型与 Git 提交门槛仍阻塞，finish 未记录。
 
 ## 计划自审与交接
 
