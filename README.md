@@ -181,3 +181,38 @@ uv run pytest -q
 最终回归：548项通过；真实五题验收5/5、意图标注28/28、浏览器交互7/7。工具重试每次实际调用计入5次执行上限；断连清理等待已开始的数据库写入完成，随后闭合工具申请并释放会话占用。
 
 本章置信度闸仅按小样本校准的重排分数判断。“平台提供火星移民签证吗”实测在闸前拒绝并入池，见`data/ch05/reports/low-confidence-live.json`；“火星移民签证的退款周期是多少”可能因退款词误放行，后续自评虽入池但受预算停止，见`gate-limitation-live.json`。阈值不能替代正式语义充分性检查。另有一个延后的小项：`tool_status`运行与完成帧使用不同字段命名，当前聊天页兼容两者，严格使用旧契约的其他客户端需要适配。
+
+## Ch09：可观测性与数据飞轮
+
+先启动业务基础设施和本机 Langfuse，再检查数据库迁移：
+
+```powershell
+docker compose -f compose.yaml -f compose.milvus.yaml up -d
+docker compose -f compose.langfuse.yaml up -d
+uv run python -m scripts.migrate_ch09 --check
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+浏览器入口：
+
+- `http://127.0.0.1:8000/review`：审核标准化后的知识缺口，可查看归并原话和当轮召回证据。
+- `http://127.0.0.1:8000/observability`：查看最近七天按意图 token/成本和评估趋势。
+- `http://127.0.0.1:3000`：本机自托管 Langfuse trace 树。
+
+本地验收不会调用云端模型：
+
+```powershell
+uv run pytest -q
+uv run python -m scripts.eval_ch09_acceptance --mode local --output data/ch09/reports/acceptance-local.json
+uv run python -m scripts.verify_ch09_browser --base-url http://127.0.0.1:8000 --output data/ch09/reports/browser.json
+```
+
+固定任务命令：
+
+```powershell
+uv run python -m scripts.process_flywheel
+uv run python -m scripts.recover_ch09_index
+uv run python -m scripts.eval_ch09
+```
+
+`eval_ch09` 是完整付费评估，失败后不会自动重试；确认上游余额和数据发送授权后再手动运行。调度器按 Asia/Shanghai 每周一 02:00 启动，首次启用只登记下一时点，停机错过时最多补最近一轮。开发记录见 `dev-notes/ch09.md`。
