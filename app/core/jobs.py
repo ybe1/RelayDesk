@@ -25,6 +25,7 @@ JOBS = {
     "eval-mining": [sys.executable, "-m", "scripts.eval_ch03", "mining"],
     "eval-rag": [sys.executable, "-m", "scripts.eval_ch04"],
     "flywheel-process": [sys.executable, "-m", "scripts.process_flywheel"],
+    "flywheel-index-recover": [sys.executable, "-m", "scripts.recover_ch09_index"],
 }
 
 # Availability is tied to a named module, never inferred from a job-name prefix.
@@ -40,6 +41,7 @@ JOB_MODULES = {
     "eval-mining": Path("scripts/eval_ch03.py"),
     "eval-rag": Path("scripts/eval_ch04.py"),
     "flywheel-process": Path("scripts/process_flywheel.py"),
+    "flywheel-index-recover": Path("scripts/recover_ch09_index.py"),
 }
 HEAVY_JOBS = frozenset({"kb-reset", "eval-rag"})
 EVAL_MODES = {"resume": (), "retry": ("--retry-skipped",), "fresh": ("--fresh",)}

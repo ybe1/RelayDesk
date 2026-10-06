@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from sqlalchemy import select, text
 
 from app.db.models import LowConfidenceQuestion, ReviewQueue
 from app.flywheel.prompts import FLYWHEEL_PROMPT
+from app.flywheel.locks import FLYWHEEL_LOCK_NAME, LOCAL_FLYWHEEL_LOCK
 from app.repositories.review_queue import list_all_candidates, pending_gaps
 
 
@@ -36,7 +36,6 @@ class ProcessReport:
     model_calls: int = 0
 
 
-_LOCAL_LOCK = threading.Lock()
 _PHONE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
 
 
@@ -66,9 +65,9 @@ async def process_pending(*, session_factory, model, batch_size: int = 20,
     acquired = False
     try:
         if mysql:
-            acquired = lock_session.execute(text("SELECT GET_LOCK('mewhelp:ch09:flywheel', 0)")).scalar() == 1
+            acquired = lock_session.execute(text("SELECT GET_LOCK(:name, 0)"), {"name": FLYWHEEL_LOCK_NAME}).scalar() == 1
         else:
-            acquired = _LOCAL_LOCK.acquire(blocking=False)
+            acquired = LOCAL_FLYWHEEL_LOCK.acquire(blocking=False)
         if not acquired:
             return ProcessReport()
         with session_factory() as session:
@@ -122,7 +121,7 @@ async def process_pending(*, session_factory, model, batch_size: int = 20,
         return ProcessReport(**counts)
     finally:
         if mysql and acquired:
-            lock_session.execute(text("SELECT RELEASE_LOCK('mewhelp:ch09:flywheel')"))
+            lock_session.execute(text("SELECT RELEASE_LOCK(:name)"), {"name": FLYWHEEL_LOCK_NAME})
         elif acquired:
-            _LOCAL_LOCK.release()
+            LOCAL_FLYWHEEL_LOCK.release()
         lock_session.close()
