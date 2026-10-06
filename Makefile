@@ -1,4 +1,4 @@
-.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild eval-check eval-rag judge-check
+.PHONY: dev test eval kb-preview kb-build kb-vectorize kb-mine seed-conv kb-reset eval-retrieval eval-mining kb-ch04-rebuild eval-check eval-rag judge-check langfuse-up langfuse-down
 
 dev:
 	./scripts/dev.sh
@@ -44,3 +44,9 @@ eval-retrieval:
 
 eval-mining:
 	uv run python -m scripts.eval_ch03 mining
+
+langfuse-up:
+	docker compose -f compose.langfuse.yaml up -d
+
+langfuse-down:
+	docker compose -f compose.langfuse.yaml down

@@ -51,21 +51,24 @@ async def lifespan(application):
     from app.workflow.contracts import AgentDecision
     from langchain_core.messages import SystemMessage
     from langchain_core.utils.function_calling import convert_to_openai_tool
+    from app.observability.langfuse import ObservabilityRuntime
     cfg=config_from_settings(settings)
     registry,discovery=create_runtime_tools()
     initial=registry.snapshot(CallContext(session_factory=SessionLocal,conversation_id=0))
     schemas=[convert_to_openai_tool(t) for t in [*initial.model_tools(),AgentDecision]]
     cfg=with_tool_prefix(cfg,[SystemMessage(content=AGENT_SYSTEM)],schemas)
     breakdown=validate_context_capacity(cfg,estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas))
+    observability=ObservabilityRuntime.from_settings(settings)
     _log.info('context startup fixed_prefix=%s history=%s layer1=%s layer2=%s',estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas),breakdown.history,breakdown.layer1,breakdown.layer2)
     async with checkpoint_runtime(settings.workflow_checkpoint_path) as saver:
         application.state.workflow_service = WorkflowChatService(build_workflow(checkpointer=saver), DatabaseChatStore(SessionLocal),
-            context_config=cfg,tool_registry=registry,mcp_discovery=discovery)
+            context_config=cfg,tool_registry=registry,mcp_discovery=discovery,observability=observability)
         try:
             yield
         finally:
             await application.state.workflow_service.summary_worker.aclose()
             await asyncio.to_thread(get_job_runner().shutdown)
+            await asyncio.to_thread(observability.shutdown,2.0)
             application.state.workflow_service = None
 
 

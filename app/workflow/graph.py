@@ -68,11 +68,15 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
         context = runtime.context
         update = traced(state, "intent")
         if state.get('ticket_request',{}).get('active'):
-            return {**update,'intent':'售后','route':'business','intent_confidence':1.0,
+            result={**update,'intent':'售后','route':'business','intent_confidence':1.0,
                 'intent_model_tier':'user_action','budget_usage':context.budget.snapshot()}
+            if context.observability: context.observability.tag_intent(result['intent'])
+            return result
         if is_history_recall(state['raw_question']):
-            return {**update,'intent':'订单','route':'recall','intent_confidence':1.0,
+            result={**update,'intent':'订单','route':'recall','intent_confidence':1.0,
                 'intent_model_tier':'rule','intent_upgraded':False,'budget_usage':context.budget.snapshot()}
+            if context.observability: context.observability.tag_intent(result['intent'])
+            return result
         try:
             if not state.get('resolution'): raise ValueError('resolution unavailable')
             run = await classify_with_escalation(context.agent.model,context.intent_small_model,state['question'],context.budget,
@@ -87,6 +91,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
         except Exception as exc:
             update.update(route="fallback", gate_reason="intent_unavailable", stop_reason=str(exc))
         update["budget_usage"] = context.budget.snapshot()
+        if context.observability and update.get('intent'):
+            context.observability.tag_intent(update['intent'])
         return update
 
     async def retrieval(state: WorkflowState, runtime: Runtime[TurnContext]):

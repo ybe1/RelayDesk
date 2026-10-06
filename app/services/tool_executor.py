@@ -10,6 +10,7 @@ from app.tooling.policy import PolicyStore
 from app.tooling.permissions import WritePermit
 from app.tooling.validation import validate_arguments
 from app.tooling.results import error,normalize_result,serialize_result
+from app.observability.spans import observe_external
 
 LOGGER=logging.getLogger(__name__)
 POLICY_PATH=Path(__file__).resolve().parents[2]/'config/tool_policy.json'
@@ -95,7 +96,11 @@ class ToolExecutor:
                             else:
                                 if before_attempt: before_attempt()
                                 timeout=self.timeout_seconds if self.timeout_seconds is not None else policy.timeout_seconds
-                                raw=await asyncio.wait_for(definition.tool.ainvoke(call.get('args',{})),timeout)
+                                async with observe_external(f"tool.{definition.name}",call.get('args',{}),
+                                        {'source':definition.source,'server':definition.mcp_server,'attempt':attempt+1},
+                                        as_type='tool') as span:
+                                    raw=await asyncio.wait_for(definition.tool.ainvoke(call.get('args',{})),timeout)
+                                    span.finish(output={'result':str(raw)[:1000]},metadata={'attempt':attempt+1})
                             payload=json.loads(serialize_result(normalize_result(definition,raw)))
                             status='失败' if 'error' in payload else '成功'
                             break

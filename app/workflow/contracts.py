@@ -91,3 +91,4 @@ class TurnContext:
     context_config: Any = None
     confidence_config: Any = None
     evidence_check: Any = None
+    observability: Any = None

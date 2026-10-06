@@ -44,5 +44,9 @@ class Settings(BaseSettings):
     rag_min_score: float = 0.55
     # Exact Milvus category values; empty disables category filtering.
     rag_category_allowlist: tuple[str, ...] = ()
+    langfuse_enabled: bool = False
+    langfuse_host: str = "http://127.0.0.1:3000"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
 
 settings = Settings()

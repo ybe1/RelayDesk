@@ -26,7 +26,7 @@ class PreparedTurn:
 class WorkflowChatService:
     def __init__(self, graph, store, model_factory=None, tools_factory=build_tools, retriever=None,policy_retriever=None,
                  context_config=None,summary_repository=None,summary_worker=None,tool_registry=None,mcp_discovery=None,
-                 confidence_config=None,evidence_check=None):
+                 confidence_config=None,evidence_check=None,observability=None):
         self.graph, self.store = graph, store
         if model_factory is None:
             from app.core.llm import get_chat_model
@@ -34,6 +34,7 @@ class WorkflowChatService:
         self.model_factory, self.tools_factory, self.retriever = model_factory, tools_factory, retriever
         self.policy_retriever=policy_retriever
         self.confidence_config,self.evidence_check=confidence_config,evidence_check
+        self.observability=observability
         self.tool_registry,self.mcp_discovery=tool_registry,mcp_discovery
         self.active = set()
         from app.context.budget import config_from_settings
@@ -309,15 +310,21 @@ class WorkflowChatService:
             context.context_config=cfg
             context.confidence_config=self.confidence_config
             context.evidence_check=self.evidence_check
+            context.observability=self.observability
             state = Command(resume=prepared.resume_value) if prepared.resume_value else make_turn_input(req.message, cid, req.user_id, turn_id,
                                     [*history,message])
             if isinstance(state,dict): state['message_db_ids']=dict(message_db_ids)
             if isinstance(state,dict): state.update(ticket_request=ticket_request,ticket_confirmation={},tool_cursor=0,tool_observations=[])
             if isinstance(state,dict): state['context_anchors']={'summary_upto':projection.anchors.summary_upto,'layer1_from':projection.anchors.layer1_from}
             yield "conversation", {"conversation_id": cid}
-            async for namespace, event in self.graph.astream(state, {"configurable": {"thread_id": f"conversation:{cid}"}, "recursion_limit": 50},
-                                                  context=context, stream_mode="custom", subgraphs=True):
-                yield event
+            graph_config={"configurable": {"thread_id": f"conversation:{cid}"}, "recursion_limit": 50}
+            if self.observability is not None:
+                graph_config.update(self.observability.trace_config(cid,turn_id))
+            from app.observability.spans import use_runtime
+            with use_runtime(self.observability):
+                async for namespace, event in self.graph.astream(state, graph_config,
+                                                      context=context, stream_mode="custom", subgraphs=True):
+                    yield event
             pending=await self._pending(cid)
             if pending:
                 selection,values=pending

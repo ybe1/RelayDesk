@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from time import monotonic
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from app.knowledge.hybrid_store import HybridMilvusStore, build_filter
 from app.knowledge.query_understanding import QueryUnderstanding, understand_query
 from app.knowledge.rerank import MAX_DOCUMENT_BYTES, MAX_TOTAL_DOCUMENT_BYTES, RerankClient
+from app.observability.spans import observe_external
 
 _CLEANUP_TASKS: set[asyncio.Task] = set()
 
@@ -160,16 +162,29 @@ async def search_knowledge_ch04(
     filter_expr = build_filter(category=category if category is not None else understood.category)
     store = dependencies.store
     if strategy == "bm25":
-        candidates = await asyncio.to_thread(store.bm25_search, understood.search_query,
-                                             limit=50, filter_expr=filter_expr)
+        started=monotonic()
+        async with observe_external("milvus.bm25", {"query": understood.search_query},
+                                    {"strategy": strategy}, as_type="retriever") as span:
+            candidates = await asyncio.to_thread(store.bm25_search, understood.search_query,
+                                                 limit=50, filter_expr=filter_expr)
+            span.finish(output={"hits": len(candidates)}, metadata={"duration_ms": round((monotonic()-started)*1000)})
     else:
-        vectors = await asyncio.to_thread(dependencies.embedder.embed, [understood.normalized_query])
-        if strategy in {"dense", "vector"}:
-            candidates = await asyncio.to_thread(store.dense_search, vectors[0], limit=50,
-                                                 filter_expr=filter_expr)
-        else:
-            candidates = await asyncio.to_thread(store.hybrid_search, vectors[0], understood.search_query,
-                                                 recall_limit=50, output_limit=50, filter_expr=filter_expr)
+        started=monotonic()
+        async with observe_external("embedding.bge-m3", {"texts": [understood.normalized_query]},
+                                    {"attempts": 1}, as_type="embedding") as span:
+            vectors = await asyncio.to_thread(dependencies.embedder.embed, [understood.normalized_query])
+            span.finish(output={"vectors": len(vectors)}, metadata={"duration_ms": round((monotonic()-started)*1000)})
+        started=monotonic()
+        search_name="milvus.dense" if strategy in {"dense", "vector"} else "milvus.hybrid"
+        async with observe_external(search_name, {"query": understood.search_query},
+                                    {"strategy": strategy}, as_type="retriever") as span:
+            if strategy in {"dense", "vector"}:
+                candidates = await asyncio.to_thread(store.dense_search, vectors[0], limit=50,
+                                                     filter_expr=filter_expr)
+            else:
+                candidates = await asyncio.to_thread(store.hybrid_search, vectors[0], understood.search_query,
+                                                     recall_limit=50, output_limit=50, filter_expr=filter_expr)
+            span.finish(output={"hits": len(candidates)}, metadata={"duration_ms": round((monotonic()-started)*1000)})
 
     unique: dict[int, dict] = {}
     for candidate in candidates:
@@ -184,7 +199,11 @@ async def search_knowledge_ch04(
         budget = min(MAX_DOCUMENT_BYTES, MAX_TOTAL_DOCUMENT_BYTES // len(candidates))
         documents = [f"问题：{hit['question']}\n答案：{hit['answer']}".encode("utf-8")[:budget].decode("utf-8", errors="ignore")
                      for hit in candidates]
-        scores = await dependencies.reranker.rerank(understood.normalized_query, documents, top_n=top_k)
+        started=monotonic()
+        async with observe_external("rerank.bge-v2-m3", {"query": understood.normalized_query,
+                                    "document_count": len(documents)}, {"attempts": 1}, as_type="span") as span:
+            scores = await dependencies.reranker.rerank(understood.normalized_query, documents, top_n=top_k)
+            span.finish(output={"scores": len(scores)}, metadata={"duration_ms": round((monotonic()-started)*1000)})
         ranked = sorted(scores, key=lambda item: item[1], reverse=True)
         hits = [{**candidates[index], "rerank_score": score} for index, score in ranked]
         if hits[0]["rerank_score"] < dependencies.rerank_min_score:
