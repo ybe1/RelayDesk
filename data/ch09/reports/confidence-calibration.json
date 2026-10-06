@@ -21,7 +21,7 @@
     "key_clause": 0.1
   },
   "dataset_hash": "1db99fbd1b10ba41b030eed08f7c19f022fab31cf97e513e4c974b372d7e15c8",
-  "corpus_hash": "d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb",
+  "corpus_hash": "f39329926e083bb6db9d3155c60c8f539b918646401f988ab8a281e8a0a02396",
   "rerank_model": "BAAI/bge-reranker-v2-m3",
   "top_k": 5,
   "top1_floor": 0.0,
@@ -29,5 +29,5 @@
   "gap_floor": 0.0,
   "gap_ceiling": 1.0,
   "effective_score_threshold": 0.5,
-  "calibration_id": "1db99fbd1b10ba41b030eed08f7c19f022fab31cf97e513e4c974b372d7e15c8d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb"
+  "calibration_id": "1db99fbd1b10ba41b030eed08f7c19f022fab31cf97e513e4c974b372d7e15c8f39329926e083bb6db9d3155c60c8f539b918646401f988ab8a281e8a0a02396"
 }

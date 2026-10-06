@@ -26,6 +26,7 @@ import sys
 import time
 
 from app.evaluation.ch04_metrics import answer_point_coverage, refusal_rate, retrieval_metrics
+from app.evaluation.runtime_config import corpus_hash
 from app.evaluation.report_lock import ReportBusy, report_lock
 from app.evaluation.faithfulness import (
     FaithfulnessDecision, GeneratedAnswer, citation_snapshot, generate_answer, judge_faithfulness,
@@ -390,8 +391,7 @@ async def _live(args, cases, resume):
         "rerank_model": settings.rerank_model, "rerank_min_score": settings.rerank_min_score,
         "category_allowlist": list(settings.rag_category_allowlist), "query_temperature": 0.3,
         "answer_temperature": 0.3, "judge_temperature": 0,
-        "corpus_sha256": hashlib.sha256(b"".join(path.read_bytes() for path in sorted(
-            (Path(__file__).resolve().parents[1] / "data/kb").glob("*.md")))).hexdigest()}
+        "corpus_sha256": corpus_hash(Path(__file__).resolve().parents[1] / "data/kb")}
     answer_model = get_chat_model(disable_thinking=True)
     judge_model = get_chat_model(disable_thinking=True, temperature=0)
     async def generator(row, result):

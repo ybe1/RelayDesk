@@ -13,3 +13,14 @@ def test_runtime_confidence_loads_only_matching_active_configuration(tmp_path):
     ],candidate_thresholds=[.5],metadata={"dataset_hash":"d","corpus_hash":expected,"rerank_model":"r","top_k":5})
     path=tmp_path/"report.json"; save_report(report,path)
     assert load_runtime_confidence(path,kb,rerank_model="r",top_k=5).threshold==.5
+
+
+def test_corpus_hash_is_stable_across_checkout_line_endings(tmp_path):
+    from app.evaluation.runtime_config import corpus_hash
+
+    lf = tmp_path / "lf"
+    crlf = tmp_path / "crlf"
+    lf.mkdir(); crlf.mkdir()
+    (lf / "guide.md").write_bytes("标题\n正文\n".encode("utf-8"))
+    (crlf / "guide.md").write_bytes("标题\r\n正文\r\n".encode("utf-8"))
+    assert corpus_hash(lf) == corpus_hash(crlf)

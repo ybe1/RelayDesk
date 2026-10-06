@@ -8,7 +8,9 @@ from app.evaluation.confidence_calibration import load_confidence_config
 
 def corpus_hash(kb_dir: str | Path) -> str:
     root=Path(kb_dir)
-    return hashlib.sha256(b"".join(path.read_bytes() for path in sorted(root.glob("*.md")))).hexdigest()
+    contents = (path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+                for path in sorted(root.glob("*.md")))
+    return hashlib.sha256(b"".join(contents)).hexdigest()
 
 
 def load_runtime_confidence(report_path: str | Path, kb_dir: str | Path, *, rerank_model: str, top_k: int):
