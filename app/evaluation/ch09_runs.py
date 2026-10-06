@@ -95,13 +95,13 @@ class EvaluationDependencies:
 def run_ch09_evaluation(triggered_by: str, run_id: str, deps: EvaluationDependencies) -> EvalRunResult:
     """Run once, or repair the SQL row from an already-complete report."""
     report_path = Path(deps.report_dir) / f"{run_id.replace(':', '_')}.json"
-    if report_path.exists():
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    else:
-        report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else None
+    complete = report is not None and report.get("meta",{}).get("retrieval_status")=="complete" \
+        and report.get("generation",{}).get("status")=="complete"
+    if not complete:
         report = deps.evaluator(report_path)
-        if report is None:
-            report = json.loads(report_path.read_text(encoding="utf-8"))
+        if report is None: report = json.loads(report_path.read_text(encoding="utf-8"))
     result = result_from_ch04_report(report, run_id=run_id, triggered_by=triggered_by,
                                     scheduled_slot=deps.scheduled_slot)
     deps.repository.save_complete(result)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.rag_prompts import EVIDENCE_CHECK_PROMPT
 
@@ -16,6 +16,15 @@ class EvidenceDecision(BaseModel):
 
     useful: bool
     reason: str = Field(min_length=1, description="简述覆盖依据或缺失信息，不输出推理过程")
+
+    @field_validator("useful", mode="before")
+    @classmethod
+    def normalize_json_boolean_string(cls, value):
+        if value == "true":
+            return True
+        if value == "false":
+            return False
+        return value
 
 
 async def check_evidence(model, query: str, hits: list[dict]) -> EvidenceDecision:

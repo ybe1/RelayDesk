@@ -1,7 +1,6 @@
 """Create and read back one synthetic trace from the local Langfuse stack."""
 
 import asyncio
-import os
 import time
 from typing import TypedDict
 
@@ -15,6 +14,7 @@ class SmokeState(TypedDict):
 
 
 async def _emit_graph() -> str:
+    from app.config import settings
     builder = StateGraph(SmokeState)
     names = ("resolve", "intent", "retrieval", "confidence_gate", "agent")
     for name in names:
@@ -23,7 +23,7 @@ async def _emit_graph() -> str:
     for left, right in zip(names, names[1:]):
         builder.add_edge(left, right)
     builder.add_edge(names[-1], END)
-    handler = CallbackHandler()
+    handler = CallbackHandler(public_key=settings.langfuse_public_key)
     await builder.compile().ainvoke({"value": 0}, {"callbacks": [handler], "metadata": {
         "langfuse_session_id": "ch09-local-smoke", "langfuse_tags": ["synthetic-smoke"]}})
     if not handler.last_trace_id:
@@ -32,7 +32,9 @@ async def _emit_graph() -> str:
 
 
 def main() -> int:
-    client = Langfuse(host=os.environ.get("LANGFUSE_HOST", "http://127.0.0.1:3000"))
+    from app.config import settings
+    client = Langfuse(host=settings.langfuse_host,public_key=settings.langfuse_public_key,
+                      secret_key=settings.langfuse_secret_key)
     trace_id = asyncio.run(_emit_graph())
     client.flush()
     last_error = None

@@ -31,7 +31,15 @@ async def test_no_hits_is_insufficient_without_model(structured_transport):
     assert requests == []
 
 
-@pytest.mark.parametrize("output", [{"useful": "true", "reason": "wrong boolean"},
+async def test_evidence_output_accepts_json_boolean_string_from_provider(structured_transport):
+    from app.knowledge.evidence_check import check_evidence
+
+    model, _ = structured_transport("EvidenceDecision", {"useful": "true", "reason": "证据覆盖"})
+    result = await check_evidence(model, "期限？", [{"answer": "七天"}])
+    assert result.useful is True
+
+
+@pytest.mark.parametrize("output", [{"useful": "yes", "reason": "ambiguous boolean"},
                                    {"useful": True, "reason": " "},
                                    {"useful": True, "reason": "ok", "answer": "extra"}])
 async def test_invalid_evidence_output_is_rejected(output, structured_transport):

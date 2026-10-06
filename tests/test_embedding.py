@@ -118,7 +118,7 @@ def test_embed_does_not_retry_non_transient_http_statuses():
     assert attempts == 1
 
 
-def test_embed_does_not_retry_a_transport_error():
+def test_embed_retries_a_transport_error_because_embedding_is_read_only():
     from app.knowledge.embedding import EmbeddingClient
 
     attempts = 0
@@ -135,7 +135,7 @@ def test_embed_does_not_retry_a_transport_error():
 
     with pytest.raises(httpx.ConnectError):
         client.embed(["hello"])
-    assert attempts == 1
+    assert attempts == 3
 
 
 @pytest.mark.parametrize('recover', [True, False])

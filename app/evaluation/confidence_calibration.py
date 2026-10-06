@@ -119,7 +119,7 @@ def select_threshold(
     missing = [key for key in required if key not in metadata]
     if missing:
         raise ValueError(f"missing calibration metadata: {', '.join(missing)}")
-    calibration_id = str(metadata.get("calibration_id") or f"{metadata['dataset_hash']}:{metadata['corpus_hash']}")
+    calibration_id = str(metadata.get("calibration_id") or f"{metadata['dataset_hash']}{metadata['corpus_hash']}")
     return CalibrationReport(
         **chosen,
         weights=dict(WEIGHTS),

@@ -1,0 +1,29 @@
+event: conversation
+data: {"conversation_id": 3305}
+
+event: workflow_status
+data: {"node": "resolve"}
+
+event: workflow_status
+data: {"node": "intent"}
+
+event: workflow_status
+data: {"node": "retrieval"}
+
+event: workflow_status
+data: {"node": "confidence_gate"}
+
+event: workflow_status
+data: {"node": "fallback"}
+
+data: {"delta": "知识库证据不足，暂时无法确认，请补充信息或人工核实。", "node": "fallback"}
+
+event: workflow_status
+data: {"node": "log"}
+
+event: workflow_summary
+data: {"node_trace": ["resolve", "intent", "retrieval", "confidence_gate", "fallback", "log"], "stop_reason": "fallback", "usage": {"model_calls": 2, "tool_steps": 0, "tokens": 969, "estimated": false, "elapsed": 5.422000000020489, "external_usage": {"embedding": {"calls": 1, "seconds": 0.3119999999762513}, "rerank": {"calls": 1, "seconds": 0.5620000000344589}}}, "message_id": 6031}
+
+data: [DONE]
+
+

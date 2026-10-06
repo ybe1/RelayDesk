@@ -1,0 +1,63 @@
+{
+  "schema": "ch09-acceptance/v1",
+  "mode": "live-existing",
+  "created_at": "2026-10-06T15:55:07.3729755Z",
+  "passed": true,
+  "checks": [
+    {
+      "name": "live_confidence_calibration",
+      "passed": true,
+      "summary": [
+        "cases=80 threshold=0.113361043907935 false_pass_rate=0 false_block_rate=0"
+      ]
+    },
+    {
+      "name": "independent_full_eval_1",
+      "passed": true,
+      "summary": [
+        "dataset=300 recall_at_5=0.985416666666667 mrr=0.898561507936508 faithfulness=1"
+      ]
+    },
+    {
+      "name": "independent_full_eval_2",
+      "passed": true,
+      "summary": [
+        "dataset=300 recall_at_5=0.985416666666667 mrr=0.898110119047619 faithfulness=1"
+      ]
+    },
+    {
+      "name": "langfuse_trace_readback",
+      "passed": true,
+      "summary": [
+        "trace=7cbd2ff34e2baec373df9328002222c1 observations=6 nodes=resolve,intent,retrieval,confidence_gate,agent"
+      ]
+    },
+    {
+      "name": "flywheel_round_trip",
+      "passed": true,
+      "summary": [
+        "matched=7 approved=2 indexed=2",
+        "approved knowledge answered with citations; evidence in flywheel-chat-after.sse"
+      ]
+    },
+    {
+      "name": "browser",
+      "passed": true,
+      "summary": [
+        "review list/detail, NULL/empty/Top3 snapshots, approval and rejection, usage unavailable, two-run trend"
+      ]
+    },
+    {
+      "name": "full_suite",
+      "passed": true,
+      "summary": [
+        "825 passed, 1 third-party deprecation warning"
+      ]
+    }
+  ],
+  "provider_calls": {
+    "deepseek": "completed calibration, two resumed full evaluations, live flywheel chat",
+    "siliconflow": "completed calibration, two resumed full evaluations, incremental approved-chunk indexing",
+    "langfuse_local": "trace readback"
+  }
+}

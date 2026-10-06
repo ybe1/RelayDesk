@@ -1,0 +1,23 @@
+{
+  "id": 2,
+  "normalized_question": "平台提供火星移民签证吗",
+  "ai_suggested_answer": "平台是否提供火星移民签证服务，请以官方公布的服务范围为准。",
+  "occurrence_count": 1,
+  "review_status": "通过",
+  "approved_answer": "平台当前不提供火星移民签证相关商品或服务。",
+  "created_at": "2026-10-06T15:18:48",
+  "updated_at": "2026-10-06T15:32:54",
+  "vectorize_status": "done",
+  "chunk_id": 36,
+  "raw_questions": [
+    {
+      "id": 8,
+      "raw_question": "平台提供火星移民签证吗",
+      "source": "retrieval_low_conf",
+      "reason": "evidence_below_threshold",
+      "retrieved_chunks": null,
+      "conversation_id": 316,
+      "created_at": "2026-10-01T18:43:08"
+    }
+  ]
+}

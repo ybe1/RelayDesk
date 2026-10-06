@@ -1,0 +1,130 @@
+event: conversation
+data: {"conversation_id": 3311}
+
+event: workflow_status
+data: {"node": "resolve"}
+
+event: workflow_status
+data: {"node": "intent"}
+
+event: workflow_status
+data: {"node": "retrieval"}
+
+event: workflow_status
+data: {"node": "confidence_gate"}
+
+event: workflow_status
+data: {"node": "evidence_self_check"}
+
+event: citations
+data: {"citations": [{"n": 1, "chunk_id": 37, "section_path": "数据飞轮 / review_queue/3", "question": "你都有哪些商品", "answer_excerpt": "当前演示知识库包含智能饮水机等商品信息；如需了解具体商品，请提供商品名称或型号。"}, {"n": 2, "chunk_id": 28, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-W40", "question": "MH-W40", "answer_excerpt": "演示数据：MH-W40 为演示宠物饮水机。\nMH-W40 的额定功率：3 W。\nMH-W40 的水箱容量：2 L。\nMH-W40 的供电接口：USB-A 电源接口。\nMH-W40 的滤芯型号：WF-40。\nMH-W40 的缺水保护：缺水自动停泵。\nMH-W40 的清洗限制：底座不可浸水。"}, {"n": 3, "chunk_id": 6, "section_path": "after_sales.md / 售后手册 / 处理流程", "question": "处理流程", "answer_excerpt": "客服会核验订单和问题描述，再提供相应处理方案。\n本材料仅用于演示。"}, {"n": 4, "chunk_id": 22, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-V10 Pro", "question": "MH-V10 Pro", "answer_excerpt": "演示数据：MH-V10 Pro 为演示吸尘器。\nMH-V10 Pro 的额定功率：180 W。\nMH-V10 Pro 的尘杯容量：0.\n8 L。\nMH-V10 Pro 的续航：50 分钟。\nMH-V10 Pro 的充电接口：专用充电底座。\nMH-V10 Pro 的湿吸能力：支持少量清水湿吸。\nMH-V10 Pro 的附件：含地刷和除螨刷。"}, {"n": 5, "chunk_id": 25, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-A20 Pro", "question": "MH-A20 Pro", "answer_excerpt": "演示数据：MH-A20 Pro 为演示空气净化器。\nMH-A20 Pro 的额定功率：45 W。\nMH-A20 Pro 的适用面积：40 平方米。\nMH-A20 Pro 的颗粒物 CADR：350 立方米每小时。\nMH-A20 Pro 的滤芯型号：AF-20P。\nMH-A20 Pro 的联网能力：支持 2.\n4 GHz 和 5 GHz Wi-Fi。\nMH-A20 Pro 的夜间噪声：24 dB。"}, {"n": 6, "chunk_id": 26, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-F30", "question": "MH-F30", "answer_excerpt": "演示数据：MH-F30 为演示宠物喂食器。\nMH-F30 的额定功率：5 W。\nMH-F30 的粮桶容量：3 L。\nMH-F30 的每日定时餐数：最多 4 餐。\nMH-F30 的适用颗粒直径：2 至 10 mm。\nMH-F30 的摄像能力：不配备摄像头。\nMH-F30 的备用供电：三节 D 型电池。"}, {"n": 7, "chunk_id": 35, "section_path": "after_sales.md / 售后手册 / 人工客服时段", "question": "人工客服时段", "answer_excerpt": "演示数据：人工客服服务时间为每日九点至二十一点；非服务时段可留言并留下订单号。\n本条款仅用于教学演示，不代表真实平台承诺。"}, {"n": 8, "chunk_id": 5, "section_path": "products.md / 商品 FAQ / 商品咨询", "question": "商品咨询", "answer_excerpt": "商品页面会列出规格、库存和适用信息。\n本材料仅用于演示。"}, {"n": 9, "chunk_id": 27, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-F30 Pro", "question": "MH-F30 Pro", "answer_excerpt": "演示数据：MH-F30 Pro 为演示宠物喂食器。\nMH-F30 Pro 的额定功率：8 W。\nMH-F30 Pro 的粮桶容量：5 L。\nMH-F30 Pro 的每日定时餐数：最多 8 餐。\nMH-F30 Pro 的适用颗粒直径：2 至 12 mm。\nMH-F30 Pro 的摄像能力：配备 1080P 摄像头。\nMH-F30 Pro 的备用供电：四节 D 型电池。"}, {"n": 10, "chunk_id": 29, "section_path": "products.md / 商品 FAQ / 演示型号规格 / MH-W40S", "question": "MH-W40S", "answer_excerpt": "演示数据：MH-W40S 为演示宠物饮水机。\nMH-W40S 的额定功率：5 W。\nMH-W40S 的水箱容量：3 L。\nMH-W40S 的供电接口：USB-C 电源接口。\nMH-W40S 的滤芯型号：WF-40S。\nMH-W40S 的缺水保护：缺水停泵并亮红灯。\nMH-W40S 的清洗限制：底座和电源适配器不可浸水。"}]}
+
+data: {"delta": "有的", "node": "final_answer"}
+
+data: {"delta": "，", "node": "final_answer"}
+
+data: {"delta": "当前", "node": "final_answer"}
+
+data: {"delta": "演示", "node": "final_answer"}
+
+data: {"delta": "知识", "node": "final_answer"}
+
+data: {"delta": "库", "node": "final_answer"}
+
+data: {"delta": "中有", "node": "final_answer"}
+
+data: {"delta": "智能", "node": "final_answer"}
+
+data: {"delta": "饮水", "node": "final_answer"}
+
+data: {"delta": "机", "node": "final_answer"}
+
+data: {"delta": "类", "node": "final_answer"}
+
+data: {"delta": "商品", "node": "final_answer"}
+
+data: {"delta": "信息", "node": "final_answer"}
+
+data: {"delta": "[", "node": "final_answer"}
+
+data: {"delta": "1", "node": "final_answer"}
+
+data: {"delta": "]。", "node": "final_answer"}
+
+data: {"delta": "比如", "node": "final_answer"}
+
+data: {"delta": "演示", "node": "final_answer"}
+
+data: {"delta": "宠物", "node": "final_answer"}
+
+data: {"delta": "饮水", "node": "final_answer"}
+
+data: {"delta": "机", "node": "final_answer"}
+
+data: {"delta": " MH", "node": "final_answer"}
+
+data: {"delta": "-W", "node": "final_answer"}
+
+data: {"delta": "40", "node": "final_answer"}
+
+data: {"delta": " ", "node": "final_answer"}
+
+data: {"delta": "和", "node": "final_answer"}
+
+data: {"delta": " MH", "node": "final_answer"}
+
+data: {"delta": "-W", "node": "final_answer"}
+
+data: {"delta": "40", "node": "final_answer"}
+
+data: {"delta": "S", "node": "final_answer"}
+
+data: {"delta": "，", "node": "final_answer"}
+
+data: {"delta": "具体", "node": "final_answer"}
+
+data: {"delta": "规格", "node": "final_answer"}
+
+data: {"delta": "可以", "node": "final_answer"}
+
+data: {"delta": "查看", "node": "final_answer"}
+
+data: {"delta": "商品", "node": "final_answer"}
+
+data: {"delta": "页面", "node": "final_answer"}
+
+data: {"delta": "[", "node": "final_answer"}
+
+data: {"delta": "8", "node": "final_answer"}
+
+data: {"delta": "]。", "node": "final_answer"}
+
+data: {"delta": "如果你", "node": "final_answer"}
+
+data: {"delta": "有", "node": "final_answer"}
+
+data: {"delta": "想", "node": "final_answer"}
+
+data: {"delta": "了解", "node": "final_answer"}
+
+data: {"delta": "的具体", "node": "final_answer"}
+
+data: {"delta": "型号", "node": "final_answer"}
+
+data: {"delta": "，", "node": "final_answer"}
+
+data: {"delta": "可以", "node": "final_answer"}
+
+data: {"delta": "告诉我", "node": "final_answer"}
+
+data: {"delta": "。", "node": "final_answer"}
+
+event: workflow_status
+data: {"node": "log"}
+
+event: workflow_summary
+data: {"node_trace": ["resolve", "intent", "retrieval", "confidence_gate", "evidence_self_check", "decision", "final_answer", "log"], "stop_reason": "answered", "usage": {"model_calls": 5, "tool_steps": 0, "tokens": 7847, "estimated": false, "elapsed": 11.59399999998277, "external_usage": {"embedding": {"calls": 1, "seconds": 0.2970000000204891}, "rerank": {"calls": 1, "seconds": 0.8279999999795109}}}, "message_id": 6041}
+
+data: [DONE]
+
+

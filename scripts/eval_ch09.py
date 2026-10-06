@@ -41,7 +41,8 @@ def execution_lock():
 
 
 def _evaluate(path: Path):
-    code = subprocess.run([sys.executable, "-m", "scripts.eval_ch04", "--fresh", "--report", str(path)],
+    mode="--retry-skipped" if path.exists() else "--fresh"
+    code = subprocess.run([sys.executable, "-m", "scripts.eval_ch04", mode, "--report", str(path)],
                           cwd=ROOT, check=False).returncode
     if code:
         raise RuntimeError(f"Ch04 evaluation failed with exit code {code}")
@@ -51,12 +52,15 @@ def _evaluate(path: Path):
 def main(argv=None):
     parser=argparse.ArgumentParser()
     parser.add_argument("--triggered-by",choices=("manual","scheduled"),default="manual")
+    parser.add_argument("--run-id",help="Resume one explicit existing run; manual mode only")
     args=parser.parse_args(argv)
     state = _schedule_state()
     scheduled = args.triggered_by == "scheduled"
     if scheduled and not str(state.get("run_id", "")).startswith("scheduled:"):
         print("Ch09 evaluation failed: missing scheduled run identity",file=sys.stderr); return 1
-    run_id = state["run_id"] if scheduled else f"manual:{uuid.uuid4().hex}"
+    if scheduled and args.run_id:
+        parser.error("--run-id is only valid for manual evaluation")
+    run_id = state["run_id"] if scheduled else (args.run_id or f"manual:{uuid.uuid4().hex}")
     slot = state.get("attempted_slot") if scheduled else None
     try:
         with execution_lock():

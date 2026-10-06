@@ -1,0 +1,38 @@
+Ch04 RAG evaluation
+Cases: 300
+Retrieval: complete (1200 completed, 0 skipped)
+Generation: complete
+strategy | bucket | n/completed/skipped | Recall@5 | MRR | evidence coverage | answer point coverage
+vector | overall | 240/240/0 | 0.952083 | 0.868003 | 0.972917 | 0.810417 (generated=240/240)
+vector | A_policy | 60/60/0 | 1.000000 | 0.983333 | 1.000000 | 1.000000 (generated=60/60)
+vector | B_model | 60/60/0 | 1.000000 | 0.983333 | 1.000000 | 0.416667 (generated=60/60)
+vector | C_colloquial | 60/60/0 | 0.983333 | 0.928770 | 1.000000 | 0.991667 (generated=60/60)
+vector | D_out_of_scope | refusal=0.850000 | generated=60/60
+vector | E_multi | 60/60/0 | 0.825000 | 0.576574 | 0.891667 | 0.833333 (generated=60/60)
+bm25 | overall | 240/240/0 | 0.954167 | 0.859247 | 0.975000 | 0.810417 (generated=240/240)
+bm25 | A_policy | 60/60/0 | 1.000000 | 0.966667 | 1.000000 | 1.000000 (generated=60/60)
+bm25 | B_model | 60/60/0 | 1.000000 | 1.000000 | 1.000000 | 0.400000 (generated=60/60)
+bm25 | C_colloquial | 60/60/0 | 0.966667 | 0.856667 | 0.983333 | 0.983333 (generated=60/60)
+bm25 | D_out_of_scope | refusal=0.833333 | generated=60/60
+bm25 | E_multi | 60/60/0 | 0.850000 | 0.613654 | 0.916667 | 0.858333 (generated=60/60)
+hybrid | overall | 240/240/0 | 0.970833 | 0.884567 | 0.989583 | 0.825000 (generated=240/240)
+hybrid | A_policy | 60/60/0 | 1.000000 | 0.983333 | 1.000000 | 1.000000 (generated=60/60)
+hybrid | B_model | 60/60/0 | 1.000000 | 1.000000 | 1.000000 | 0.433333 (generated=60/60)
+hybrid | C_colloquial | 60/60/0 | 1.000000 | 0.927778 | 1.000000 | 1.000000 (generated=60/60)
+hybrid | D_out_of_scope | refusal=0.916667 | generated=60/60
+hybrid | E_multi | 60/60/0 | 0.883333 | 0.627156 | 0.958333 | 0.866667 (generated=60/60)
+hybrid_rerank | overall | 240/240/0 | 0.985417 | 0.898110 | 1.000000 | 0.825000 (generated=240/240)
+hybrid_rerank | A_policy | 60/60/0 | 1.000000 | 1.000000 | 1.000000 | 0.991667 (generated=60/60)
+hybrid_rerank | B_model | 60/60/0 | 1.000000 | 1.000000 | 1.000000 | 0.383333 (generated=60/60)
+hybrid_rerank | C_colloquial | 60/60/0 | 0.983333 | 0.935000 | 1.000000 | 1.000000 (generated=60/60)
+hybrid_rerank | D_out_of_scope | refusal=0.800000 | generated=60/60
+hybrid_rerank | E_multi | 60/60/0 | 0.958333 | 0.657440 | 1.000000 | 0.925000 (generated=60/60)
+hybrid_rerank faithfulness=1.000000; hallucination=0.000000; judged=240/240
+Hallucinated IDs this run: none
+Warnings: 0
+Metric definitions:
+- retrieval: original rank; group means per case, then means across A/B/C/E cases; D excluded
+- evidence_coverage: whitespace-normalized literal points in allowed sections within Top-10; group means
+- answer_point_coverage: whitespace-normalized literal points in answer; group means; not semantic scoring
+- failures: skipped calls excluded from metric denominators; counts always reported
+- refusal: completed D answers only; D excluded from all other metrics and judging

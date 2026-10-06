@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "checks": [
+    "review list/detail",
+    "NULL/empty/Top3 snapshots",
+    "approval and rejection",
+    "usage unavailable",
+    "two-run trend"
+  ]
+}

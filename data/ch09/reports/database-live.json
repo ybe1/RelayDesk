@@ -1,0 +1,396 @@
+{
+  "eval_runs": 2,
+  "matched": 7,
+  "approved": 2,
+  "indexed": 2,
+  "runs": [
+    {
+      "id": 2,
+      "dataset_size": 300,
+      "created_at": "2026-10-06T15:17:44",
+      "metrics": {
+        "failed": 0,
+        "run_id": "manual:5e887dfa92ad4024ad2221a1d7c9343e",
+        "completed": true,
+        "strategies": {
+          "bm25": {
+            "mrr": 0.8592468584656084,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6136541005291005,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.85
+              },
+              "A_policy": {
+                "mrr": 0.9666666666666668,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.8566666666666667,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9666666666666668
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9541666666666668
+          },
+          "hybrid": {
+            "mrr": 0.8845667989417989,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6271560846560846,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.8833333333333333
+              },
+              "A_policy": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.9277777777777778,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9708333333333332
+          },
+          "vector": {
+            "mrr": 0.8680026455026455,
+            "buckets": {
+              "B_model": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.576574074074074,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.825
+              },
+              "A_policy": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.9287698412698412,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9833333333333332
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9520833333333332
+          },
+          "hybrid_rerank": {
+            "mrr": 0.8981101190476191,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6574404761904762,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9583333333333334
+              },
+              "A_policy": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.935,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9833333333333332
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9854166666666668
+          }
+        },
+        "corpus_hash": "d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb",
+        "recall_at_k": 5,
+        "dataset_hash": "81b0ff2939fd9589214391bd782805db81d910d12ef44505171821df54426884",
+        "denominators": {
+          "dataset": 300,
+          "faithfulness": 240
+        },
+        "faithfulness": 1.0,
+        "refusal_rate": 0.8,
+        "configuration": {
+          "chat_model": "deepseek-v4-pro",
+          "rerank_model": "BAAI/bge-reranker-v2-m3",
+          "corpus_sha256": "d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb",
+          "embedding_model": "BAAI/bge-m3",
+          "rerank_min_score": 0.0,
+          "judge_temperature": 0,
+          "query_temperature": 0.3,
+          "answer_temperature": 0.3,
+          "category_allowlist": []
+        },
+        "scheduled_slot": null,
+        "configuration_hash": "3c25ceca95b91ef68fd5348a2933894ff903d2048f24a8aaa1b3cc22b55a509b"
+      }
+    },
+    {
+      "id": 1,
+      "dataset_size": 300,
+      "created_at": "2026-10-06T13:54:06",
+      "metrics": {
+        "failed": 0,
+        "run_id": "manual:d515158bbecb406eb1535f688e5056c1",
+        "completed": true,
+        "strategies": {
+          "bm25": {
+            "mrr": 0.8617791005291006,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6154497354497355,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.8666666666666667
+              },
+              "A_policy": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.8483333333333334,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9666666666666668
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9583333333333334
+          },
+          "hybrid": {
+            "mrr": 0.8905018187830688,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6342294973544973,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.85
+              },
+              "A_policy": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.9277777777777778,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9625
+          },
+          "vector": {
+            "mrr": 0.8677595899470899,
+            "buckets": {
+              "B_model": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.5756018518518519,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.8166666666666667
+              },
+              "A_policy": {
+                "mrr": 0.9833333333333332,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.9287698412698412,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9833333333333332
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.95
+          },
+          "hybrid_rerank": {
+            "mrr": 0.8985615079365079,
+            "buckets": {
+              "B_model": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "E_multi": {
+                "mrr": 0.6592460317460317,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9583333333333334
+              },
+              "A_policy": {
+                "mrr": 1.0,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 1.0
+              },
+              "C_colloquial": {
+                "mrr": 0.935,
+                "skipped": 0,
+                "completed": 60,
+                "case_count": 60,
+                "recall_at_5": 0.9833333333333332
+              },
+              "D_out_of_scope": {
+                "excluded": true,
+                "case_count": 60
+              }
+            },
+            "skipped": 0,
+            "completed": 240,
+            "recall_at_5": 0.9854166666666668
+          }
+        },
+        "corpus_hash": "d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb",
+        "recall_at_k": 5,
+        "dataset_hash": "81b0ff2939fd9589214391bd782805db81d910d12ef44505171821df54426884",
+        "denominators": {
+          "dataset": 300,
+          "faithfulness": 240
+        },
+        "faithfulness": 1.0,
+        "refusal_rate": 0.8,
+        "configuration": {
+          "chat_model": "deepseek-v4-pro",
+          "rerank_model": "BAAI/bge-reranker-v2-m3",
+          "corpus_sha256": "d428b1d9923837fb08beac282e3e1f0a0e4fd6a580879453b363fefe93c3f7eb",
+          "embedding_model": "BAAI/bge-m3",
+          "rerank_min_score": 0.0,
+          "judge_temperature": 0,
+          "query_temperature": 0.3,
+          "answer_temperature": 0.3,
+          "category_allowlist": []
+        },
+        "scheduled_slot": null,
+        "configuration_hash": "3c25ceca95b91ef68fd5348a2933894ff903d2048f24a8aaa1b3cc22b55a509b"
+      }
+    }
+  ]
+}
