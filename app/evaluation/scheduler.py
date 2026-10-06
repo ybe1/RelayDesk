@@ -44,10 +44,20 @@ def mysql_scheduler_lock(session_factory):
 
 
 class FlywheelScheduler:
-    def __init__(self, runner, state_path: Path, *, lock_factory):
+    def __init__(self, runner, state_path: Path, *, lock_factory, report_dir: Path | None = None):
         self.runner = runner
         self.state_path = Path(state_path)
         self.lock_factory = lock_factory
+        self.report_dir=Path(report_dir) if report_dir else self.state_path.parents[2]/"reports"
+
+    def _complete_report_exists(self,state):
+        run_id=str(state.get("run_id", ""))
+        if not run_id:return False
+        path=self.report_dir/f"{run_id.replace(':','_')}.json"
+        try:
+            report=json.loads(path.read_text(encoding="utf-8"))
+            return report.get("meta",{}).get("retrieval_status")=="complete" and report.get("generation",{}).get("status")=="complete"
+        except (OSError,json.JSONDecodeError): return False
 
     def _read(self) -> dict | None:
         try:
@@ -74,13 +84,20 @@ class FlywheelScheduler:
                              "status": "enabled"})
                 return SchedulerDecision("enabled", slot)
             if state.get("attempted_slot") == slot:
+                if state.get("status")=="manual_recovery_required" and self._complete_report_exists(state):
+                    try:
+                        job=self.runner.start("eval-flywheel",mode="scheduled")
+                        state.update(status="started",job_id=job.get("job_id")); self._write(state)
+                        return SchedulerDecision("repair_started",slot,0)
+                    except Exception:
+                        return SchedulerDecision("repair_waiting",slot,0)
                 return SchedulerDecision("already_attempted", slot)
             # Persist the paid-run attempt before process creation. A crash or
             # failed call must be resumed manually and never charged again at startup.
             state.update(attempted_slot=slot, status="starting", run_id=f"scheduled:{slot}")
             self._write(state)
             try:
-                job = self.runner.start("eval-flywheel")
+                job = self.runner.start("eval-flywheel", mode="scheduled")
                 state.update(status="started", job_id=job.get("job_id"))
                 self._write(state)
                 return SchedulerDecision("started", slot, 1)
@@ -115,4 +132,27 @@ class SchedulerLoop:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout)
+
+
+class MaintenanceLoop:
+    """Submit fixed idempotent flywheel jobs; JobRunner prevents overlap."""
+    def __init__(self, runner, interval_seconds: float = 60):
+        self.runner,self.interval_seconds=runner,interval_seconds
+        self._stop=threading.Event(); self._thread=None
+    def tick(self):
+        for name in ("flywheel-process","flywheel-index-recover"):
+            try: self.runner.start(name)
+            except Exception as error:
+                if type(error).__name__ != "JobAlreadyRunning":
+                    LOGGER.warning("maintenance job %s not started: %s",name,type(error).__name__)
+    def start(self):
+        if self._thread is not None:return
+        self._thread=threading.Thread(target=self._run,daemon=True,name="ch09-maintenance")
+        self._thread.start()
+    def _run(self):
+        while not self._stop.is_set():
+            self.tick(); self._stop.wait(self.interval_seconds)
+    def close(self,timeout:float=2):
+        self._stop.set()
+        if self._thread is not None:self._thread.join(timeout)
 

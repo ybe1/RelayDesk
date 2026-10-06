@@ -77,3 +77,12 @@ def test_invalid_limit_and_oversize_utf8_fail_before_remote_write():
     assert store.calls == []
     with pytest.raises(ValueError, match="limit"):
         index_pending_review_chunks(factory, Embedder(), store, limit=0)
+
+
+def test_incremental_index_holds_shared_knowledge_writer_lock():
+    factory=_sessions(); _add(factory); events=[]
+    class Lock:
+        def __enter__(self): events.append("enter")
+        def __exit__(self,*_): events.append("exit")
+    index_pending_review_chunks(factory,Embedder(),Store(),lock_factory=lambda:Lock())
+    assert events == ["enter","exit"]

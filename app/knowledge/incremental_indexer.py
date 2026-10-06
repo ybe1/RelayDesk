@@ -7,6 +7,8 @@ from sqlalchemy import select
 from app.db.models import KnowledgeChunk
 from app.flywheel.review import CATEGORY, SOURCE_PREFIX
 from app.knowledge.hybrid_store import validate_text_fields
+from app.knowledge.locks import writer_lock
+from contextlib import nullcontext
 
 
 @dataclass(frozen=True)
@@ -16,9 +18,16 @@ class IndexReport:
 
 
 def index_pending_review_chunks(session_factory, embedder, store, *, limit: int = 100,
-                                after_upsert=None) -> IndexReport:
+                                after_upsert=None, lock_factory=None) -> IndexReport:
     if not 1 <= limit <= 1000:
         raise ValueError("limit must be between 1 and 1000")
+    engine=session_factory.kw.get("bind")
+    lock = lock_factory or (lambda: writer_lock(engine) if engine.dialect.name == "mysql" else nullcontext())
+    with lock():
+        return _index_pending_review_chunks(session_factory,embedder,store,limit=limit,after_upsert=after_upsert)
+
+
+def _index_pending_review_chunks(session_factory, embedder, store, *, limit, after_upsert):
     with session_factory() as session:
         rows = list(session.scalars(select(KnowledgeChunk).where(
             KnowledgeChunk.vectorize_status == "pending",

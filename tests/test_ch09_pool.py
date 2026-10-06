@@ -5,6 +5,12 @@ from app.db.models import LowConfidenceQuestion
 from app.flywheel.pool import GapEvent, record_gap
 
 
+def test_mysql_advisory_lock_name_fits_server_limit():
+    from app.flywheel.pool import gap_lock_name
+    assert len(gap_lock_name("turn-1:feedback")) <= 64
+    assert gap_lock_name("turn-1:feedback") == gap_lock_name("turn-1:feedback")
+
+
 def factory(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'pool.db'}")
     with engine.begin() as connection:

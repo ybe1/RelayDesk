@@ -121,7 +121,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
 
     async def confidence_gate(state: WorkflowState, runtime: Runtime[TurnContext]):
         update = traced(state, "confidence_gate")
-        operational = state.get("gate_reason", "").startswith("retrieval_unavailable:")
+        operational = state.get("gate_reason", "").startswith(("retrieval_unavailable:", "expansion_unavailable:")) \
+            or state.get("gate_reason") == "order_unavailable"
         if not state["gate_allowed"] and not operational and runtime.context.record_low_confidence is not None:
             try:
                 callback = runtime.context.record_low_confidence
@@ -160,7 +161,8 @@ def build_workflow(deps=None, checkpointer=None, gate_threshold=None):
             if node == "fallback" and "unavailable" in state.get("gate_reason", ""):
                 current = "查询服务暂时不可用，请稍后重试或选择人工核实。"
             message = AIMessage(content=current, id=f"{state['turn_id']}:final",
-                additional_kwargs={'evidence_snapshot':state.get('evidence_snapshot') or None})
+                additional_kwargs={'evidence_snapshot':state.get('evidence_snapshot') or None,
+                                   'gate_reason':state.get('gate_reason') or None})
             await persist(runtime.context, message)
             get_stream_writer()(("delta", {"delta": current, "node": node}))
             update.update(messages=[message], final_text=current, actions=actions or [], stop_reason=node)

@@ -56,7 +56,8 @@ async def lifespan(application):
     from app.observability.langfuse import ObservabilityRuntime
     from app.observability.usage import IntentUsageService
     from app.evaluation.ch09_runs import EvalRunRepository
-    from app.evaluation.scheduler import FlywheelScheduler, SchedulerLoop, mysql_scheduler_lock
+    from app.evaluation.scheduler import FlywheelScheduler, SchedulerLoop, MaintenanceLoop, mysql_scheduler_lock
+    from app.evaluation.runtime_config import load_runtime_confidence_if_available
     cfg=config_from_settings(settings)
     registry,discovery=create_runtime_tools()
     initial=registry.snapshot(CallContext(session_factory=SessionLocal,conversation_id=0))
@@ -64,28 +65,40 @@ async def lifespan(application):
     cfg=with_tool_prefix(cfg,[SystemMessage(content=AGENT_SYSTEM)],schemas)
     breakdown=validate_context_capacity(cfg,estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas))
     observability=ObservabilityRuntime.from_settings(settings)
+    confidence_config=load_runtime_confidence_if_available(
+        _BASE_DIR.parent/settings.workflow_confidence_report_path,
+        _BASE_DIR.parent/"data/kb",rerank_model=settings.rerank_model,top_k=settings.rag_top_k)
+    if confidence_config is None:
+        _log.warning("confidence calibration report is absent; run scripts.calibrate_ch09 --live before production acceptance")
     application.state.observability = observability
     application.state.intent_usage_service = (IntentUsageService(observability.client)
                                                 if observability.enabled and observability.client is not None else None)
     application.state.eval_run_repository = EvalRunRepository(SessionLocal)
     schedule = FlywheelScheduler(get_job_runner(), _BASE_DIR.parent / "data/runtime/ch09/eval-schedule.json",
-                                 lock_factory=mysql_scheduler_lock(SessionLocal))
+                                 lock_factory=mysql_scheduler_lock(SessionLocal),
+                                 report_dir=_BASE_DIR.parent/"data/ch09/reports")
     schedule_loop = SchedulerLoop(schedule)
     schedule_loop.start()
+    maintenance_loop=MaintenanceLoop(get_job_runner())
+    maintenance_loop.start()
+    application.state.review_index_submitter=lambda: get_job_runner().start("flywheel-index-recover")
     _log.info('context startup fixed_prefix=%s history=%s layer1=%s layer2=%s',estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas),breakdown.history,breakdown.layer1,breakdown.layer2)
     async with checkpoint_runtime(settings.workflow_checkpoint_path) as saver:
         application.state.workflow_service = WorkflowChatService(build_workflow(checkpointer=saver), DatabaseChatStore(SessionLocal),
-            context_config=cfg,tool_registry=registry,mcp_discovery=discovery,observability=observability)
+            context_config=cfg,tool_registry=registry,mcp_discovery=discovery,observability=observability,
+            confidence_config=confidence_config)
         try:
             yield
         finally:
             await application.state.workflow_service.summary_worker.aclose()
             await asyncio.to_thread(schedule_loop.close)
+            await asyncio.to_thread(maintenance_loop.close)
             await asyncio.to_thread(get_job_runner().shutdown)
             await asyncio.to_thread(observability.shutdown,2.0)
             application.state.observability = None
             application.state.intent_usage_service = None
             application.state.eval_run_repository = None
+            application.state.review_index_submitter = None
             application.state.workflow_service = None
 
 

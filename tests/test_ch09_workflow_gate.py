@@ -13,6 +13,16 @@ from tests.ch06_fakes import resolution_message
 from tests.test_ch05_agent_graph import GraphModel
 
 
+def test_calibrated_gate_preserves_original_ranks():
+    from types import SimpleNamespace
+    from app.workflow.retrieval import calibrated_gate
+    hits=[{"id":i,"section_path":"s","question":"q","answer":"a","rerank_score":.9-i/100,"rank":r}
+          for i,r in zip(range(1,6),[1,3,5,4,2])]
+    snapshot,_=calibrated_gate("q",SimpleNamespace(hits=hits,strategy="hybrid_rerank"),config(0))
+    assert [hit.chunk_id for hit in snapshot.hits] == [1,5,2,4,3]
+    assert [hit.rank for hit in snapshot.hits] == [1,2,3,4,5]
+
+
 def config(threshold=0.7):
     return ConfidenceConfig(threshold=threshold, top1_floor=0, top1_ceiling=1,
         gap_floor=0, gap_ceiling=1, effective_score_threshold=0.5,

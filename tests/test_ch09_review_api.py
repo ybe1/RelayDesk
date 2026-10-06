@@ -86,3 +86,11 @@ def test_approval_rejects_utf8_fields_over_collection_caps():
         "decision": "通过", "approved_answer": "猫" * 20_000, "expected_status": "待审"})
     assert response.status_code == 422
     del app.state.review_session_factory
+
+
+def test_client_cannot_supply_terminal_expected_status():
+    factory=_sessions(); review_id=_seed(factory); app.state.review_session_factory=factory
+    response=TestClient(app).post(f"/api/review-queue/{review_id}/decision",json={
+        "decision":"驳回","expected_status":"通过"})
+    assert response.status_code == 422
+    del app.state.review_session_factory

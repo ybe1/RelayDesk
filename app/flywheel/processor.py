@@ -37,10 +37,19 @@ class ProcessReport:
 
 
 _PHONE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+_ORDER = re.compile(r"(?i)(?<=订单)[A-Z0-9-]{6,32}|(?<!\d)\d{10,32}(?!\d)")
 
 
 def _deidentify(value: str) -> str:
-    return _PHONE.sub("[手机号]", value)
+    return _ORDER.sub("[订单号]", _PHONE.sub("[手机号]", value))
+
+
+def _read_state(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def _atomic_state(path: Path, payload: dict) -> None:
@@ -52,7 +61,8 @@ def _atomic_state(path: Path, payload: dict) -> None:
 
 def _operational(row: LowConfidenceQuestion) -> bool:
     reason = row.reason or ""
-    return any(marker in reason for marker in ("retrieval_unavailable:", "运行故障", "服务暂时不可用"))
+    return any(marker in reason for marker in ("retrieval_unavailable:", "order_unavailable",
+        "expansion_unavailable:", "运行故障", "服务暂时不可用"))
 
 
 async def process_pending(*, session_factory, model, batch_size: int = 20,
@@ -70,8 +80,11 @@ async def process_pending(*, session_factory, model, batch_size: int = 20,
             acquired = LOCAL_FLYWHEEL_LOCK.acquire(blocking=False)
         if not acquired:
             return ProcessReport()
+        state_file = Path(state_path)
+        state = _read_state(state_file)
+        excluded = set(state.get("operational_skips", [])) | set(state.get("failed", []))
         with session_factory() as session:
-            rows = pending_gaps(session, batch_size)
+            rows = pending_gaps(session, batch_size, excluded_ids=excluded)
             candidates = list_all_candidates(session)
             candidate_payload = [{"id": row.id, "question": row.normalized_question,
                                   "status": row.review_status} for row in candidates]
@@ -80,18 +93,27 @@ async def process_pending(*, session_factory, model, batch_size: int = 20,
             raise CandidateBudgetError("review candidates exceed the single-call context budget")
         allowed_ids = {row["id"] for row in candidate_payload}
         counts = {"scanned": len(rows), "created": 0, "merged": 0, "skipped": 0, "model_calls": 0}
-        skipped_ids = []
+        skipped_ids = list(state.get("operational_skips", []))
+        failed_ids = list(state.get("failed", []))
         for detached in rows:
             if _operational(detached):
                 counts["skipped"] += 1
-                skipped_ids.append(detached.id)
+                if detached.id not in skipped_ids: skipped_ids.append(detached.id)
                 continue
-            payload = json.dumps({"question": _deidentify(detached.raw_question),
+            snapshot = detached.retrieved_chunks
+            resolved = (snapshot.get("query") if isinstance(snapshot, dict) else
+                        (snapshot[0].get("retrieval_query") if isinstance(snapshot,list) and snapshot else None))
+            payload = json.dumps({"question": _deidentify(resolved or detached.raw_question),
                                   "candidates": candidate_payload}, ensure_ascii=False)
             messages = FLYWHEEL_PROMPT.format_messages(payload=payload)
-            raw = await model.with_structured_output(FlywheelDecision, method="function_calling").ainvoke(messages)
-            decision = FlywheelDecision.model_validate(raw.model_dump() if isinstance(raw, BaseModel) else raw)
-            counts["model_calls"] += 1
+            try:
+                raw = await model.with_structured_output(FlywheelDecision, method="function_calling").ainvoke(messages)
+                counts["model_calls"] += 1
+                decision = FlywheelDecision.model_validate(raw.model_dump() if isinstance(raw, BaseModel) else raw)
+            except Exception:
+                counts["skipped"] += 1
+                if detached.id not in failed_ids: failed_ids.append(detached.id)
+                continue
             if decision.matched_question_id is not None and decision.matched_question_id not in allowed_ids:
                 raise ValueError("model returned a candidate ID that was not supplied")
             with session_factory() as session:
@@ -116,8 +138,9 @@ async def process_pending(*, session_factory, model, batch_size: int = 20,
                     counts["merged"] += 1
                 gap.matched_review_id = review.id
                 session.commit()
-        if skipped_ids:
-            await asyncio.to_thread(_atomic_state, Path(state_path), {"operational_skips": skipped_ids})
+        if skipped_ids or failed_ids:
+            await asyncio.to_thread(_atomic_state, state_file,
+                {"operational_skips": skipped_ids, "failed": failed_ids})
         return ProcessReport(**counts)
     finally:
         if mysql and acquired:

@@ -16,7 +16,7 @@ class GapEvent:
     raw_question: str
     source: Literal["retrieval_low_conf", "self_check", "user_feedback"]
     reason: str
-    retrieved_chunks: list[dict] | None
+    retrieved_chunks: list[dict] | dict | None
     event_key: str
 
 
@@ -26,10 +26,15 @@ def _digest(event_key: str) -> str:
     return hashlib.sha256(event_key.encode("utf-8")).hexdigest()
 
 
+def gap_lock_name(event_key: str) -> str:
+    """MySQL advisory lock names are limited to 64 characters."""
+    return f"mewhelp:gap:{_digest(event_key)[:48]}"
+
+
 def record_gap(event: GapEvent, session_factory) -> int:
     digest = _digest(event.event_key)
     marker = f"[event:{digest}]"
-    lock_name = f"mewhelp:gap:{digest}"
+    lock_name = gap_lock_name(event.event_key)
     with session_factory() as session:
         mysql = session.bind is not None and session.bind.dialect.name == "mysql"
         acquired = False

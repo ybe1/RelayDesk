@@ -14,7 +14,9 @@ def list_all_candidates(session, *, page_size: int = 200) -> list[ReviewQueue]:
         cursor = page[-1].id
 
 
-def pending_gaps(session, limit: int) -> list[LowConfidenceQuestion]:
-    return list(session.scalars(select(LowConfidenceQuestion)
-        .where(LowConfidenceQuestion.matched_review_id.is_(None))
+def pending_gaps(session, limit: int, *, excluded_ids=()) -> list[LowConfidenceQuestion]:
+    query = select(LowConfidenceQuestion).where(LowConfidenceQuestion.matched_review_id.is_(None))
+    if excluded_ids:
+        query = query.where(LowConfidenceQuestion.id.not_in(set(excluded_ids)))
+    return list(session.scalars(query
         .order_by(LowConfidenceQuestion.id).limit(limit)))

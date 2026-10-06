@@ -17,7 +17,7 @@ class GateDecision:
 
 
 def calibrated_gate(query, result, config, *, query_sources=None):
-    hits = [{**hit, "rank": rank} for rank, hit in enumerate(result.hits, 1)]
+    hits = [{**hit, "rank": hit.get("rank", rank)} for rank, hit in enumerate(result.hits, 1)]
     snapshot = snapshot_hits(
         query, getattr(result, "strategy", "hybrid_rerank"), hits,
         retrieval_id=uuid4().hex, created_at=datetime.now(UTC), query_sources=query_sources,

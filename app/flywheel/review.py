@@ -6,6 +6,8 @@ from sqlalchemy import select, text
 
 from app.db.models import KnowledgeChunk, ReviewQueue
 from app.flywheel.locks import FLYWHEEL_LOCK_NAME, LOCAL_FLYWHEEL_LOCK
+from app.knowledge.locks import writer_lock
+from contextlib import nullcontext
 
 
 CATEGORY = "用户问题补充"
@@ -26,12 +28,18 @@ class ReviewResult:
 
 def approve_review(session_factory, review_id: int, approved_answer: str,
                    expected_status: str = "待审") -> ReviewResult:
+    if expected_status != "待审":
+        raise ValueError("only pending reviews can be decided")
     answer = approved_answer.strip() if isinstance(approved_answer, str) else ""
     if not answer or len(answer.encode("utf-8")) > 49_152:
         raise ValueError("approved_answer must be nonempty and fit the knowledge answer field")
     section = f"{SOURCE_PREFIX}{review_id}"
-    return _under_flywheel_lock(session_factory, _approve_transaction,
-        review_id, answer, expected_status, section)
+    engine=session_factory.kw.get("bind")
+    knowledge_lock=writer_lock(engine) if engine.dialect.name == "mysql" else nullcontext()
+    # Knowledge lock is always outermost; rebuild and review approval cannot interleave.
+    with knowledge_lock:
+        return _under_flywheel_lock(session_factory, _approve_transaction,
+            review_id, answer, expected_status, section)
 
 
 def _approve_transaction(session_factory, review_id, answer, expected_status, section):
@@ -61,6 +69,8 @@ def _approve_transaction(session_factory, review_id, answer, expected_status, se
 
 
 def reject_review(session_factory, review_id: int, expected_status: str = "待审") -> ReviewResult:
+    if expected_status != "待审":
+        raise ValueError("only pending reviews can be decided")
     return _under_flywheel_lock(session_factory, _reject_transaction, review_id, expected_status)
 
 

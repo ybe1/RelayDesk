@@ -63,7 +63,7 @@ def review_detail(request: Request, review_id: int):
 class DecisionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     decision: Literal["通过", "驳回"]
-    expected_status: Literal["待审", "通过", "驳回"] = "待审"
+    expected_status: Literal["待审"] = "待审"
     approved_answer: str | None = Field(default=None)
 
     @model_validator(mode="after")
@@ -88,4 +88,9 @@ async def decide_review(request: Request, review_id: int, payload: DecisionReque
         raise HTTPException(409, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    if payload.decision == "通过":
+        submit=getattr(request.app.state,"review_index_submitter",None)
+        if submit is not None:
+            try: submit()
+            except Exception: pass
     return result

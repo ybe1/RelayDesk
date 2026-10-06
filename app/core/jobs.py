@@ -47,6 +47,8 @@ JOB_MODULES = {
 }
 HEAVY_JOBS = frozenset({"kb-reset", "eval-rag", "eval-flywheel"})
 EVAL_MODES = {"resume": (), "retry": ("--retry-skipped",), "fresh": ("--fresh",)}
+FLYWHEEL_EVAL_MODES = {"manual": ("--triggered-by", "manual"),
+                       "scheduled": ("--triggered-by", "scheduled")}
 
 
 class UnknownJob(LookupError):
@@ -120,9 +122,14 @@ class JobRunner:
             mode = "resume" if mode is None else mode
             if mode not in EVAL_MODES:
                 raise ValueError("unsupported eval-rag mode")
+        elif name == "eval-flywheel":
+            mode = "manual" if mode is None else mode
+            if mode not in FLYWHEEL_EVAL_MODES:
+                raise ValueError("unsupported eval-flywheel mode")
         elif mode is not None:
-            raise ValueError("mode is only supported for eval-rag")
-        argv = [*JOBS[name], *(EVAL_MODES[mode] if mode else ())]
+            raise ValueError("mode is unsupported for this job")
+        extra=EVAL_MODES[mode] if name=="eval-rag" else (FLYWHEEL_EVAL_MODES[mode] if name=="eval-flywheel" else ())
+        argv = [*JOBS[name], *extra]
         with self._start_lock:
             if not self._available(name):
                 raise JobUnavailable(f"{name} is unavailable: required module {JOB_MODULES[name]} is missing")

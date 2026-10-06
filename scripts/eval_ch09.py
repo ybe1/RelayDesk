@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 import uuid
+import argparse
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -47,9 +48,14 @@ def _evaluate(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def main():
+def main(argv=None):
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--triggered-by",choices=("manual","scheduled"),default="manual")
+    args=parser.parse_args(argv)
     state = _schedule_state()
-    scheduled = state.get("status") in {"starting", "started"} and str(state.get("run_id", "")).startswith("scheduled:")
+    scheduled = args.triggered_by == "scheduled"
+    if scheduled and not str(state.get("run_id", "")).startswith("scheduled:"):
+        print("Ch09 evaluation failed: missing scheduled run identity",file=sys.stderr); return 1
     run_id = state["run_id"] if scheduled else f"manual:{uuid.uuid4().hex}"
     slot = state.get("attempted_slot") if scheduled else None
     try:
@@ -57,8 +63,14 @@ def main():
             result = run_ch09_evaluation("定时" if scheduled else "手动", run_id,
                 EvaluationDependencies(EvalRunRepository(SessionLocal), REPORTS, _evaluate, slot))
         print(json.dumps(result.metrics, ensure_ascii=False))
+        if scheduled:
+            state.update(status="complete")
+            SCHEDULE.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding="utf-8")
         return 0
     except Exception as error:
+        if scheduled:
+            state.update(status="manual_recovery_required",error=type(error).__name__)
+            SCHEDULE.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding="utf-8")
         print(f"Ch09 evaluation failed: {type(error).__name__}", file=sys.stderr)
         return 1
 

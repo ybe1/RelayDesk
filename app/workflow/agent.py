@@ -170,7 +170,8 @@ def build_agent_graph(deps=None):
             writer(("delta", {"delta": STOP_TEXT, "node": "final_answer"}))
         message = AIMessage(content=content, id=f"{state['turn_id']}:final",
             additional_kwargs={'citations':state.get('citations',[]),
-                'evidence_snapshot':state.get('evidence_snapshot') or None})
+                'evidence_snapshot':state.get('evidence_snapshot') or None,
+                'gate_reason':state.get('gate_reason') or None})
         await persist(context, message)
         return {"messages": [message], "final_text": content, "stop_reason": reason,
                 "budget_usage": context.budget.snapshot(), "node_trace": state.get("node_trace", []) + ["final_answer"]}

@@ -171,7 +171,8 @@ class WorkflowChatService:
 
     def _pool(self, cid, raw, source, reason, snapshot=None, event_key=None):
         from app.flywheel.pool import GapEvent,record_gap
-        stored = list(snapshot.get('hits', []))[:3] if isinstance(snapshot, dict) else snapshot
+        stored = ([{**hit,'retrieval_query':snapshot.get('query','')} for hit in list(snapshot.get('hits', []))[:3]]
+                  if isinstance(snapshot, dict) else snapshot)
         return record_gap(GapEvent(cid,raw,source,reason,stored,event_key or f'{cid}:{source}:{raw}'),
                           self.store.session_factory)
 

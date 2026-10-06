@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -63,6 +64,8 @@ def result_from_ch04_report(report: dict, *, run_id: str, triggered_by: str,
         "D_out_of_scope", {}).get("refusal_rate")
     complete = meta.get("retrieval_status") == "complete" and generation.get("status") == "complete"
     configuration = meta.get("configuration", {})
+    configuration_hash=hashlib.sha256(json.dumps(configuration,sort_keys=True,ensure_ascii=False,
+        separators=(",",":")).encode("utf-8")).hexdigest()
     metrics = {
         "run_id": run_id,
         "dataset_hash": meta.get("dataset_sha256"),
@@ -75,6 +78,8 @@ def result_from_ch04_report(report: dict, *, run_id: str, triggered_by: str,
         "failed": meta.get("retrieval_skipped", 0) + faith.get("skipped", 0),
         "denominators": {"dataset": meta.get("case_count"), "faithfulness": faith.get("completed", 0)},
         "scheduled_slot": scheduled_slot,
+        "configuration": configuration,
+        "configuration_hash": configuration_hash,
     }
     return EvalRunResult(triggered_by=triggered_by, dataset_size=int(meta.get("case_count", 0)), metrics=metrics)
 

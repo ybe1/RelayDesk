@@ -74,12 +74,18 @@ async def chat_feedback(request: Request, payload: FeedbackRequest):
     if final is None or "evidence_snapshot" not in final.additional_kwargs:
         raise HTTPException(409, "所选回答的证据快照已失效")
     evidence = final.additional_kwargs.get("evidence_snapshot")
-    chunks = None if evidence is None else list(evidence.get("hits", []))[:3]
+    chunks = None if evidence is None else [
+        {**hit,"retrieval_query":evidence.get("query","")} for hit in list(evidence.get("hits", []))[:3]]
+    gate_reason = final.additional_kwargs.get("gate_reason")
+    reason = "用户反馈该回答未解决问题"
+    if gate_reason and (str(gate_reason).startswith(("retrieval_unavailable:", "expansion_unavailable:"))
+                        or gate_reason == "order_unavailable"):
+        reason += f"；{gate_reason}"
     event = GapEvent(
         conversation_id=payload.conversation_id,
         raw_question=raw_question,
         source="user_feedback",
-        reason="用户反馈该回答未解决问题",
+        reason=reason,
         retrieved_chunks=chunks,
         event_key=f"feedback:{payload.conversation_id}:{payload.assistant_message_id}",
     )
