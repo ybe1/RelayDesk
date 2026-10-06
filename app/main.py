@@ -128,3 +128,13 @@ async def rag_eval_page() -> FileResponse:
     return FileResponse(_BASE_DIR / "static" / "rag-eval.html")
 
 
+@app.get("/review", include_in_schema=False)
+async def review_page() -> FileResponse:
+    return FileResponse(_BASE_DIR / "static" / "review.html")
+
+
+@app.get("/observability", include_in_schema=False)
+async def observability_page() -> FileResponse:
+    return FileResponse(_BASE_DIR / "static" / "observability.html")
+
+

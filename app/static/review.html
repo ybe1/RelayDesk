@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>知识缺口审核 · 喵喵优选</title><link rel="stylesheet" href="/static/admin.css"><link rel="stylesheet" href="/static/review.css"></head>
+<body><header class="site-header"><a class="brand" href="/"><span class="brand-mark">🐱</span><span><b>喵喵优选</b><small>智能客服工作台</small></span></a><nav id="app-nav" class="site-nav"></nav></header>
+<main class="page"><div class="page-title"><div><h1>知识缺口审核</h1><p class="muted">按出现次数优先处理；展开原话与当时证据后再决定是否入库。</p></div><button id="refresh" class="secondary">刷新</button></div><div id="notice" class="notice" role="status"></div>
+<div class="filters" role="group" aria-label="审核状态"><button data-status="待审">待审</button><button data-status="通过" class="secondary">已通过</button><button data-status="驳回" class="secondary">已驳回</button></div>
+<section id="queue" class="review-list"><p class="empty">读取中…</p></section></main>
+<dialog id="approve-dialog"><form method="dialog" id="approve-form"><h2>核准知识答案</h2><p id="approve-question" class="muted"></p><label for="approved-answer">核准答案</label><textarea id="approved-answer" required></textarea><div class="actions"><button value="cancel" class="secondary">取消</button><button id="approve-submit" value="default">确认通过并入库</button></div></form></dialog>
+<script src="/static/admin.js"></script><script src="/static/review.js"></script></body></html>

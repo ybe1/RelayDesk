@@ -1,0 +1,1 @@
+.trend{display:grid;gap:10px;margin-top:14px}.run{border:1px solid var(--border);border-radius:11px;padding:12px}.run-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}.run-grid b{display:block;font-size:18px}.hash{font:11px/1.5 ui-monospace,Consolas,monospace;word-break:break-all}@media(max-width:700px){.run-grid{grid-template-columns:repeat(2,1fr)}}
