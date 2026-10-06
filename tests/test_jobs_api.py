@@ -61,7 +61,7 @@ def test_job_commands_are_fixed_python_argv_and_never_shell(monkeypatch, tmp_pat
     argv, kwargs = calls[0]
     assert argv == [sys.executable, "-m", "scripts.kb", "preview"]
     assert kwargs["shell"] is False
-    assert set(JOBS) >= {"kb-reset", "seed-conv", "eval-retrieval", "eval-mining"}
+    assert set(JOBS) >= {"kb-reset", "seed-conv", "eval-retrieval", "eval-mining", "flywheel-process"}
 
 
 def test_stop_only_reports_stopped_after_the_owned_process_exits(monkeypatch, tmp_path):

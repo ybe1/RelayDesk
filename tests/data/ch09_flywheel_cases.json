@@ -1,0 +1,9 @@
+[
+  {"id":"paraphrase","left":"邮费是多少","right":"配送费用怎么收","same":true},
+  {"id":"model","left":"MH-V10 怎么退","right":"MH-V20 怎么退","same":false},
+  {"id":"negation","left":"支持七天退货吗","right":"不支持七天退货吗","same":false},
+  {"id":"reference","left":"它能退吗","right":"猫窝能退吗","same":false},
+  {"id":"passed","status":"通过","same":true},
+  {"id":"rejected","status":"驳回","same":true},
+  {"id":"operational","reason":"retrieval_unavailable:TimeoutError","skip":true}
+]
