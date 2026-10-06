@@ -18,6 +18,7 @@ from app.api.refunds import router as refunds_router
 from app.api.conversations import router as conversations_router
 from app.api.feedback import router as feedback_router
 from app.api.review_queue import router as review_queue_router
+from app.api.observability import router as observability_router
 
 # uvicorn 默认不给应用记录器配 handler,不手动加这一句,logger.info 一句都看不见
 _log = logging.getLogger("app")
@@ -52,6 +53,7 @@ async def lifespan(application):
     from langchain_core.messages import SystemMessage
     from langchain_core.utils.function_calling import convert_to_openai_tool
     from app.observability.langfuse import ObservabilityRuntime
+    from app.observability.usage import IntentUsageService
     cfg=config_from_settings(settings)
     registry,discovery=create_runtime_tools()
     initial=registry.snapshot(CallContext(session_factory=SessionLocal,conversation_id=0))
@@ -59,6 +61,9 @@ async def lifespan(application):
     cfg=with_tool_prefix(cfg,[SystemMessage(content=AGENT_SYSTEM)],schemas)
     breakdown=validate_context_capacity(cfg,estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas))
     observability=ObservabilityRuntime.from_settings(settings)
+    application.state.observability = observability
+    application.state.intent_usage_service = (IntentUsageService(observability.client)
+                                                if observability.enabled and observability.client is not None else None)
     _log.info('context startup fixed_prefix=%s history=%s layer1=%s layer2=%s',estimate_messages([SystemMessage(content=AGENT_SYSTEM)],schemas),breakdown.history,breakdown.layer1,breakdown.layer2)
     async with checkpoint_runtime(settings.workflow_checkpoint_path) as saver:
         application.state.workflow_service = WorkflowChatService(build_workflow(checkpointer=saver), DatabaseChatStore(SessionLocal),
@@ -69,6 +74,8 @@ async def lifespan(application):
             await application.state.workflow_service.summary_worker.aclose()
             await asyncio.to_thread(get_job_runner().shutdown)
             await asyncio.to_thread(observability.shutdown,2.0)
+            application.state.observability = None
+            application.state.intent_usage_service = None
             application.state.workflow_service = None
 
 
@@ -84,6 +91,7 @@ app.include_router(refunds_router)
 app.include_router(conversations_router)
 app.include_router(feedback_router)
 app.include_router(review_queue_router)
+app.include_router(observability_router)
 
 # 客服聊天页(前端):静态资源 + 首页
 app.mount("/static", StaticFiles(directory=_BASE_DIR / "static"), name="static")
