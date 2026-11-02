@@ -7,13 +7,9 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.core.llm import get_chat_model
-from app.db.session import SessionLocal
 from app.schemas.chat import ChatRequest,SelectionRequest,TicketDecisionRequest
-from app.services.chat import ChatService, DatabaseChatStore
-from app.services.tool_executor import ToolExecutor
-from app.tools.business import build_tools
 from app.context.budget import ContextCapacityError
+from app.workflow.service import WorkflowChatService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,18 +20,15 @@ def get_chat_service(request: Request):
 
 
 @router.post("/api/chat")
-async def chat(req: ChatRequest, service: ChatService = Depends(get_chat_service)):
-    from app.workflow.service import WorkflowChatService
-    prepared = None
-    if isinstance(service, WorkflowChatService):
-        try:
-            prepared = await service.prepare(req)
-        except PermissionError as exc:
-            raise HTTPException(403, "会话不属于当前用户") from exc
-        except LookupError as exc:
-            raise HTTPException(404, "会话不存在") from exc
-        except RuntimeError as exc:
-            raise HTTPException(409, "此会话正在处理，请等待本轮完成") from exc
+async def chat(req: ChatRequest, service: WorkflowChatService = Depends(get_chat_service)):
+    try:
+        prepared = await service.prepare(req)
+    except PermissionError as exc:
+        raise HTTPException(403, "会话不属于当前用户") from exc
+    except LookupError as exc:
+        raise HTTPException(404, "会话不存在") from exc
+    except RuntimeError as exc:
+        raise HTTPException(409, "此会话正在处理，请等待本轮完成") from exc
     return stream_chat(req,service,prepared)
 
 
@@ -43,7 +36,12 @@ def stream_chat(req,service,prepared,selection=False,ticket=False):
     async def event_stream() -> AsyncIterator[str]:
         events = None
         try:
-            events = service.ticket_decision_events(req,prepared=prepared) if ticket else (service.selection_events(req,prepared=prepared) if selection else (service.events(req, prepared=prepared) if prepared else service.events(req)))
+            if ticket:
+                events = service.ticket_decision_events(req, prepared=prepared)
+            elif selection:
+                events = service.selection_events(req, prepared=prepared)
+            else:
+                events = service.events(req, prepared=prepared)
             async for kind, data in events:
                 if kind == "done":
                     yield "data: [DONE]\n\n"

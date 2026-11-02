@@ -68,7 +68,7 @@ async def test_capacity_error_is_actionable_in_sse():
     from app.context.budget import ContextCapacityError
     from app.schemas.chat import ChatRequest
     class Service:
-        async def events(self,req):
+        async def events(self,req,prepared=None):
             raise ContextCapacityError('用户输入超出上下文额度，请缩短后重试')
             yield
     response=stream_chat(ChatRequest(user_id='u',message='过长'),Service(),None)

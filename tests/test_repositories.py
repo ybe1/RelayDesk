@@ -1,9 +1,8 @@
 from sqlalchemy import select
 
-from app.db.models import Conversation, FAQ, Message, Ticket
+from app.db.models import Conversation, Message, Ticket
 from app.db.session import SessionLocal
 from app.repositories.conversations import get_or_create_conversation
-from app.repositories.faq import search_faq
 from app.repositories.messages import append_message, load_messages
 from app.repositories.tickets import create_ticket
 
@@ -28,11 +27,8 @@ def test_conversation_owner_and_message_order():
         session.rollback()
 
 
-def test_faq_literal_like_and_ticket_status_transaction():
+def test_ticket_status_transaction():
     with SessionLocal() as session:
-        assert search_faq(session, "退货政策")
-        assert search_faq(session, "邮费") == []
-        assert search_faq(session, "%") == []
         conversation = get_or_create_conversation(session, "ticket-test")
         ticket = create_ticket(session, conversation.id, "需要人工", "咨询")
         assert ticket.ticket_no.startswith("T")

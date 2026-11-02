@@ -1,44 +1,11 @@
-"""One selection call, at most one tool execution, then a streamed final answer."""
+"""Database chat persistence and complete-turn history trimming."""
 
 import json
-import inspect
-from collections.abc import AsyncIterator, Callable
+from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.messages.utils import count_tokens_approximately
-
-from app.config import settings
-from app.core.prompts import CUSTOMER_SERVICE_PROMPT
-from app.schemas.chat import ChatRequest
-
-
-def _tool_payload(content) -> dict:
-    try:
-        payload = json.loads(content)
-    except (ValueError, TypeError):
-        return {"error": {"code": "malformed_tool_result"}}
-    return payload if isinstance(payload, dict) else {"error": {"code": "malformed_tool_result"}}
-
-
-def _faq_citations(payload: dict) -> list:
-    if "error" in payload:
-        return []
-    result = payload.get("result")
-    result = _tool_payload(result) if isinstance(result, str) else result
-    if not isinstance(result, dict) or result.get("sufficient") is not True:
-        return []
-    citations = result.get("citations")
-    fields = {"n", "chunk_id", "section_path", "question", "answer_excerpt"}
-    if not isinstance(citations, list) or any(
-        not isinstance(item, dict) or set(item) != fields
-        or type(item["n"]) is not int or item["n"] != n
-        or item["chunk_id"] is None
-        or not isinstance(item["question"], str) or not isinstance(item["answer_excerpt"], str)
-        for n, item in enumerate(citations, 1)
-    ):
-        return []
-    return citations
 
 
 def trim_turns(messages: list, budget: int) -> list:
@@ -103,77 +70,3 @@ class DatabaseChatStore:
                 else:
                     history.append(ToolMessage(content=row.content or "", tool_call_id=row.tool_call_id,id=stable_id,additional_kwargs=metadata))
             return history
-
-
-class ChatService:
-    def __init__(self, model, store, tools_factory, executor_factory):
-        self.model = model
-        self.store = store
-        self.tools_factory = tools_factory
-        self.executor_factory = executor_factory
-
-    async def events(self, req: ChatRequest) -> AsyncIterator[tuple[str, dict | None]]:
-        conversation_id = self.store.start_or_load(req.user_id, req.conversation_id)
-        self.store.append(conversation_id, HumanMessage(content=req.message))
-        yield "conversation", {"conversation_id": conversation_id}
-
-        history = trim_turns(self.store.load_history(conversation_id), settings.token_budget)
-        prompt_messages = CUSTOMER_SERVICE_PROMPT.format_messages(history=history)
-        try:
-            inspect.signature(self.tools_factory).bind(conversation_id, raw_question=req.message)
-        except (TypeError, ValueError):
-            tools = self.tools_factory(conversation_id)  # Legacy injected factories.
-        else:
-            tools = self.tools_factory(conversation_id, raw_question=req.message)
-        tools=[tool for tool in tools if tool.name!='query_logistics']
-        selection = await self.model.bind_tools(tools, tool_choice="auto").ainvoke(prompt_messages)
-        final_messages = list(prompt_messages)
-
-        if selection.tool_calls:
-            request_message = AIMessage(content=selection.content or "", tool_calls=selection.tool_calls)
-            self.store.append(conversation_id, request_message)
-            final_messages.append(request_message)
-            pending = {call["id"]: call for call in selection.tool_calls}
-            try:
-                executor = self.executor_factory(tools)
-                from app.services.tool_executor import ToolExecutor
-                from app.tooling.contracts import CallContext
-                if isinstance(executor,ToolExecutor):
-                    executor.context=CallContext(conversation_id=conversation_id,user_id=req.user_id,
-                        raw_question=req.message,session_factory=getattr(self.store,'session_factory',None))
-                for index, call in enumerate(selection.tool_calls):
-                    if index == 0:
-                        yield "tool_status", {"tool_name": call["name"], "phase": "running", "message": "正在查询"}
-                        result = await executor.execute(call)
-                    else:
-                        result = await executor.fail(call,'single_tool_limit','本轮未执行') if isinstance(executor,ToolExecutor) else ToolMessage(
-                            content=json.dumps({"error": {"code": "single_tool_limit", "message": "本轮未执行"}}, ensure_ascii=False),
-                            tool_call_id=call["id"],
-                        )
-                    self.store.append(conversation_id, result)
-                    pending.pop(call["id"])
-                    final_messages.append(result)
-                    if index == 0:
-                        payload = _tool_payload(result.content)
-                        phase = "error" if "error" in payload else "success"
-                        yield "tool_status", {"tool_name": call["name"], "phase": phase, "message": "查询完成" if phase == "success" else "查询失败"}
-                        if call["name"] == "query_faq" and (citations := _faq_citations(payload)):
-                            yield "citations", {"citations": citations}
-            finally:
-                for call in pending.values():
-                    self.store.append(
-                        conversation_id,
-                        ToolMessage(
-                            content=json.dumps({"error": {"code": "interrupted", "message": "工具执行被中断，结果未知"}}, ensure_ascii=False),
-                            tool_call_id=call["id"],
-                        ),
-                    )
-
-        chunks: list[str] = []
-        async for chunk in self.model.astream(final_messages):
-            piece = chunk.content if isinstance(chunk.content, str) else ""
-            if piece:
-                chunks.append(piece)
-                yield "delta", {"delta": piece}
-        self.store.append(conversation_id, AIMessage(content="".join(chunks)))
-        yield "done", None

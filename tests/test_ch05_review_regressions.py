@@ -47,9 +47,7 @@ async def test_cancel_waits_for_inflight_save_before_cleanup_and_release():
             entered.set()
             assert unblock.wait(5)
         rows.append(msg.type)
-    def close(cid):
-        if rows and rows[-1] == "ai": rows.append("tool")
-    service._save, service._close_pending = save, close
+    service._save = save
     prepared = PreparedTurn(1, "turn")
     service.active.add(1)
     async def consume():
@@ -66,7 +64,7 @@ async def test_cancel_waits_for_inflight_save_before_cleanup_and_release():
     finally:
         unblock.set()
         with pytest.raises(asyncio.CancelledError): await task
-    assert rows == ["human", "ai", "tool"]
+    assert rows == ["human", "ai"]
     assert 1 not in service.active
 
 

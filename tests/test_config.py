@@ -14,5 +14,5 @@ def test_账号相关的三项必填(monkeypatch):
 def test_settings_env_override(monkeypatch):
     for k, v in {"CHAT_MODEL": "m", "CHAT_BASE_URL": "u", "CHAT_API_KEY": "k"}.items():
         monkeypatch.setenv(k, v)
-    monkeypatch.setenv("TOKEN_BUDGET", "500")
-    assert Settings(_env_file=None).token_budget == 500
+    monkeypatch.setenv("MAX_OUTPUT_TOKENS", "500")
+    assert Settings(_env_file=None).max_output_tokens == 500

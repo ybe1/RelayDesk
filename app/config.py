@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     chat_model: str
     chat_base_url: str
     chat_api_key: str
-    token_budget: int = 2000
     model_context_window: int = Field(default=1_000_000,gt=0)
     max_output_tokens: int = Field(default=4000,gt=0)
     max_user_input_tokens: int = Field(default=4000,gt=0)
@@ -34,7 +33,6 @@ class Settings(BaseSettings):
     embed_api_key: str = ""
     milvus_uri: str = "http://127.0.0.1:19530"
     milvus_collection: str = "knowledge_ch04"
-    recall_top_k: int = 50
     rerank_base_url: str = "https://api.siliconflow.cn/v1"
     rerank_api_key: str = ""
     rerank_model: str = "BAAI/bge-reranker-v2-m3"

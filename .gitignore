@@ -11,3 +11,9 @@ log/acceptance/
 log/acceptance/task-5-report.json
 log/app.log
 data/ch07/reports/*.sqlite*
+
+# Local caches, temporary document renders, and scheduled runtime reports
+.uv-cache*/
+tmp/
+docs/.report-word/
+data/ch09/reports/scheduled_*

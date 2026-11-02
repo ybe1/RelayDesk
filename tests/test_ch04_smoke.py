@@ -22,7 +22,7 @@ def _settings(**overrides):
 def test_ch04_settings_have_safe_defaults(monkeypatch):
     for name in (
         "RERANK_BASE_URL", "RERANK_API_KEY", "RERANK_MODEL", "MILVUS_COLLECTION",
-        "RECALL_TOP_K", "RERANK_TOP_K", "RERANK_MIN_SCORE",
+        "RERANK_TOP_K", "RERANK_MIN_SCORE",
     ):
         monkeypatch.delenv(name, raising=False)
     config = _settings()
@@ -30,7 +30,6 @@ def test_ch04_settings_have_safe_defaults(monkeypatch):
     assert config.rerank_api_key == ""
     assert config.rerank_model == "BAAI/bge-reranker-v2-m3"
     assert config.milvus_collection == "knowledge_ch04"
-    assert config.recall_top_k == 50
     assert config.rerank_top_k == 10
     assert config.rerank_min_score == 0.0
 

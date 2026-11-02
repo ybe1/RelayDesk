@@ -5,7 +5,6 @@ from uuid import uuid4
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from app.config import settings
-from app.services.chat import trim_turns
 from app.tools.business import build_tools
 from app.services.tool_executor import ToolExecutor
 from .contracts import AgentDependencies, TurnContext
@@ -156,11 +155,6 @@ class WorkflowChatService:
     def release(self, prepared):
         self.active.discard(prepared.conversation_id)
 
-    def _close_pending(self, cid):
-        # Compatibility hook: actual closing now uses checkpoint + saved writes
-        # in events.cleanup. No tool observations are ever inserted in SQL here.
-        return None
-
     def _save(self, cid, turn_id, message):
         if message.type=='tool': return None
         from app.repositories.messages import append_once
@@ -216,7 +210,6 @@ class WorkflowChatService:
         try:
             if estimate_text(req.message)>cfg.user_input:
                 raise ContextCapacityError('用户输入超出上下文额度，请缩短后重试')
-            await asyncio.to_thread(self._close_pending, cid)
             if prepared.resume_value:
                 history=list(prepared.resume_state.get('messages',[]))
                 if 'confirmation_id' in prepared.resume_value:
@@ -343,7 +336,6 @@ class WorkflowChatService:
             async def cleanup():
                 if pending_writes:
                     await asyncio.shield(asyncio.gather(*pending_writes, return_exceptions=True))
-                await asyncio.to_thread(self._close_pending, cid)
                 waiting=await self._pending(cid)
                 if not waiting and getattr(self.graph,'checkpointer',None):
                     from .history import merge_history,close_missing_results

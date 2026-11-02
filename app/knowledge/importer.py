@@ -2,31 +2,13 @@ from collections.abc import Callable
 
 from sqlalchemy import select
 
-from app.db.models import FAQ, KnowledgeChunk
+from app.db.models import KnowledgeChunk
 from app.knowledge.chunks import ChunkDraft, ImportResult
 from app.knowledge.dedup import qa_fingerprint
 
 
 _LIMITS = {"category": 255, "section_path": 512, "content_type": 32}
 _TEXT_LIMIT = 65535
-
-
-def legacy_faq_draft(faq) -> ChunkDraft:
-    """Copy one legacy FAQ without modifying the Ch02 record it came from."""
-    return ChunkDraft(
-        category=faq.category,
-        questions=faq.question,
-        answer=faq.answer,
-        section_path=f"legacy-faq/{faq.id}",
-        content_type="faq",
-    )
-
-
-def import_legacy_faq(session_factory: Callable) -> ImportResult:
-    """Read legacy FAQ rows, then copy only unknown QA pairs into Ch03 knowledge."""
-    with session_factory() as session:
-        drafts = [legacy_faq_draft(faq) for faq in session.scalars(select(FAQ).order_by(FAQ.id))]
-    return import_chunks(session_factory, drafts)
 
 
 def _validate(draft: ChunkDraft) -> None:

@@ -149,17 +149,27 @@ async def test_agent_keeps_catalog_schema_fixed_in_all_phases():
     _,model,_=await scenario([{'kind':'answer','reason':'回答'}])
     assert 'create_ticket' in model.advertised
 
+
 @pytest.mark.asyncio
-async def test_legacy_chat_audit_retains_conversation_id():
-    from langchain_core.messages import AIMessage
-    from tests.test_chat_service import MemoryStore,Model
-    from tests.test_ch08_executor import Audits
-    from app.services.chat import ChatService
+async def test_workflow_tool_audit_retains_conversation_id():
+    from langchain_core.messages import HumanMessage
+    from app.workflow.agent import build_agent_graph
+    from app.workflow.contracts import TurnContext, AgentDependencies
+    from app.workflow.budget import TurnBudget, Limits
+    from app.tooling.contracts import CallContext
     from app.services.tool_executor import ToolExecutor
     from app.tools.business import build_tools
-    from app.schemas.chat import ChatRequest
-    audits=Audits()
-    model=Model(AIMessage(content='',tool_calls=[{'name':'query_order','args':{'order_id':'1001'},'id':'legacy-order'}]))
-    service=ChatService(model,MemoryStore(),lambda cid:build_tools(lambda:None,cid),lambda tools:ToolExecutor(tools,audits=audits))
-    events=[e async for e in service.events(ChatRequest(user_id='legacy-user',message='订单1001'))]
-    assert audits.rows[0]['conversation_id']==events[0][1]['conversation_id']
+    from tests.test_ch08_executor import Audits
+    from tests.test_ch05_agent_graph import GraphModel, tools_decision
+    audits = Audits()
+    tools = build_tools(lambda: None, 7)
+    model = GraphModel([tools_decision("query_order"), {"kind": "answer", "reason": "已有订单信息"}])
+    context = TurnContext(AgentDependencies(model, tools, ToolExecutor(
+        tools, audits=audits, context=CallContext(conversation_id=7))), TurnBudget(Limits(tokens=100000)))
+    result = await build_agent_graph().ainvoke({"messages": [HumanMessage(content="订单1001")],
+        "conversation_id": 7, "turn_id": "audit-turn", "node_trace": [], "evidence": [], "citations": []},
+        context=context)
+    assert result["stop_reason"] == "answered"
+    assert len(audits.rows) == 1
+    assert audits.rows[0]["conversation_id"] == 7
+    assert audits.rows[0]["status"] == "成功"

@@ -1,11 +1,10 @@
 import pytest
-from types import SimpleNamespace
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import FAQ, KnowledgeChunk
+from app.db.models import KnowledgeChunk
 from app.knowledge.chunks import ChunkDraft
-from app.knowledge.importer import import_chunks, import_legacy_faq, legacy_faq_draft
+from app.knowledge.importer import import_chunks
 
 
 @pytest.fixture
@@ -30,16 +29,6 @@ def session_factory():
                 next_chunk_id INTEGER REFERENCES knowledge_chunks(id) ON DELETE SET NULL,
                 vector_id VARCHAR(64),
                 vectorize_status VARCHAR NOT NULL DEFAULT 'pending',
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        connection.exec_driver_sql("""
-            CREATE TABLE faq (
-                id INTEGER PRIMARY KEY,
-                question VARCHAR(512) NOT NULL,
-                answer TEXT NOT NULL,
-                category VARCHAR(64) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
@@ -77,30 +66,3 @@ def test_import_rolls_back_everything_when_a_draft_is_too_long(session_factory):
 
     with session_factory() as session:
         assert session.scalars(select(KnowledgeChunk)).all() == []
-
-
-def test_legacy_faq_is_copied_read_only_into_a_stable_source_draft():
-    faq = SimpleNamespace(id=42, category="配送", question="多久送达？", answer="通常两天内送达。")
-    draft = legacy_faq_draft(faq)
-
-    assert draft.category == "配送"
-    assert draft.questions == "多久送达？"
-    assert draft.answer == "通常两天内送达。"
-    assert draft.section_path == "legacy-faq/42"
-    assert draft.content_type == "faq"
-
-
-def test_import_legacy_faq_reads_without_mutating_ch02_rows(session_factory):
-    with session_factory.begin() as session:
-        session.add(FAQ(id=7, category="配送", question="多久送达？", answer="通常两天内送达。"))
-
-    first = import_legacy_faq(session_factory)
-    second = import_legacy_faq(session_factory)
-
-    assert first.inserted == 1
-    assert second.inserted == 0
-    with session_factory() as session:
-        faq = session.get(FAQ, 7)
-        chunk = session.scalars(select(KnowledgeChunk)).one()
-    assert (faq.category, faq.question, faq.answer) == ("配送", "多久送达？", "通常两天内送达。")
-    assert chunk.section_path == "legacy-faq/7"
